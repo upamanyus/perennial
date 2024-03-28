@@ -196,7 +196,6 @@ def main():
             "./rfc1813",
             "./simpledb",
             "./wal",
-            "./trust_import",
             "./comments",
         )
 

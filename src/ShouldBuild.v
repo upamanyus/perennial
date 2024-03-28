@@ -67,7 +67,7 @@ From Perennial.goose_lang.lib Require
 
 (* goose output *)
 From Goose.github_dot_com.tchajed.goose.internal.examples Require
-     comments simpledb logging2 rfc1813 trust__import.
+     comments simpledb logging2 rfc1813.
 
 (* interpreter semantics tests *)
 From Perennial.goose_lang.interpreter Require

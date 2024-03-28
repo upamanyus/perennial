@@ -3,9 +3,9 @@ From Perennial.goose_lang Require Import prelude.
 From Goose Require github_dot_com.mit_dash_pdos.vmvcc.config.
 From Goose Require github_dot_com.mit_dash_pdos.vmvcc.index.
 From Goose Require github_dot_com.mit_dash_pdos.vmvcc.tid.
+From Goose Require github_dot_com.mit_dash_pdos.vmvcc.trusted__proph.
 From Goose Require github_dot_com.mit_dash_pdos.vmvcc.txnsite.
 From Goose Require github_dot_com.mit_dash_pdos.vmvcc.wrbuf.
-From Perennial.goose_lang.trusted Require Import github_dot_com.mit_dash_pdos.vmvcc.trusted__proph.
 
 From Perennial.goose_lang Require Import ffi.grove_prelude.
 
