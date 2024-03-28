@@ -5,7 +5,7 @@ From Perennial.goose_lang Require Import crash_borrow.
 From Perennial.algebra Require Import mlist map.
 From Perennial.program_proof.aof Require Import proof.
 From Perennial.program_proof.vrsm.replica Require Import start_proof definitions.
-From Goose.github_com.mit_pdos.gokv.vrsm Require Export storage.
+From Goose.github_dot_com.mit_dash_pdos.gokv.vrsm Require Export storage.
 
 Section global_proof.
 

@@ -1,4 +1,4 @@
-From Goose.github_com.mit_pdos.gokv.etcd Require Import election .
+From Goose.github_dot_com.mit_dash_pdos.gokv.etcd Require Import election .
 From Perennial.program_proof Require Import grove_prelude.
 From iris.base_logic Require Import ghost_map.
 

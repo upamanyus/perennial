@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.vmvcc.examples Require Export strnum.
+From Goose.github_dot_com.mit_dash_pdos.vmvcc.examples Require Export strnum.
 
 Section program.
 Context `{!heapGS Σ}.

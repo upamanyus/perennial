@@ -10,7 +10,7 @@ From Perennial Require Import vrsm.configservice.config_proof.
 From Perennial.program_proof.grove_shared Require Import monotonic_pred.
 From Perennial.base_logic Require Import lib.saved_spec.
 From RecordUpdate Require Import RecordSet.
-From Goose.github_com.mit_pdos.gokv.vrsm Require Export replica.
+From Goose.github_dot_com.mit_dash_pdos.gokv.vrsm Require Export replica.
 
 (* State-machine record. An instance of Sm.t defines how to compute the reply
    for an op applied to some state and how to encode ops into bytes. *)

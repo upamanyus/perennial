@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.gokv Require paxos.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require paxos.
 From Perennial Require Import urpc_proof urpc_spec.
 From Perennial Require Export paxos.definitions paxos.withlock_proof.
 

@@ -3,7 +3,8 @@ set -e
 
 ## Repository pinning
 
-GOOSE_REPO=https://github.com/tchajed/goose/
+## FIXME: point this to upstream goose before merging to upstream perennial
+GOOSE_REPO=https://github.com/upamanyus/goose/
 GOOSE_COMMIT=master
 
 STD_REPO=https://github.com/goose-lang/std

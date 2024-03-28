@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.gokv.tutorial Require Import basics.
+From Goose.github_dot_com.mit_dash_pdos.gokv.tutorial Require Import basics.
 
 Section basics_proof.
 Context `{!heapGS Σ}.

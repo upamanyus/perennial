@@ -3,7 +3,7 @@ From RecordUpdate Require Import RecordSet.
 From Perennial.goose_lang Require Import crash_modality.
 From Perennial.program_logic Require Import atomic.
 
-From Goose.github_com.mit_pdos.perennial_examples Require Import inode.
+From Goose.github_dot_com.mit_dash_pdos.perennial_dash_examples Require Import inode.
 
 (* TODO: alloc_crash_proof must be imported early since otherwise it messes up a
 bunch of things, like Z_scope, encode, and val *)

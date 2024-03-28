@@ -5,7 +5,7 @@ From Perennial Require Import config_marshal_proof vrsm.renewable_lease.
 From Perennial.program_proof.grove_shared Require Import urpc_proof.
 From iris.base_logic Require Import lib.ghost_var mono_nat.
 From Perennial Require Import paxos.start_proof paxos.weakread_proof paxos.tryacquire_proof paxos.init_proof.
-From Goose.github_com.mit_pdos.gokv.vrsm Require Export configservice.
+From Goose.github_dot_com.mit_dash_pdos.gokv.vrsm Require Export configservice.
 From Perennial.goose_lang Require Import crash_borrow crash_modality.
 
 Module state.

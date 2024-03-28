@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude std_proof.
-From Goose.github_com.mit_pdos.gokv Require Import lockservice.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import lockservice.
 From Perennial.program_proof.kv Require Export interface.
 
 Section lockservice_defns.

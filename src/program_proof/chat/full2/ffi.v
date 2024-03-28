@@ -1,6 +1,6 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.gokv Require Import urpc.
-From Goose.github_com.mit_pdos.secure_chat.full2 Require Import shared fc_ffi_shim.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import urpc.
+From Goose.github_dot_com.mit_dash_pdos.secure_dash_chat.full2 Require Import shared fc__ffi__shim.
 
 From Perennial.program_proof.grove_shared Require Import urpc_proof.
 From Perennial.program_proof.chat.full2 Require Import encoding.

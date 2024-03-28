@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.gokv.tutorial Require Import lockservice.
+From Goose.github_dot_com.mit_dash_pdos.gokv.tutorial Require Import lockservice.
 From Perennial.program_proof.grove_shared Require Import urpc_proof.
 From Perennial.program_proof Require Import marshal_stateless_proof.
 

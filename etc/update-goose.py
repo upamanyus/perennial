@@ -197,6 +197,7 @@ def main():
             "./simpledb",
             "./wal",
             "./trust_import",
+            "./comments",
         )
 
     if journal_dir is not None:
@@ -306,8 +307,8 @@ def main():
             run_goose(
                 path.join(gokv_dir, pkg),
                 # XXX: need to change the Coq import statement for lockservice/ from
-                # "From Goose Require github_com.mit_pdos.lockservice.lockservice." to
-                # "From Goose Require github_com.mit_pdos.lockservice."
+                # "From Goose Require github_dot_com.mit_dash_pdos.lockservice.lockservice." to
+                # "From Goose Require github_dot_com.mit_dash_pdos.lockservice."
             )
 
     if chat_dir is not None:

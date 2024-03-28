@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.gokv Require Import aof.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import aof.
 From Perennial.algebra Require Import mlist map.
 From iris.algebra Require Import mono_nat.
 From Perennial.Helpers Require Import ModArith.

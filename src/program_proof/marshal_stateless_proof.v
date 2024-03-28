@@ -1,6 +1,6 @@
 From Perennial.Helpers Require Import List.
 
-From Goose.github_com.tchajed Require Import marshal.
+From Goose.github_dot_com.tchajed Require Import marshal.
 From Perennial.goose_lang.lib Require Import encoding.
 
 From Perennial.program_proof Require Import proof_prelude std_proof.

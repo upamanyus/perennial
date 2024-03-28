@@ -1,6 +1,6 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.secure_chat.kt Require Import shared kt_shim.
-From Goose.github_com.mit_pdos.secure_chat Require Import kt.
+From Goose.github_dot_com.mit_dash_pdos.secure_dash_chat.kt Require Import shared kt__shim.
+From Goose.github_dot_com.mit_dash_pdos.secure_dash_chat Require Import kt.
 
 From Perennial.program_proof.chat.kt Require Import shared shim.
 From iris.unstable.base_logic Require Import mono_list.

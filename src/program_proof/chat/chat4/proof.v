@@ -1,7 +1,7 @@
 From Perennial.program_proof Require Import grove_prelude.
 From Perennial.goose_lang.lib Require Import waitgroup.
 From Perennial.program_proof.chat.chat4 Require Import encoding ffi.
-From Goose.github_com.mit_pdos.secure_chat Require Import chat4.
+From Goose.github_dot_com.mit_dash_pdos.secure_dash_chat Require Import chat4.
 
 Section chat4.
 Context `{!heapGS Σ}.

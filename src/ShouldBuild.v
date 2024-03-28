@@ -66,12 +66,8 @@ From Perennial.goose_lang.lib Require
      slice.pred_slice.
 
 (* goose output *)
-From Goose.github_com.tchajed.goose.internal.examples Require
-     comments simpledb logging2 rfc1813 trust_import.
-
-(* examples goose output *)
-From Goose.github_com.mit_pdos Require
-     dynamic_dir.
+From Goose.github_dot_com.tchajed.goose.internal.examples Require
+     comments simpledb logging2 rfc1813 trust__import.
 
 (* interpreter semantics tests *)
 From Perennial.goose_lang.interpreter Require

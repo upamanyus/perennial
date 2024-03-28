@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.gokv.vrsm.apps Require Import vkv.
+From Goose.github_dot_com.mit_dash_pdos.gokv.vrsm.apps Require Import vkv.
 From Perennial.program_proof.vrsm Require Import kv_proof.
 From Perennial.program_proof.kv Require Import interface.
 

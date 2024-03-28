@@ -8,7 +8,7 @@ From Perennial.goose_lang Require Import lang typing.
 From Perennial.goose_lang Require Import proofmode notation.
 From Perennial.goose_lang Require Import persistent_readonly.
 From Perennial.goose_lang.lib Require Import typed_mem.
-From Perennial.goose_lang.lib Require Export lock.impl.
+From Goose Require Export sync.
 Set Default Proof Using "Type".
 
 Section goose_lang.

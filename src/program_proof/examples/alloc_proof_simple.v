@@ -6,7 +6,7 @@ From Perennial.goose_lang Require Import crash_modality.
 From Perennial.goose_lang Require Import proofmode wpc_proofmode notation crash_borrow.
 From Perennial.base_logic Require Import lib.ghost_map.
 
-From Goose.github_com.mit_pdos.perennial_examples Require Import alloc.
+From Goose.github_dot_com.mit_dash_pdos.perennial_dash_examples Require Import alloc.
 From Perennial.program_proof Require Import disk_prelude.
 From Perennial.program_proof.examples Require Import alloc_addrset.
 

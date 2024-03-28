@@ -1,6 +1,6 @@
 From RecordUpdate Require Import RecordSet.
 From Perennial.program_proof Require Import disk_prelude.
-From Goose.github_com.mit_pdos.go_journal Require Import txn.
+From Goose.github_dot_com.mit_dash_pdos.go_dash_journal Require Import txn.
 From Perennial.program_proof Require Import jrnl.sep_jrnl_proof.
 From Perennial.program_proof Require Import lockmap_proof.
 From Perennial.program_proof Require Import addr.addr_proof buf.buf_proof obj.obj_proof.

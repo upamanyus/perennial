@@ -1,4 +1,4 @@
-From Goose.github_com.mit_pdos.gokv.tutorial Require Import queue.
+From Goose.github_dot_com.mit_dash_pdos.gokv.tutorial Require Import queue.
 From Perennial.goose_lang Require Import prelude.
 From Perennial.goose_lang Require Import ffi.disk_prelude.
 From Perennial.goose_lang Require Import notation typing.

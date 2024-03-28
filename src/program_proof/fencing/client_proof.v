@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.gokv.fencing Require Import client.
+From Goose.github_dot_com.mit_dash_pdos.gokv.fencing Require Import client.
 From Perennial.program_proof Require Import grove_prelude.
 From Perennial.program_proof.grove_shared Require Export erpc_lib urpc_proof urpc_spec.
 From Perennial.program_proof.fencing Require Export config_proof frontend_proof.

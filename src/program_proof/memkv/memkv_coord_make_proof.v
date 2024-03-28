@@ -1,6 +1,6 @@
 From Perennial.Helpers Require Import range_set.
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.gokv Require Import memkv.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import memkv.
 
 From Perennial.program_proof.memkv Require Export memkv_shard_definitions memkv_coord_definitions common_proof.
 

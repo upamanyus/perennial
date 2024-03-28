@@ -4,7 +4,7 @@ From Perennial.program_proof.mvcc Require Import
      mvcc_prelude mvcc_ghost mvcc_inv
      db_repr db_mk db_new_txn
      txn_repr txn_read txn_write txn_run.
-From Goose.github_com.mit_pdos.vmvcc Require Import examples.
+From Goose.github_dot_com.mit_dash_pdos.vmvcc Require Import examples.
 
 Section program.
 Context `{!heapGS Σ, !mvcc_ghostG Σ, !mono_natG Σ}.

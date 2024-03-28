@@ -1,5 +1,5 @@
 From Perennial.program_proof.mvcc Require Import txnsite_prelude tid_proof.
-From Goose.github_com.mit_pdos.vmvcc Require Export txnsite.
+From Goose.github_dot_com.mit_dash_pdos.vmvcc Require Export txnsite.
 
 Section repr.
   Context `{!heapGS Σ, !mvcc_ghostG Σ}.

@@ -2,7 +2,7 @@ From Perennial.program_proof Require Import grove_prelude.
 From iris.bi.lib Require Import fixpoint.
 From Perennial.goose_lang Require Import adequacy.
 From Perennial.goose_lang Require Import dist_lifting.
-From Goose.github_com.mit_pdos.gokv Require Import memkv.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import memkv.
 From Perennial.program_proof Require Import grove_prelude.
 From Perennial.program_proof.grove_shared Require Export  erpc_lib urpc_proof urpc_spec erpc_proof.
 From Perennial.program_proof.memkv Require Export common_proof connman_proof memkv_ghost memkv_marshal_put_proof memkv_marshal_get_proof memkv_marshal_conditional_put_proof memkv_marshal_install_shard_proof memkv_marshal_getcid_proof memkv_marshal_move_shard_proof.

@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.gokv.vrsm Require Export clerk.
+From Goose.github_dot_com.mit_dash_pdos.gokv.vrsm Require Export clerk.
 From Perennial Require Import clerk.clerk_int_proof vrsm.proph_proof.
 From iris.algebra Require Import mono_list.
 

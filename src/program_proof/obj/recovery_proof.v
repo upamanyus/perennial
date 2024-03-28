@@ -4,8 +4,8 @@ From Perennial.algebra Require Import auth_map log_heap.
 From Perennial.base_logic Require Import lib.ghost_map.
 
 From Perennial.program_proof Require Import disk_prelude.
-From Goose.github_com.mit_pdos.go_journal Require Import obj.
-From Goose.github_com.mit_pdos.go_journal Require Import wal.
+From Goose.github_dot_com.mit_dash_pdos.go_dash_journal Require Import obj.
+From Goose.github_dot_com.mit_dash_pdos.go_dash_journal Require Import wal.
 From Perennial.program_proof Require Import wal.specs wal.lib wal.heapspec addr.addr_proof buf.buf_proof disk_lib.
 From Perennial.program_proof Require Import obj.invariant.
 From Perennial.goose_lang.lib Require Import slice.typed_slice.

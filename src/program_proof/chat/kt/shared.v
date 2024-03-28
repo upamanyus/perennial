@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.secure_chat.kt Require Import shared.
+From Goose.github_dot_com.mit_dash_pdos.secure_dash_chat.kt Require Import shared.
 From Perennial.program_proof Require Import marshal_stateless_proof.
 
 Section Bytes.

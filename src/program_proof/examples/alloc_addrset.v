@@ -3,7 +3,7 @@ From Perennial.goose_lang Require Import proofmode notation.
 From Perennial.goose_lang Require Import persistent_readonly.
 From Perennial.goose_lang.lib Require Export slice.
 From Perennial.program_proof Require Export proof_prelude.
-From Goose.github_com.mit_pdos.perennial_examples Require Import alloc.
+From Goose.github_dot_com.mit_dash_pdos.perennial_dash_examples Require Import alloc.
 From Perennial.goose_lang.lib Require Export typed_slice into_val.
 From Perennial.Helpers Require Export range_set.
 

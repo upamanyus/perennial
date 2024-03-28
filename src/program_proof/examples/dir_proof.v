@@ -1,7 +1,7 @@
 From RecordUpdate Require Import RecordSet.
 From Perennial.Helpers Require Import ipm Map.
 
-From Goose.github_com.mit_pdos.perennial_examples Require Import dir.
+From Goose.github_dot_com.mit_dash_pdos.perennial_dash_examples Require Import dir.
 From Perennial.program_proof Require Import disk_lib.
 From Perennial.program_proof Require Import disk_prelude.
 From Perennial.goose_lang.lib Require Import slice.crash_slice.

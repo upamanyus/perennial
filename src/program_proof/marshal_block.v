@@ -1,4 +1,4 @@
-From Goose.github_com.tchajed Require Import marshal.
+From Goose.github_dot_com.tchajed Require Import marshal.
 
 From Perennial.program_proof Require Import disk_prelude.
 From Perennial.program_proof Require Import disk_lib.

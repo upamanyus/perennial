@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude marshal_stateless_proof.
-From Goose.github_com.mit_pdos.gokv Require Import cachekv.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import cachekv.
 From Perennial.program_proof.vrsm Require Import renewable_lease.
 From Perennial.program_proof.kv Require Import interface.
 From iris.base_logic.lib Require Import ghost_map.

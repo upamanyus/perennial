@@ -2,7 +2,7 @@ From Perennial.goose_lang Require Import prelude.
 From Perennial.goose_lang Require Export ffi.grove_prelude.
 From Perennial.program_proof Require Import proof_prelude.
 From Perennial.base_logic.lib Require Import ghost_var mono_nat.
-From Goose.github_com.mit_pdos.gokv Require Import minlease.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import minlease.
 From iris.bi.lib Require Import fixpoint.
 From Perennial.base_logic Require Import lib.saved_prop.
 From Perennial.program_proof Require Import std_proof.

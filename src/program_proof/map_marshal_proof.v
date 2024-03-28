@@ -1,6 +1,6 @@
 From Perennial.program_proof Require Import grove_prelude marshal_stateless_proof.
 From Perennial.goose_lang.lib Require Import typed_map map.impl.
-From Goose.github_com.mit_pdos.gokv Require Import map_marshal.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import map__marshal.
 
 Section map_marshal_proof.
 

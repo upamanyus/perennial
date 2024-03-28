@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.secure_chat Require Import full.
+From Goose.github_dot_com.mit_dash_pdos.secure_dash_chat Require Import full.
 From iris.unstable.base_logic Require Import mono_list.
 From Perennial.algebra Require Import ghost_var.
 From Perennial.program_proof.chat.full Require Import lib.

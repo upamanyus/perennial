@@ -1,6 +1,6 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.secure_chat.merkle Require Import merkle_shim.
-From Goose.github_com.mit_pdos.secure_chat Require Import merkle.
+From Goose.github_dot_com.mit_dash_pdos.secure_dash_chat.merkle Require Import merkle__shim.
+From Goose.github_dot_com.mit_dash_pdos.secure_dash_chat Require Import merkle.
 
 From Perennial.program_proof.chat.merkle Require Import shim.
 From Perennial.program_proof Require Import std_proof.

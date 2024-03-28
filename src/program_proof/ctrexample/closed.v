@@ -3,8 +3,8 @@ From Perennial.goose_lang Require Export ffi.grove_prelude.
 From Perennial.program_proof Require Import proof_prelude.
 From Perennial.program_proof.ctrexample Require Import interface server client.
 From Perennial.program_proof Require Import marshal_proof.
-From Goose.github_com.mit_pdos.gokv Require Import ctrexample.client.
-From Goose.github_com.mit_pdos.gokv Require Import ctrexample.server.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import ctrexample.client.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import ctrexample.server.
 From Perennial.program_proof.grove_shared Require Import urpc_proof urpc_spec.
 From Perennial.program_proof.ctrexample Require Import wpc_proofmode.
 From Perennial.base_logic Require Import lib.ghost_map lib.saved_spec.

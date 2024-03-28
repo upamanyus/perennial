@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.gokv.vrsm.apps Require Import closed.
+From Goose.github_dot_com.mit_dash_pdos.gokv.vrsm.apps Require Import closed.
 
 From Perennial.goose_lang Require adequacy dist_adequacy.
 From Perennial.goose_lang.ffi Require grove_ffi_adequacy.

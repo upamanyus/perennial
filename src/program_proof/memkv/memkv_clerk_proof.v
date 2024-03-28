@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude std_proof.
-From Goose.github_com.mit_pdos.gokv Require Import memkv.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import memkv.
 From Perennial.program_proof.memkv Require Export common_proof memkv_coord_definitions memkv_seq_clerk_proof.
 
 Local Open Scope nat_scope.

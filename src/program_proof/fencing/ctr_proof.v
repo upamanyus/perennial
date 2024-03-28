@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.gokv.fencing Require Import ctr.
+From Goose.github_dot_com.mit_dash_pdos.gokv.fencing Require Import ctr.
 From Perennial.program_proof Require Import grove_prelude.
 From Perennial.program_proof.grove_shared Require Export erpc_lib urpc_proof urpc_spec erpc_proof.
 From Perennial.program_proof Require Export marshal_proof.

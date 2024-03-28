@@ -1,5 +1,5 @@
 From Perennial.goose_lang.lib Require Import proph.proph.
-From Perennial.goose_lang.trusted.github_com.mit_pdos.gokv Require Import trusted_proph.
+From Perennial.goose_lang.trusted.github_dot_com.mit_dash_pdos.gokv Require Import trusted__proph.
 From Perennial.program_proof Require Import grove_prelude.
 
 Section proph.

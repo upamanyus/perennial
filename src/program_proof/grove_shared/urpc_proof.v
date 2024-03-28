@@ -1,5 +1,5 @@
 From Perennial.Helpers Require Import ModArith.
-From Goose.github_com.mit_pdos.gokv Require Import urpc.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import urpc.
 From iris.algebra Require Import gset.
 From iris.base_logic.lib Require Import saved_prop.
 From Perennial.program_proof Require Import grove_prelude std_proof.

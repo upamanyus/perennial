@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.gokv.vrsm.apps Require Import exactlyonce.
+From Goose.github_dot_com.mit_dash_pdos.gokv.vrsm.apps Require Import exactlyonce.
 From Perennial.program_proof Require Import marshal_stateless_proof.
 From Perennial.program_proof.vrsm.replica Require Import definitions.
 From Perennial.algebra Require Import map.

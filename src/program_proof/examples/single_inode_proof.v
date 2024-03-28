@@ -3,7 +3,7 @@ From RecordUpdate Require Import RecordSet.
 From Perennial.goose_lang Require Import crash_modality.
 From Perennial.program_logic Require Import atomic.
 
-From Goose.github_com.mit_pdos.perennial_examples Require Import single_inode.
+From Goose.github_dot_com.mit_dash_pdos.perennial_dash_examples Require Import single__inode.
 From Perennial.goose_lang.lib Require Import lock.crash_lock.
 
 From Perennial.program_proof Require Import disk_lib.

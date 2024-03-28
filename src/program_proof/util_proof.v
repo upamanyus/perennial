@@ -1,7 +1,7 @@
 From Perennial.Helpers Require Import ModArith.
 
 From Perennial.program_proof Require Import proof_prelude.
-From Goose.github_com.mit_pdos.go_journal Require Import util.
+From Goose.github_dot_com.mit_dash_pdos.go_dash_journal Require Import util.
 
 Section heap.
 Context `{hG: heapGS Σ, !ffi_semantics _ _, !ext_types _}.

@@ -2,7 +2,7 @@ From Perennial.Helpers Require Import PropRestore.
 From Perennial.algebra Require Import liftable async.
 
 From Perennial.program_proof Require Import buf.buf_proof addr.addr_proof.
-From Goose.github_com.mit_pdos.go_journal Require Import jrnl jrnl_replication.
+From Goose.github_dot_com.mit_dash_pdos.go_dash_journal Require Import jrnl jrnl__replication.
 From Perennial.program_proof Require Import jrnl.jrnl_proof jrnl.sep_jrnl_proof obj.invariant.
 
 From Perennial.goose_lang.lib Require Import crash_lock.

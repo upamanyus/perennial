@@ -1,5 +1,5 @@
 From Perennial.program_proof.mvcc Require Export mvcc_prelude mvcc_misc mvcc_ghost.
-From Goose.github_com.mit_pdos.vmvcc Require Export wrbuf.
+From Goose.github_dot_com.mit_dash_pdos.vmvcc Require Export wrbuf.
 
 Definition wrent := (u64 * string * bool * loc)%type.
 

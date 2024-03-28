@@ -1,7 +1,7 @@
 From RecordUpdate Require Import RecordSet.
 Import RecordSetNotations.
 
-From Goose.github_com.mit_pdos.go_journal Require Import wal.
+From Goose.github_dot_com.mit_dash_pdos.go_dash_journal Require Import wal.
 
 From Perennial.Helpers Require Import Transitions.
 From Perennial.program_proof Require util_proof.

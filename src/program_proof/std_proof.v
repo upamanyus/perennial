@@ -1,6 +1,6 @@
 From Perennial.Helpers Require Import List ModArith.
 
-From Goose.github_com.goose_lang Require Import std.
+From Goose.github_dot_com.goose_dash_lang Require Import std.
 
 From iris.algebra Require Import excl gset.
 From Perennial.program_proof Require Import proof_prelude.

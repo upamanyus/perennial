@@ -6,7 +6,7 @@ From iris.base_logic Require Export lib.ghost_var.
 (* From Perennial.goose_lang Require Import lang typing. *)
 From Perennial.goose_lang Require Import proofmode notation.
 (* From Perennial.goose_lang Require Import persistent_readonly. *)
-From Perennial.goose_lang.lib Require Export waitgroup.impl.
+From Goose Require Export sync.
 From Perennial.goose_lang.lib Require Import typed_mem.
 From Perennial.goose_lang.lib Require Export lock.
 From Perennial.Helpers Require Import NamedProps.

@@ -6,7 +6,7 @@ From Perennial.program_logic Require Import recovery_adequacy dist_adequacy.
 From Perennial.goose_lang Require Import crash_modality recovery_lifting dist_lifting.
 From Perennial.goose_lang Require Import adequacy recovery_adequacy dist_adequacy.
 
-From Goose.github_com.mit_pdos.perennial_examples Require Import replicated_block.
+From Goose.github_dot_com.mit_dash_pdos.perennial_dash_examples Require Import replicated__block.
 From Perennial.algebra Require Import own_discrete.
 From Perennial.goose_lang.lib Require Import lock.crash_lock.
 From Perennial.program_proof Require Import disk_lib.

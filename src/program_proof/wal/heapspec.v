@@ -2,7 +2,7 @@ From RecordUpdate Require Import RecordUpdate.
 
 From Perennial.algebra Require Import mono_nat.
 
-From Goose.github_com.mit_pdos.go_journal Require Import wal.
+From Goose.github_dot_com.mit_dash_pdos.go_dash_journal Require Import wal.
 
 From Perennial.algebra Require Import log_heap.
 From Perennial.base_logic Require Import ghost_map.

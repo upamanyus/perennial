@@ -1,5 +1,5 @@
 From Perennial.Helpers Require Import ModArith.
-From Goose.github_com.mit_pdos.gokv Require Import erpc.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import erpc.
 From Perennial.goose_lang Require Import adequacy.
 From Perennial.base_logic Require Import lib.ghost_map lib.mono_nat lib.saved_spec.
 From Perennial.program_proof Require Import grove_prelude std_proof marshal_stateless_proof.

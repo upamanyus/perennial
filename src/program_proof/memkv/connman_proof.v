@@ -1,5 +1,5 @@
 From Perennial.Helpers Require Import ModArith.
-From Goose.github_com.mit_pdos.gokv Require Import connman.
+From Goose.github_dot_com.mit_dash_pdos.gokv Require Import connman.
 From Perennial.program_proof Require Import grove_prelude std_proof.
 From Perennial.program_proof Require Import marshal_proof.
 From Perennial.algebra Require Import auth_map.

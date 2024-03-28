@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import grove_prelude.
-From Goose.github_com.mit_pdos.gokv.vrsm.apps Require Import vkv.
+From Goose.github_dot_com.mit_dash_pdos.gokv.vrsm.apps Require Import vkv.
 From iris.base_logic Require Import ghost_map.
 From iris.algebra Require Import mono_list.
 From Perennial.program_proof.vrsm.storage Require Import proof.

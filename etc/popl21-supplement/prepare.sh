@@ -109,7 +109,7 @@ $FIND "$dst" -type f |\
                 -e 's/Perennial/Peony/g' \
                 -e 's/(nickolai|kaashoek|ralf)/anonymous/gi' \
                 -e 's/(mit-pdos)/anonymous/gi' \
-                -e 's/(mit_pdos)/anonymous/gi' \
+                -e 's/(mit_dash_pdos)/anonymous/gi' \
                 -e 's/(pdos)/anonymous/gi' \
                 -e 's/6\.826/course/g' \
                 "$file"
@@ -124,7 +124,7 @@ $FIND "$dst" -depth -type d |\
     while read -r dir; do
         if [[ $dir != *"/perennial"* ]]; then
             anonymous="$dir"
-            anonymous=${anonymous//mit_pdos/anonymous}
+            anonymous=${anonymous//mit_dash_pdos/anonymous}
             if [[ "$anonymous" != "$dir" ]]; then
                 mv "$dir" "$anonymous"
             fi

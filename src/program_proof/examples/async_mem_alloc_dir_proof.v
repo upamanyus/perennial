@@ -1,7 +1,7 @@
 From RecordUpdate Require Import RecordSet.
 From Perennial.Helpers Require Import ipm Map.
 
-From Goose.github_com.mit_pdos.perennial_examples Require Import async_mem_alloc_dir.
+From Goose.github_dot_com.mit_dash_pdos.perennial_dash_examples Require Import async__mem__alloc__dir.
 From Perennial.program_proof Require Import async_disk_lib.
 From Perennial.program_proof Require Import async_disk_prelude.
 From Perennial.goose_lang.lib Require Import slice.crash_slice.

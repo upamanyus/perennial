@@ -2,7 +2,7 @@ From iris.algebra Require Import gmap lib.mono_nat.
 From iris.proofmode Require Import base tactics classes.
 From iris.bi.lib Require Import fractional.
 From Perennial.program_proof Require Import proof_prelude.
-From Goose.github_com.mit_pdos.gokv.paxi Require Import single.
+From Goose.github_dot_com.mit_dash_pdos.gokv.paxi Require Import single.
 From Perennial.program_proof.single Require Import single_proof replica_proof.
 
 Section try_decide_proof.

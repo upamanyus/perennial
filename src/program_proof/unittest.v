@@ -1,5 +1,5 @@
 From Perennial.program_proof Require Import disk_prelude.
-From Goose.github_com.tchajed.goose Require Import unittest.
+From Goose.github_dot_com.tchajed.goose Require Import unittest.
 
 Section proof.
 Context `{!heapGS Σ}.

@@ -11,7 +11,7 @@ From Perennial Require Import exactlyonce.vsm log.
 From Perennial.algebra Require Import map.
 From RecordUpdate Require Import RecordSet.
 Import RecordSetNotations.
-From Goose.github_com.mit_pdos.gokv.vrsm.apps Require Import exactlyonce.
+From Goose.github_dot_com.mit_dash_pdos.gokv.vrsm.apps Require Import exactlyonce.
 
 Section global_proof.
 
