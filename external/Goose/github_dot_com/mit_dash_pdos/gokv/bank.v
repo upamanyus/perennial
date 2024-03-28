@@ -2,6 +2,7 @@
 From Perennial.goose_lang Require Import prelude.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.kv.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.lockservice.
+From Goose Require github_dot_com.tchajed.goose.machine.
 From Goose Require github_dot_com.tchajed.marshal.
 
 Section code.
@@ -66,9 +67,9 @@ Definition BankClerk__SimpleTransfer: val :=
   rec: "BankClerk__SimpleTransfer" "bck" :=
     Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "src" := rand.RandomUint64 #() in
-      let: "dst" := rand.RandomUint64 #() in
-      let: "amount" := rand.RandomUint64 #() in
+      let: "src" := machine.RandomUint64 #() in
+      let: "dst" := machine.RandomUint64 #() in
+      let: "amount" := machine.RandomUint64 #() in
       (if: (("src" < (slice.len (struct.loadF BankClerk "accts" "bck"))) && ("dst" < (slice.len (struct.loadF BankClerk "accts" "bck")))) && ("src" ≠ "dst")
       then
         BankClerk__transfer_internal "bck" (SliceGet stringT (struct.loadF BankClerk "accts" "bck") "src") (SliceGet stringT (struct.loadF BankClerk "accts" "bck") "dst") "amount";;

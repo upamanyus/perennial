@@ -3,6 +3,7 @@ From Perennial.goose_lang Require Import prelude.
 From Goose Require github_dot_com.mit_dash_pdos.go_dash_journal.addr.
 From Goose Require github_dot_com.mit_dash_pdos.go_dash_journal.common.
 From Goose Require github_dot_com.mit_dash_pdos.go_dash_journal.util.
+From Goose Require github_dot_com.tchajed.goose.machine.disk.
 From Goose Require github_dot_com.tchajed.marshal.
 
 From Perennial.goose_lang Require Import ffi.disk_prelude.

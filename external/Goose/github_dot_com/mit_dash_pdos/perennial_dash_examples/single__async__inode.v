@@ -2,6 +2,7 @@
 From Perennial.goose_lang Require Import prelude.
 From Goose Require github_dot_com.mit_dash_pdos.perennial_dash_examples.alloc.
 From Goose Require github_dot_com.mit_dash_pdos.perennial_dash_examples.async__inode.
+From Goose Require github_dot_com.tchajed.goose.machine.disk.
 
 From Perennial.goose_lang Require Import ffi.disk_prelude.
 
@@ -18,7 +19,7 @@ Definition SingleInode := struct.decl [
    sz should be the size of the disk to use *)
 Definition Open: val :=
   rec: "Open" "d" "sz" :=
-    let: "i" := async_inode.Open "d" #0 in
+    let: "i" := async__inode.Open "d" #0 in
     let: "used" := NewMap uint64T (struct.t alloc.unit) #() in
     alloc.SetAdd "used" (async_inode.Inode__UsedBlocks "i");;
     let: "allocator" := alloc.New #1 ("sz" - #1) "used" in

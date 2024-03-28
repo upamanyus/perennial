@@ -8,6 +8,7 @@ From Goose Require github_dot_com.mit_dash_pdos.go_dash_journal.lockmap.
 From Goose Require github_dot_com.mit_dash_pdos.go_dash_journal.obj.
 From Goose Require github_dot_com.mit_dash_pdos.go_dash_journal.util.
 From Goose Require github_dot_com.mit_dash_pdos.go_dash_nfsd.nfstypes.
+From Goose Require github_dot_com.tchajed.goose.machine.disk.
 From Goose Require github_dot_com.tchajed.marshal.
 
 From Perennial.goose_lang Require Import ffi.disk_prelude.

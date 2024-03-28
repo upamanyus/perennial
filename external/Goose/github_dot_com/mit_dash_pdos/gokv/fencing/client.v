@@ -2,6 +2,7 @@
 From Perennial.goose_lang Require Import prelude.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.fencing.config.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.fencing.frontend.
+From Goose Require github_dot_com.mit_dash_pdos.gokv.grove__ffi.
 
 From Perennial.goose_lang Require Import ffi.grove_prelude.
 

@@ -2,6 +2,7 @@
 From Perennial.goose_lang Require Import prelude.
 From Goose Require github_dot_com.goose_dash_lang.std.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.aof.
+From Goose Require github_dot_com.mit_dash_pdos.gokv.grove__ffi.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.vrsm.replica.
 From Goose Require github_dot_com.tchajed.marshal.
 
@@ -44,7 +45,7 @@ Definition StateMachine__makeDurableWithSnap: val :=
     then marshal.WriteBytes (![slice.T byteT] "enc") (NewSlice byteT #1)
     else #());;
     aof.AppendOnlyFile__Close (struct.loadF StateMachine "logFile" "s");;
-    grove_ffi.FileWrite (struct.loadF StateMachine "fname" "s") (![slice.T byteT] "enc");;
+    grove__ffi.FileWrite (struct.loadF StateMachine "fname" "s") (![slice.T byteT] "enc");;
     struct.storeF StateMachine "logFile" "s" (aof.CreateAppendOnlyFile (struct.loadF StateMachine "fname" "s"));;
     #().
 
@@ -103,7 +104,7 @@ Definition recoverStateMachine: val :=
       "fname" ::= "fname";
       "smMem" ::= "smMem"
     ] in
-    let: "enc" := ref_to (slice.T byteT) (grove_ffi.FileRead (struct.loadF StateMachine "fname" "s")) in
+    let: "enc" := ref_to (slice.T byteT) (grove__ffi.FileRead (struct.loadF StateMachine "fname" "s")) in
     (if: (slice.len (![slice.T byteT] "enc")) = #0
     then
       let: "initState" := (struct.loadF InMemoryStateMachine "GetState" "smMem") #() in
@@ -112,7 +113,7 @@ Definition recoverStateMachine: val :=
       "initialContents" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "initialContents") "initState");;
       "initialContents" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "initialContents") #0);;
       "initialContents" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "initialContents") #0);;
-      grove_ffi.FileWrite (struct.loadF StateMachine "fname" "s") (![slice.T byteT] "initialContents");;
+      grove__ffi.FileWrite (struct.loadF StateMachine "fname" "s") (![slice.T byteT] "initialContents");;
       struct.storeF StateMachine "logFile" "s" (aof.CreateAppendOnlyFile "fname");;
       "s"
     else

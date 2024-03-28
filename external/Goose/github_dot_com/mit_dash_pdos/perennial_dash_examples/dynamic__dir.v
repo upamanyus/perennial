@@ -2,6 +2,7 @@
 From Perennial.goose_lang Require Import prelude.
 From Goose Require github_dot_com.mit_dash_pdos.perennial_dash_examples.alloc.
 From Goose Require github_dot_com.mit_dash_pdos.perennial_dash_examples.inode.
+From Goose Require github_dot_com.tchajed.goose.machine.disk.
 From Goose Require github_dot_com.tchajed.marshal.
 From Goose Require sync.
 

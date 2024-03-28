@@ -2,6 +2,7 @@
 From Perennial.goose_lang Require Import prelude.
 From Goose Require github_dot_com.goose_dash_lang.std.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.asyncfile.
+From Goose Require github_dot_com.mit_dash_pdos.gokv.grove__ffi.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.reconnectclient.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.urpc.
 From Goose Require github_dot_com.tchajed.marshal.

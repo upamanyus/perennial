@@ -48,8 +48,8 @@ function checkout {
   (cd "${!DIR_VAR}" && git reset --hard "${!COMMIT_VAR}")
 }
 
-GOOSE_DIR=/tmp/goose
-checkout GOOSE
+GOOSE_DIR=../goose
+# checkout GOOSE
 
 STD_DIR=/tmp/std
 checkout STD

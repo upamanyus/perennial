@@ -4,6 +4,7 @@ From Goose Require github_dot_com.mit_dash_pdos.gokv.dmvcc.index.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.dmvcc.txn.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.dmvcc.txncoordinator.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.dmvcc.txnmgr.
+From Goose Require github_dot_com.tchajed.goose.machine.
 
 Section code.
 Context `{ext_ty: ext_types}.
@@ -23,12 +24,12 @@ Definition main: val :=
     Fork (let: "txnCk" := txn.Begin "txnMgrHost" "txnCoordHost" "indexHost" in
           txn.Clerk__DoTxn "txnCk" (λ: "t",
             (if: (StringLength (txn.Clerk__Get "t" #0)) > #0
-            then control.impl.Assert ((StringLength (txn.Clerk__Get "t" #1)) > #0)
+            then machine.Assert ((StringLength (txn.Clerk__Get "t" #1)) > #0)
             else #());;
             (* log.Printf("Val on txn2: '%s'", t.Get(1)) *)
             #true
             ));;
-    time.Sleep #100000000;;
+    machine.Sleep #100000000;;
     #().
 
 End code.

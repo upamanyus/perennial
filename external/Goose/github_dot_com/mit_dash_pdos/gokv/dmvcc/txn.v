@@ -5,6 +5,7 @@ From Goose Require github_dot_com.mit_dash_pdos.gokv.dmvcc.prophname.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.dmvcc.txncoordinator.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.dmvcc.txnmgr.
 From Goose Require github_dot_com.mit_dash_pdos.vmvcc.trusted__proph.
+From Goose Require github_dot_com.tchajed.goose.machine.
 
 Section code.
 Context `{ext_ty: ext_types}.
@@ -42,12 +43,12 @@ Definition Clerk__Get: val :=
     then "val1"
     else
       let: "val2" := index.Clerk__Read (struct.loadF Clerk "indexCk" "txnCk") "key" (struct.loadF Clerk "tid" "txnCk") in
-      trusted_proph.ResolveRead (struct.loadF Clerk "p" "txnCk") (struct.loadF Clerk "tid" "txnCk") "key";;
+      trusted__proph.ResolveRead (struct.loadF Clerk "p" "txnCk") (struct.loadF Clerk "tid" "txnCk") "key";;
       "val2").
 
 Definition Clerk__abort: val :=
   rec: "Clerk__abort" "txnCk" :=
-    trusted_proph.ResolveAbort (struct.loadF Clerk "p" "txnCk") (struct.loadF Clerk "tid" "txnCk");;
+    trusted__proph.ResolveAbort (struct.loadF Clerk "p" "txnCk") (struct.loadF Clerk "tid" "txnCk");;
     #().
 
 Definition Clerk__begin: val :=

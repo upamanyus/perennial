@@ -2,6 +2,8 @@
 From Perennial.goose_lang Require Import prelude.
 From Goose Require github_dot_com.mit_dash_pdos.go_dash_journal.common.
 From Goose Require github_dot_com.mit_dash_pdos.go_dash_journal.util.
+From Goose Require github_dot_com.tchajed.goose.machine.
+From Goose Require github_dot_com.tchajed.goose.machine.disk.
 From Goose Require github_dot_com.tchajed.marshal.
 From Goose Require sync.
 
@@ -433,7 +435,7 @@ Definition Walog__logAppend: val :=
       sync.Mutex__Unlock (struct.loadF Walog "memLock" "l");;
       circularAppender__Append "circ" (struct.loadF Walog "d" "l") "diskEnd" "newbufs";;
       sync.Mutex__Lock (struct.loadF Walog "memLock" "l");;
-      Linearize;;
+      machine.Linearize #();;
       struct.storeF WalogState "diskEnd" (struct.loadF Walog "st" "l") ("diskEnd" + (slice.len "newbufs"));;
       sync.Cond__Broadcast (struct.loadF Walog "condLogger" "l");;
       sync.Cond__Broadcast (struct.loadF Walog "condInstall" "l");;
@@ -540,7 +542,7 @@ Definition Walog__ReadMem: val :=
   rec: "Walog__ReadMem" "l" "blkno" :=
     sync.Mutex__Lock (struct.loadF Walog "memLock" "l");;
     let: ("blk", "ok") := WalogState__readMem (struct.loadF Walog "st" "l") "blkno" in
-    Linearize;;
+    machine.Linearize #();;
     sync.Mutex__Unlock (struct.loadF Walog "memLock" "l");;
     ("blk", "ok").
 
@@ -597,7 +599,7 @@ Definition Walog__MemAppend: val :=
           (if: WalogState__memLogHasSpace "st" (slice.len "bufs")
           then
             "txn" <-[LogPosition] (doMemAppend (struct.loadF WalogState "memLog" "st") "bufs");;
-            Linearize;;
+            machine.Linearize #();;
             Break
           else
             util.DPrintf #5 #(str"memAppend: log is full; try again") #();;
@@ -625,7 +627,7 @@ Definition Walog__Flush: val :=
     (for: (λ: <>, (~ ("pos" ≤ (struct.loadF WalogState "diskEnd" (struct.loadF Walog "st" "l"))))); (λ: <>, Skip) := λ: <>,
       sync.Cond__Wait (struct.loadF Walog "condLogger" "l");;
       Continue);;
-    Linearize;;
+    machine.Linearize #();;
     sync.Mutex__Unlock (struct.loadF Walog "memLock" "l");;
     #().
 

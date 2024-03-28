@@ -2,6 +2,7 @@
 From Perennial.goose_lang Require Import prelude.
 From Goose Require github_dot_com.mit_dash_pdos.perennial_dash_examples.alloc.
 From Goose Require github_dot_com.mit_dash_pdos.perennial_dash_examples.async__mem__alloc__inode.
+From Goose Require github_dot_com.tchajed.goose.machine.async__disk.
 
 From Perennial.goose_lang Require Import ffi.async_disk_prelude.
 
@@ -18,7 +19,7 @@ Definition openInodes: val :=
     let: "inodes" := ref (zero_val (slice.T ptrT)) in
     let: "addr" := ref_to uint64T #0 in
     (for: (λ: <>, (![uint64T] "addr") < NumInodes); (λ: <>, "addr" <-[uint64T] ((![uint64T] "addr") + #1)) := λ: <>,
-      "inodes" <-[slice.T ptrT] (SliceAppend ptrT (![slice.T ptrT] "inodes") (async_mem_alloc_inode.Open "d" (![uint64T] "addr")));;
+      "inodes" <-[slice.T ptrT] (SliceAppend ptrT (![slice.T ptrT] "inodes") (async__mem__alloc__inode.Open "d" (![uint64T] "addr")));;
       Continue);;
     ![slice.T ptrT] "inodes".
 

@@ -4,6 +4,7 @@ From Goose Require github_dot_com.goose_dash_lang.std.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.connman.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.memkv.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.memkv.lockservice.
+From Goose Require github_dot_com.tchajed.goose.machine.
 
 From Perennial.goose_lang Require Import ffi.grove_prelude.
 
@@ -50,9 +51,9 @@ Definition BankClerk__SimpleTransfer: val :=
   rec: "BankClerk__SimpleTransfer" "bck" :=
     Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "src" := rand.RandomUint64 #() in
-      let: "dst" := rand.RandomUint64 #() in
-      let: "amount" := rand.RandomUint64 #() in
+      let: "src" := machine.RandomUint64 #() in
+      let: "dst" := machine.RandomUint64 #() in
+      let: "amount" := machine.RandomUint64 #() in
       (if: (("src" < (slice.len (struct.loadF BankClerk "accts" "bck"))) && ("dst" < (slice.len (struct.loadF BankClerk "accts" "bck")))) && ("src" ≠ "dst")
       then
         BankClerk__transfer_internal "bck" (SliceGet uint64T (struct.loadF BankClerk "accts" "bck") "src") (SliceGet uint64T (struct.loadF BankClerk "accts" "bck") "dst") "amount";;
