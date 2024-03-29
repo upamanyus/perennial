@@ -18,6 +18,7 @@ Context {ext_tys: ext_types ext}.
 
 Local Coercion Var' (s:string): expr := Var s.
 
+(*
 Section proof.
   Context `{!heapGS Σ} (N : namespace).
 
@@ -282,7 +283,7 @@ Section proof.
     done.
   Qed.
 
-End proof.
+End proof. *)
 End goose_lang.
 
-Typeclasses Opaque is_lock is_cond locked.
+(* Typeclasses Opaque is_lock is_cond locked. *)
