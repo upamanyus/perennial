@@ -11,19 +11,24 @@ Definition do : val :=
   λ: <>, (#(str "noreturn"), #())
 .
 
+(* Takes in the return value of the first block and a lambda for the next block
+   as a pair. Taking it as a pair (instead of via currying) results in the
+   notation working better during printing. With currying, the notation looks
+   for (App (App exception_seq ....)). Here, it just needs (App exception_seq ...)
+ *)
 Definition exception_seq : val :=
-  λ: "s1" "s2",
-    if: ((Fst "s1") = #(str "return")) then
-      "s1"
+  λ: "s1",
+    if: ((Fst (Fst "s1")) = #(str "return")) then
+      go_return (Snd (Fst "s1"))
     else
-      "s2" #()
+      (Snd "s1") #()
 .
 
 Definition exception_do : val :=
   λ: "v", Snd "v"
 .
 
-Local Notation "e1 ;;; e2" := (exception_seq e1%E (Lam BAnon e2%E))
+Local Notation "e1 ;;; e2" := (exception_seq (e1%E, (Lam BAnon e2%E))%E)
   (at level 100, e2 at level 200,
       format "'[' '[hv' '[' e1 ']' ;;;  ']' '/' e2 ']'") : expr_scope.
 
@@ -60,23 +65,28 @@ Proof.
   wp_apply wp_ref_zero.
   { done. }
   iIntros (x) "Hx".
-  wp_pures. (* FIXME: the exception_seq notation goes away here *)
+  wp_pures.
   wp_store.
-  wp_lam.
-  unfold exception_seq. (* FIXME: how to avoid unfolding? *)
-  wp_pures.
+
+  (* This should be abstracted away *)
+  wp_lam; wp_pures; wp_lam; wp_pures.
+
   wp_load.
   wp_load.
   wp_store.
-  wp_lam. wp_pures.
-  wp_pures.
+
+  (* This should be abstracted away *)
+  wp_lam; wp_pures; wp_lam; wp_pures.
+
   wp_load.
   wp_pures.
   wp_load.
-  wp_lam.
-  wp_pures.
-  wp_lam.
-  wp_pures.
+
+  (* This should be abstracted away *)
+  wp_lam; wp_pures; wp_lam; wp_pures.
+  wp_lam; wp_pures; wp_lam; wp_pures.
+  wp_lam; wp_pures; wp_lam; wp_pures.
+
   by iApply "HΦ".
 Qed.
 
