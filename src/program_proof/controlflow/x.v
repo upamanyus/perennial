@@ -2,26 +2,48 @@ From Perennial.goose_lang Require Import prelude.
 From Perennial.goose_lang Require Import ffi.grove_prelude.
 From Goose Require sync. Module mysync := sync.
 
-Definition returnV: val := #str "return".
-Definition noreturnV: val := #str "noreturn".
-
-Definition code_block (s:expr) (n:expr) : expr :=
-     let: "0ret" := s in
-     if: ((Fst "0ret") = Val returnV) then
-       Snd "0ret"
-     else
-       s
+(* "Exception" monad *)
+Definition go_return : val :=
+  λ: "v", (#(str "return"), Var "v")
 .
+
+Definition do : val :=
+  λ: <>, (#(str "noreturn"), #())
+.
+
+Definition exception_seq : val :=
+  λ: "s1" "s2",
+    if: ((Fst "s1") = #(str "return")) then
+      "s1"
+    else
+      "s2" #()
+.
+
+Definition exception_do : val :=
+  λ: "v", Snd "v"
+.
+
+Local Notation "e1 ;;; e2" := (exception_seq e1%E (Lam BAnon e2%E))
+  (at level 100, e2 at level 200,
+      format "'[' '[hv' '[' e1 ']' ;;;  ']' '/' e2 ']'") : expr_scope.
 
 Definition test2 : val :=
   λ: <>,
-     code_block
-
+     exception_do (
+     let: "x" := ref_zero uint64T #() in
      (if: (#0 = #0) then
-        (returnV, #3)
-      else (noreturnV, #()))
-
-     (returnV, #2)
+        (do ("x" <-[uint64T] #37)) ;;;
+        (do ("x" <-[uint64T] ![uint64T] "x" * ![uint64T] "x"))
+      else
+        go_return #3
+     ) ;;;
+     (if: ![uint64T] "x" > #13 then
+        go_return ![uint64T] "x" ;;;
+        do #1 + #(str "unreachable")
+      else
+       do #()) ;;;
+     go_return #3
+     )
 .
 
 From Perennial.program_proof Require Import grove_prelude.
@@ -30,14 +52,35 @@ Context `{!heapGS Σ}.
 Lemma wp_test2:
   {{{ True }}}
     test2 #()
-  {{{ RET #(); True }}}.
+  {{{ RET #(LitInt (word.mul (U64 37) (U64 37))); True }}}.
 Proof.
   iIntros (?) "Hpre HΦ".
   wp_lam.
-  unfold code_block.
   wp_pures.
-Abort.
+  wp_apply wp_ref_zero.
+  { done. }
+  iIntros (x) "Hx".
+  wp_pures. (* FIXME: the exception_seq notation goes away here *)
+  wp_store.
+  wp_lam.
+  unfold exception_seq. (* FIXME: how to avoid unfolding? *)
+  wp_pures.
+  wp_load.
+  wp_load.
+  wp_store.
+  wp_lam. wp_pures.
+  wp_pures.
+  wp_load.
+  wp_pures.
+  wp_load.
+  wp_lam.
+  wp_pures.
+  wp_lam.
+  wp_pures.
+  by iApply "HΦ".
+Qed.
 
+(* TODO: look at https://robbertkrebbers.nl/research/articles/iris_c.pdf *)
 Axiom eval_exprs_unordered : list (expr) → expr.
 
 Definition f : val :=
@@ -76,6 +119,10 @@ Axiom wp_sp_eval_exprs_unordered3 :
   WP e3 {{ Φ3 }} ∗
   (∀ v  -∗ (Φ (v1, (v2, v3))%V))) -∗
   WP (eval_exprs_unordered [e1 ; e2 ; e3]) {{ Φ }}
+
+
+* Translation looks weird compared to Go code
+*
 . *)
 
 Lemma wp_value (v:val) :
