@@ -102,11 +102,26 @@ Definition g : val :=
 Definition h : val :=
   λ: <>, #7.
 
+Local Fixpoint glang_list_get_def (n:nat) : val :=
+  λ: "v",
+     match n with
+     | 0%nat => Fst "v"
+     | S n => glang_list_get_def n (Snd "v")
+     end.
+Local Definition glang_list_get_aux : seal (@glang_list_get_def). Proof. by eexists. Qed.
+Definition glang_list_get := glang_list_get_aux.(unseal).
+Local Definition glang_list_get_unseal :
+  @glang_list_get = @glang_list_get_def := glang_list_get_aux.(seal_eq).
+(* Global Arguments glang_list_get n. *)
+
 (* y[f()] = g(z || h(), i()+x[j()], <-c) *)
 Definition order_of_eval_test : val :=
   λ: <>,
-  let: "x" := (eval_exprs_unordered [f #(); g #(); h#()]) in
-  Fst "x"
+  let: "0expr" := (eval_exprs_unordered [f #(); g #(); h#()]) in
+  let: "e1" := (glang_list_get 0) ("0expr") in
+  let: "e2" := (glang_list_get 1) ("0expr") in
+  let: "e3" := (glang_list_get 2) ("0expr") in
+  "e1" + "e2" + "e3"
 .
 
 Definition sp e P : val → iProp Σ :=
@@ -115,9 +130,9 @@ Definition sp e P : val → iProp Σ :=
 Axiom wp_eval_exprs_unordered3 :
   ∀ e1 e2 e3 Φ1 Φ2 Φ3 (Φ:_ → iProp Σ),
   (WP e1 {{ Φ1 }} ∗
-  WP e3 {{ Φ2 }} ∗
+  WP e2 {{ Φ2 }} ∗
   WP e3 {{ Φ3 }} ∗
-  (∀ v1 v2 v3, Φ1 v1 ∗ Φ2 v2 ∗ Φ3 v3 -∗ (Φ (v1, (v2, v3))%V))) -∗
+  (∀ v1 v2 v3, Φ1 v1 ∗ Φ2 v2 ∗ Φ3 v3 -∗ (Φ (v1, (v2, (v3, #()))))%V)) -∗
   WP (eval_exprs_unordered [e1 ; e2 ; e3]) {{ Φ }}
 .
 
@@ -141,7 +156,7 @@ Proof. by iApply wp_value. Qed.
 
 Lemma wp_order_of_eval_test :
   ∀ Φ,
-  Φ #3 -∗
+  Φ #(U64 15) -∗
   WP order_of_eval_test #() {{ Φ }}
 .
 Proof.
@@ -174,6 +189,8 @@ Proof.
   { wp_lam. instantiate (1:=(λ v, ⌜v = #_⌝)%I). done. }
   iIntros "* (%&%&%)".
   subst.
+  wp_pures.
+  rewrite glang_list_get_unseal.
   wp_pures.
   by iApply "HΦ".
 Qed.
