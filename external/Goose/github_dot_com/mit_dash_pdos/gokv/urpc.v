@@ -14,45 +14,70 @@ Definition Server := struct.decl [
 
 Definition Server__rpcHandle: val :=
   rec: "Server__rpcHandle" "srv" "conn" "rpcid" "seqno" "data" :=
-    let: "replyData" := ref (zero_val (slice.T byteT)) in
-    let: "f" := Fst (MapGet (struct.loadF Server "handlers" "srv") "rpcid") in
-    "f" "data" "replyData";;
-    let: "data1" := NewSliceWithCap byteT #0 (#8 + (slice.len (![slice.T byteT] "replyData"))) in
-    let: "data2" := marshal.WriteInt "data1" "seqno" in
-    let: "data3" := marshal.WriteBytes "data2" (![slice.T byteT] "replyData") in
-    grove__ffi.Send "conn" "data3";;
+    let: "replyData" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "replyData" <-[ptrT] "$a0";;
+    let: "f" := ref_zero (arrowT unitT unitT) in
+    let: "$a0" := Fst (MapGet (struct.loadF Server "handlers" (![ptrT] "srv")) (![uint64T] "rpcid")) in
+    "f" <-[(arrowT unitT unitT)] "$a0";;
+    (![(arrowT unitT unitT)] "f") (![slice.T byteT] "data") (![ptrT] "replyData");;
+    let: "data1" := ref_zero (slice.T byteT) in
+    let: "$a0" := NewSliceWithCap byteT #0 (#8 + (slice.len (![slice.T byteT] (![ptrT] "replyData")))) in
+    "data1" <-[slice.T byteT] "$a0";;
+    let: "data2" := ref_zero (slice.T byteT) in
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "data1") (![uint64T] "seqno") in
+    "data2" <-[slice.T byteT] "$a0";;
+    let: "data3" := ref_zero (slice.T byteT) in
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "data2") (![slice.T byteT] (![ptrT] "replyData")) in
+    "data3" <-[slice.T byteT] "$a0";;
+    grove__ffi.Send (![grove_ffi.Connection] "conn") (![slice.T byteT] "data3");;
     #().
 
 Definition MakeServer: val :=
   rec: "MakeServer" "handlers" :=
-    struct.new Server [
-      "handlers" ::= "handlers"
-    ].
+    return: (struct.new Server [
+       "handlers" ::= ![mapT (arrowT unitT unitT)] "handlers"
+     ]).
 
 Definition Server__readThread: val :=
   rec: "Server__readThread" "srv" "conn" :=
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "r" := grove__ffi.Receive "conn" in
-      (if: struct.get grove_ffi.ReceiveRet "Err" "r"
+      let: "r" := ref_zero (struct.t grove_ffi.ReceiveRet) in
+      let: "$a0" := grove__ffi.Receive (![grove_ffi.Connection] "conn") in
+      "r" <-[struct.t grove_ffi.ReceiveRet] "$a0";;
+      (if: struct.get grove_ffi.ReceiveRet "Err" (![struct.t grove_ffi.ReceiveRet] "r")
       then Break
-      else
-        let: "data" := struct.get grove_ffi.ReceiveRet "Data" "r" in
-        let: ("rpcid", "data") := marshal.ReadInt "data" in
-        let: ("seqno", "data") := marshal.ReadInt "data" in
-        let: "req" := "data" in
-        Fork (Server__rpcHandle "srv" "conn" "rpcid" "seqno" "req");;
-        Continue));;
-    #().
+      else #());;
+      let: "data" := ref_zero (slice.T byteT) in
+      let: "$a0" := struct.get grove_ffi.ReceiveRet "Data" (![struct.t grove_ffi.ReceiveRet] "r") in
+      "data" <-[slice.T byteT] "$a0";;
+      let: "rpcid" := ref_zero uint64T in
+      let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "data") in
+      "data" <-[slice.T byteT] "$a1";;
+      "rpcid" <-[uint64T] "$a0";;
+      let: "seqno" := ref_zero uint64T in
+      let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "data") in
+      "data" <-[slice.T byteT] "$a1";;
+      "seqno" <-[uint64T] "$a0";;
+      let: "req" := ref_zero (slice.T byteT) in
+      let: "$a0" := ![slice.T byteT] "data" in
+      "req" <-[slice.T byteT] "$a0";;
+      Fork (Server__rpcHandle (![ptrT] "srv") (![grove_ffi.Connection] "conn") (![uint64T] "rpcid") (![uint64T] "seqno") (![slice.T byteT] "req");;
+            #());;
+      Continue).
 
 Definition Server__Serve: val :=
   rec: "Server__Serve" "srv" "host" :=
-    let: "listener" := grove__ffi.Listen "host" in
-    Fork (Skip;;
-          (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-            let: "conn" := grove__ffi.Accept "listener" in
-            Fork (Server__readThread "srv" "conn");;
-            Continue));;
+    let: "listener" := ref_zero grove_ffi.Listener in
+    let: "$a0" := grove__ffi.Listen (![uint64T] "host") in
+    "listener" <-[grove_ffi.Listener] "$a0";;
+    Fork ((for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
+            let: "conn" := ref_zero grove_ffi.Connection in
+            let: "$a0" := grove__ffi.Accept (![grove_ffi.Listener] "listener") in
+            "conn" <-[grove_ffi.Connection] "$a0";;
+            Fork (Server__readThread (![ptrT] "srv") (![grove_ffi.Connection] "conn");;
+                  #());;
+            #()));;
     #().
 
 Definition callbackStateWaiting : expr := #0.
@@ -76,61 +101,88 @@ Definition Client := struct.decl [
 
 Definition Client__replyThread: val :=
   rec: "Client__replyThread" "cl" :=
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "r" := grove__ffi.Receive (struct.loadF Client "conn" "cl") in
-      (if: struct.get grove_ffi.ReceiveRet "Err" "r"
+      let: "r" := ref_zero (struct.t grove_ffi.ReceiveRet) in
+      let: "$a0" := grove__ffi.Receive (struct.loadF Client "conn" (![ptrT] "cl")) in
+      "r" <-[struct.t grove_ffi.ReceiveRet] "$a0";;
+      (if: struct.get grove_ffi.ReceiveRet "Err" (![struct.t grove_ffi.ReceiveRet] "r")
       then
-        sync.Mutex__Lock (struct.loadF Client "mu" "cl");;
-        MapIter (struct.loadF Client "pending" "cl") (λ: <> "cb",
-          (struct.loadF Callback "state" "cb") <-[uint64T] callbackStateAborted;;
-          sync.Cond__Signal (struct.loadF Callback "cond" "cb"));;
-        sync.Mutex__Unlock (struct.loadF Client "mu" "cl");;
+        sync.Mutex__Lock (struct.loadF Client "mu" (![ptrT] "cl"));;
+        MapIter (struct.loadF Client "pending" (![ptrT] "cl")) (λ: <> "cb",
+          let: "$a0" := callbackStateAborted in
+          (struct.loadF Callback "state" (![ptrT] "cb")) <-[uint64T] "$a0";;
+          sync.Cond__Signal (struct.loadF Callback "cond" (![ptrT] "cb"));;
+          #());;
+        sync.Mutex__Unlock (struct.loadF Client "mu" (![ptrT] "cl"));;
         Break
-      else
-        let: "data" := struct.get grove_ffi.ReceiveRet "Data" "r" in
-        let: ("seqno", "data") := marshal.ReadInt "data" in
-        let: "reply" := "data" in
-        sync.Mutex__Lock (struct.loadF Client "mu" "cl");;
-        let: ("cb", "ok") := MapGet (struct.loadF Client "pending" "cl") "seqno" in
-        (if: "ok"
-        then
-          MapDelete (struct.loadF Client "pending" "cl") "seqno";;
-          (struct.loadF Callback "reply" "cb") <-[slice.T byteT] "reply";;
-          (struct.loadF Callback "state" "cb") <-[uint64T] callbackStateDone;;
-          sync.Cond__Signal (struct.loadF Callback "cond" "cb")
-        else #());;
-        sync.Mutex__Unlock (struct.loadF Client "mu" "cl");;
-        Continue));;
-    #().
+      else #());;
+      let: "data" := ref_zero (slice.T byteT) in
+      let: "$a0" := struct.get grove_ffi.ReceiveRet "Data" (![struct.t grove_ffi.ReceiveRet] "r") in
+      "data" <-[slice.T byteT] "$a0";;
+      let: "seqno" := ref_zero uint64T in
+      let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "data") in
+      "data" <-[slice.T byteT] "$a1";;
+      "seqno" <-[uint64T] "$a0";;
+      let: "reply" := ref_zero (slice.T byteT) in
+      let: "$a0" := ![slice.T byteT] "data" in
+      "reply" <-[slice.T byteT] "$a0";;
+      sync.Mutex__Lock (struct.loadF Client "mu" (![ptrT] "cl"));;
+      let: "ok" := ref_zero boolT in
+      let: "cb" := ref_zero ptrT in
+      let: ("$a0", "$a1") := Fst (MapGet (struct.loadF Client "pending" (![ptrT] "cl")) (![uint64T] "seqno")) in
+      "ok" <-[boolT] "$a1";;
+      "cb" <-[ptrT] "$a0";;
+      (if: ![boolT] "ok"
+      then
+        MapDelete (struct.loadF Client "pending" (![ptrT] "cl")) (![uint64T] "seqno");;
+        let: "$a0" := ![slice.T byteT] "reply" in
+        (struct.loadF Callback "reply" (![ptrT] "cb")) <-[slice.T byteT] "$a0";;
+        let: "$a0" := callbackStateDone in
+        (struct.loadF Callback "state" (![ptrT] "cb")) <-[uint64T] "$a0";;
+        sync.Cond__Signal (struct.loadF Callback "cond" (![ptrT] "cb"));;
+        #()
+      else #());;
+      sync.Mutex__Unlock (struct.loadF Client "mu" (![ptrT] "cl"));;
+      Continue).
 
 Definition TryMakeClient: val :=
   rec: "TryMakeClient" "host_name" :=
-    let: "host" := "host_name" in
-    let: "a" := grove__ffi.Connect "host" in
+    let: "host" := ref_zero uint64T in
+    let: "$a0" := ![uint64T] "host_name" in
+    "host" <-[uint64T] "$a0";;
+    let: "a" := ref_zero (struct.t grove_ffi.ConnectRet) in
+    let: "$a0" := grove__ffi.Connect (![uint64T] "host") in
+    "a" <-[struct.t grove_ffi.ConnectRet] "$a0";;
     let: "nilClient" := ref (zero_val ptrT) in
-    (if: struct.get grove_ffi.ConnectRet "Err" "a"
-    then (#1, ![ptrT] "nilClient")
-    else
-      let: "cl" := struct.new Client [
-        "conn" ::= struct.get grove_ffi.ConnectRet "Connection" "a";
-        "mu" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));
-        "seq" ::= #1;
-        "pending" ::= NewMap uint64T ptrT #()
-      ] in
-      Fork (Client__replyThread "cl");;
-      (#0, "cl")).
+    (if: struct.get grove_ffi.ConnectRet "Err" (![struct.t grove_ffi.ConnectRet] "a")
+    then return: (#1, ![ptrT] "nilClient")
+    else #());;
+    let: "cl" := ref_zero ptrT in
+    let: "$a0" := struct.new Client [
+      "conn" ::= struct.get grove_ffi.ConnectRet "Connection" (![struct.t grove_ffi.ConnectRet] "a");
+      "mu" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));
+      "seq" ::= #1;
+      "pending" ::= NewMap uint64T ptrT #()
+    ] in
+    "cl" <-[ptrT] "$a0";;
+    Fork (Client__replyThread (![ptrT] "cl");;
+          #());;
+    return: (#0, ![ptrT] "cl").
 
 Definition MakeClient: val :=
   rec: "MakeClient" "host_name" :=
-    let: ("err", "cl") := TryMakeClient "host_name" in
-    (if: "err" ≠ #0
+    let: "cl" := ref_zero ptrT in
+    let: "err" := ref_zero uint64T in
+    let: ("$a0", "$a1") := TryMakeClient (![uint64T] "host_name") in
+    "cl" <-[ptrT] "$a1";;
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") ≠ #0
     then
-      (* log.Printf("Unable to connect to %s", grove_ffi.AddressToStr(host_name)) *)
+      log.Printf #(str"Unable to connect to %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)s(MISSING)") (grove__ffi.AddressToStr (![uint64T] "host_name"));;
       #()
     else #());;
-    machine.Assume ("err" = #0);;
-    "cl".
+    machine.Assume ((![uint64T] "err") = #0);;
+    return: (![ptrT] "cl").
 
 Definition Error: ty := uint64T.
 
@@ -142,49 +194,79 @@ Definition ErrDisconnect : expr := #2.
 
 Definition Client__CallStart: val :=
   rec: "Client__CallStart" "cl" "rpcid" "args" :=
-    let: "reply_buf" := ref (zero_val (slice.T byteT)) in
-    let: "cb" := struct.new Callback [
-      "reply" ::= "reply_buf";
+    let: "reply_buf" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply_buf" <-[ptrT] "$a0";;
+    let: "cb" := ref_zero ptrT in
+    let: "$a0" := struct.new Callback [
+      "reply" ::= ![ptrT] "reply_buf";
       "state" ::= ref (zero_val uint64T);
-      "cond" ::= sync.NewCond (struct.loadF Client "mu" "cl")
+      "cond" ::= sync.NewCond (struct.loadF Client "mu" (![ptrT] "cl"))
     ] in
-    (struct.loadF Callback "state" "cb") <-[uint64T] callbackStateWaiting;;
-    sync.Mutex__Lock (struct.loadF Client "mu" "cl");;
-    let: "seqno" := struct.loadF Client "seq" "cl" in
-    struct.storeF Client "seq" "cl" (std.SumAssumeNoOverflow (struct.loadF Client "seq" "cl") #1);;
-    MapInsert (struct.loadF Client "pending" "cl") "seqno" "cb";;
-    sync.Mutex__Unlock (struct.loadF Client "mu" "cl");;
-    let: "data1" := NewSliceWithCap byteT #0 ((#8 + #8) + (slice.len "args")) in
-    let: "data2" := marshal.WriteInt "data1" "rpcid" in
-    let: "data3" := marshal.WriteInt "data2" "seqno" in
-    let: "reqData" := marshal.WriteBytes "data3" "args" in
-    (if: grove__ffi.Send (struct.loadF Client "conn" "cl") "reqData"
+    "cb" <-[ptrT] "$a0";;
+    let: "$a0" := callbackStateWaiting in
+    (struct.loadF Callback "state" (![ptrT] "cb")) <-[uint64T] "$a0";;
+    sync.Mutex__Lock (struct.loadF Client "mu" (![ptrT] "cl"));;
+    let: "seqno" := ref_zero uint64T in
+    let: "$a0" := struct.loadF Client "seq" (![ptrT] "cl") in
+    "seqno" <-[uint64T] "$a0";;
+    let: "$a0" := std.SumAssumeNoOverflow (struct.loadF Client "seq" (![ptrT] "cl")) #1 in
+    struct.storeF Client "seq" (![ptrT] "cl") "$a0";;
+    let: "$a0" := ![ptrT] "cb" in
+    MapInsert (struct.loadF Client "pending" (![ptrT] "cl")) (![uint64T] "seqno") "$a0";;
+    sync.Mutex__Unlock (struct.loadF Client "mu" (![ptrT] "cl"));;
+    let: "data1" := ref_zero (slice.T byteT) in
+    let: "$a0" := NewSliceWithCap byteT #0 ((#8 + #8) + (slice.len (![slice.T byteT] "args"))) in
+    "data1" <-[slice.T byteT] "$a0";;
+    let: "data2" := ref_zero (slice.T byteT) in
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "data1") (![uint64T] "rpcid") in
+    "data2" <-[slice.T byteT] "$a0";;
+    let: "data3" := ref_zero (slice.T byteT) in
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "data2") (![uint64T] "seqno") in
+    "data3" <-[slice.T byteT] "$a0";;
+    let: "reqData" := ref_zero (slice.T byteT) in
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "data3") (![slice.T byteT] "args") in
+    "reqData" <-[slice.T byteT] "$a0";;
+    (if: grove__ffi.Send (struct.loadF Client "conn" (![ptrT] "cl")) (![slice.T byteT] "reqData")
     then
-      (struct.new Callback [
+      return: (struct.new Callback [
        ], ErrDisconnect)
-    else ("cb", ErrNone)).
+    else #());;
+    return: (![ptrT] "cb", ErrNone).
 
 Definition Client__CallComplete: val :=
   rec: "Client__CallComplete" "cl" "cb" "reply" "timeout_ms" :=
-    sync.Mutex__Lock (struct.loadF Client "mu" "cl");;
-    (if: (![uint64T] (struct.loadF Callback "state" "cb")) = callbackStateWaiting
-    then machine.WaitTimeout (struct.loadF Callback "cond" "cb") "timeout_ms"
-    else #());;
-    let: "state" := ![uint64T] (struct.loadF Callback "state" "cb") in
-    (if: "state" = callbackStateDone
+    sync.Mutex__Lock (struct.loadF Client "mu" (![ptrT] "cl"));;
+    (if: (![uint64T] (struct.loadF Callback "state" (![ptrT] "cb"))) = callbackStateWaiting
     then
-      "reply" <-[slice.T byteT] (![slice.T byteT] (struct.loadF Callback "reply" "cb"));;
-      sync.Mutex__Unlock (struct.loadF Client "mu" "cl");;
-      #0
+      machine.WaitTimeout (struct.loadF Callback "cond" (![ptrT] "cb")) (![uint64T] "timeout_ms");;
+      #()
+    else #());;
+    let: "state" := ref_zero uint64T in
+    let: "$a0" := ![uint64T] (struct.loadF Callback "state" (![ptrT] "cb")) in
+    "state" <-[uint64T] "$a0";;
+    (if: (![uint64T] "state") = callbackStateDone
+    then
+      let: "$a0" := ![slice.T byteT] (struct.loadF Callback "reply" (![ptrT] "cb")) in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+      sync.Mutex__Unlock (struct.loadF Client "mu" (![ptrT] "cl"));;
+      return: (#0)
     else
-      sync.Mutex__Unlock (struct.loadF Client "mu" "cl");;
-      (if: "state" = callbackStateAborted
-      then ErrDisconnect
-      else ErrTimeout)).
+      sync.Mutex__Unlock (struct.loadF Client "mu" (![ptrT] "cl"));;
+      (if: (![uint64T] "state") = callbackStateAborted
+      then return: (ErrDisconnect)
+      else return: (ErrTimeout));;
+      #());;
+    #().
 
 Definition Client__Call: val :=
   rec: "Client__Call" "cl" "rpcid" "args" "reply" "timeout_ms" :=
-    let: ("cb", "err") := Client__CallStart "cl" "rpcid" "args" in
-    (if: "err" ≠ #0
-    then "err"
-    else Client__CallComplete "cl" "cb" "reply" "timeout_ms").
+    let: "err" := ref_zero uint64T in
+    let: "cb" := ref_zero ptrT in
+    let: ("$a0", "$a1") := Client__CallStart (![ptrT] "cl") (![uint64T] "rpcid") (![slice.T byteT] "args") in
+    "err" <-[uint64T] "$a1";;
+    "cb" <-[ptrT] "$a0";;
+    (if: (![uint64T] "err") ≠ #0
+    then return: (![uint64T] "err")
+    else #());;
+    return: (Client__CallComplete (![ptrT] "cl") (![ptrT] "cb") (![ptrT] "reply") (![uint64T] "timeout_ms")).

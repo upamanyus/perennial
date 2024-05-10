@@ -20,61 +20,72 @@ Definition Server := struct.decl [
 (* return true iff successful *)
 Definition Server__TryLocalIncrement: val :=
   rec: "Server__TryLocalIncrement" "s" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "s");;
-    let: (<>, "h") := grove__ffi.GetTimeRange #() in
-    (if: "h" ≥ (struct.loadF Server "leaseExpiration" "s")
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
+    let: "h" := ref_zero uint64T in
+    let: <> := ref_zero uint64T in
+    let: ("$a0", "$a1") := grove__ffi.GetTimeRange #() in
+    "h" <-[uint64T] "$a1";;
+    "$a0";;
+    (if: (![uint64T] "h") ≥ (struct.loadF Server "leaseExpiration" (![ptrT] "s"))
     then
-      sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-      #false
-    else
-      struct.storeF Server "val" "s" (std.SumAssumeNoOverflow (struct.loadF Server "val" "s") #1);;
-      sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-      #true).
+      sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+      return: (#false)
+    else #());;
+    let: "$a0" := std.SumAssumeNoOverflow (struct.loadF Server "val" (![ptrT] "s")) #1 in
+    struct.storeF Server "val" (![ptrT] "s") "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+    return: (#true).
 
 Definition Server__Put: val :=
   rec: "Server__Put" "s" "val" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "s");;
-    struct.storeF Server "val" "s" "val";;
-    sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
+    let: "$a0" := ![uint64T] "val" in
+    struct.storeF Server "val" (![ptrT] "s") "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
     #().
 
 Definition Server__Get: val :=
   rec: "Server__Get" "s" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "s");;
-    let: "v" := struct.loadF Server "val" "s" in
-    sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-    "v".
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
+    let: "v" := ref_zero uint64T in
+    let: "$a0" := struct.loadF Server "val" (![ptrT] "s") in
+    "v" <-[uint64T] "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+    return: (![uint64T] "v").
 
 Definition StartServer: val :=
   rec: "StartServer" <> :=
-    let: "s" := struct.alloc Server (zero_val (struct.t Server)) in
-    struct.storeF Server "mu" "s" (struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)));;
-    struct.storeF Server "val" "s" #0;;
-    struct.storeF Server "leaseExpiration" "s" #10;;
-    Fork (Skip;;
-          (for: (λ: <>, Server__TryLocalIncrement "s"); (λ: <>, Skip) := λ: <>,
-            Continue));;
-    "s".
+    let: "s" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Server (zero_val (struct.t Server)) in
+    "s" <-[ptrT] "$a0";;
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    struct.storeF Server "mu" (![ptrT] "s") "$a0";;
+    let: "$a0" := #0 in
+    struct.storeF Server "val" (![ptrT] "s") "$a0";;
+    let: "$a0" := #10 in
+    struct.storeF Server "leaseExpiration" (![ptrT] "s") "$a0";;
+    Fork ((for: (λ: <>, Server__TryLocalIncrement (![ptrT] "s")); (λ: <>, Skip) := λ: <>,
+            #()));;
+    return: (![ptrT] "s").
 
 Definition client: val :=
   rec: "client" "s" :=
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: ("l", <>) := grove__ffi.GetTimeRange #() in
-      (if: "l" > (struct.loadF Server "leaseExpiration" "s")
+      let: <> := ref_zero uint64T in
+      let: "l" := ref_zero uint64T in
+      let: ("$a0", "$a1") := grove__ffi.GetTimeRange #() in
+      "$a1";;
+      "l" <-[uint64T] "$a0";;
+      (if: (![uint64T] "l") > (struct.loadF Server "leaseExpiration" (![ptrT] "s"))
       then Break
-      else
-        machine.Sleep ((struct.loadF Server "leaseExpiration" "s") - "l");;
-        Continue));;
-    let: "v" := Server__Get "s" in
-    let: "newv" := std.SumAssumeNoOverflow "v" #1 in
-    Server__Put "s" "newv";;
-    let: "v2" := Server__Get "s" in
-    machine.Assert ("v2" = "newv");;
-    #().
+      else #());;
+      machine.Sleep ((struct.loadF Server "leaseExpiration" (![ptrT] "s")) - (![uint64T] "l"));;
+      #()).
 
 Definition main: val :=
   rec: "main" <> :=
-    let: "s" := StartServer #() in
-    client "s";;
+    let: "s" := ref_zero ptrT in
+    let: "$a0" := StartServer #() in
+    "s" <-[ptrT] "$a0";;
+    client (![ptrT] "s");;
     #().

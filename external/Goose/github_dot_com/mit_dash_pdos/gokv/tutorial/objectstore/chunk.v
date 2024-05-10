@@ -11,10 +11,6 @@ From Perennial.goose_lang Require Import ffi.grove_prelude.
 
 (* 0data.go *)
 
-(* WriteID from client.go *)
-
-Definition WriteID: ty := uint64T.
-
 Definition WriteChunkArgs := struct.decl [
   "WriteId" :: uint64T;
   "Chunk" :: slice.T byteT;
@@ -33,6 +29,8 @@ Definition ParseWriteChunkArgs: val :=
 
 (* client.go *)
 
+Definition WriteID: ty := uint64T.
+
 Definition WriteChunkId : expr := #1.
 
 Definition GetChunkId : expr := #2.
@@ -43,17 +41,25 @@ Definition ClerkPool := struct.decl [
 
 Definition ClerkPool__WriteChunk: val :=
   rec: "ClerkPool__WriteChunk" "ck" "addr" "args" :=
-    let: "req" := MarshalWriteChunkArgs "args" in
-    let: "reply" := ref (zero_val (slice.T byteT)) in
-    connman.ConnMan__CallAtLeastOnce (struct.loadF ClerkPool "cm" "ck") "addr" WriteChunkId "req" "reply" #100;;
+    let: "req" := ref_zero (slice.T byteT) in
+    let: "$a0" := MarshalWriteChunkArgs (![struct.t WriteChunkArgs] "args") in
+    "req" <-[slice.T byteT] "$a0";;
+    let: "reply" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply" <-[ptrT] "$a0";;
+    connman.ConnMan__CallAtLeastOnce (struct.loadF ClerkPool "cm" (![ptrT] "ck")) (![uint64T] "addr") WriteChunkId (![slice.T byteT] "req") (![ptrT] "reply") #100;;
     #().
 
 Definition ClerkPool__GetChunk: val :=
   rec: "ClerkPool__GetChunk" "ck" "addr" "content_hash" :=
-    let: "req" := StringToBytes "content_hash" in
-    let: "reply" := ref (zero_val (slice.T byteT)) in
-    connman.ConnMan__CallAtLeastOnce (struct.loadF ClerkPool "cm" "ck") "addr" GetChunkId "req" "reply" #100;;
-    ![slice.T byteT] "reply".
+    let: "req" := ref_zero (slice.T byteT) in
+    let: "$a0" := StringToBytes (![stringT] "content_hash") in
+    "req" <-[slice.T byteT] "$a0";;
+    let: "reply" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply" <-[ptrT] "$a0";;
+    connman.ConnMan__CallAtLeastOnce (struct.loadF ClerkPool "cm" (![ptrT] "ck")) (![uint64T] "addr") GetChunkId (![slice.T byteT] "req") (![ptrT] "reply") #100;;
+    return: (![slice.T byteT] (![ptrT] "reply")).
 
 (* server.go *)
 
@@ -66,47 +72,70 @@ Definition Server := struct.decl [
 
 Definition Server__WriteChunk: val :=
   rec: "Server__WriteChunk" "s" "args" :=
-    let: "content_hash" := trusted__hash.Hash (struct.get WriteChunkArgs "Chunk" "args") in
-    sync.Mutex__Lock (struct.loadF Server "m" "s");;
-    MapInsert (struct.loadF Server "chunks" "s") "content_hash" (struct.get WriteChunkArgs "Chunk" "args");;
-    sync.Mutex__Unlock (struct.loadF Server "m" "s");;
-    dir.Clerk__RecordChunk (struct.loadF Server "dir" "s") (struct.mk dir.RecordChunkArgs [
-      "WriteId" ::= struct.get WriteChunkArgs "WriteId" "args";
-      "Server" ::= struct.loadF Server "me" "s";
-      "ContentHash" ::= "content_hash";
-      "Index" ::= struct.get WriteChunkArgs "Index" "args"
+    let: "content_hash" := ref_zero stringT in
+    let: "$a0" := trusted__hash.Hash (struct.get WriteChunkArgs "Chunk" (![struct.t WriteChunkArgs] "args")) in
+    "content_hash" <-[stringT] "$a0";;
+    sync.Mutex__Lock (struct.loadF Server "m" (![ptrT] "s"));;
+    let: "$a0" := struct.get WriteChunkArgs "Chunk" (![struct.t WriteChunkArgs] "args") in
+    MapInsert (struct.loadF Server "chunks" (![ptrT] "s")) (![stringT] "content_hash") "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "m" (![ptrT] "s"));;
+    dir.Clerk__RecordChunk (struct.loadF Server "dir" (![ptrT] "s")) (struct.mk dir.RecordChunkArgs [
+      "WriteId" ::= struct.get WriteChunkArgs "WriteId" (![struct.t WriteChunkArgs] "args");
+      "Server" ::= struct.loadF Server "me" (![ptrT] "s");
+      "ContentHash" ::= ![stringT] "content_hash";
+      "Index" ::= struct.get WriteChunkArgs "Index" (![struct.t WriteChunkArgs] "args")
     ]);;
     #().
 
 Definition Server__GetChunk: val :=
   rec: "Server__GetChunk" "s" "content_hash" :=
-    sync.Mutex__Lock (struct.loadF Server "m" "s");;
-    let: "data" := Fst (MapGet (struct.loadF Server "chunks" "s") "content_hash") in
-    sync.Mutex__Unlock (struct.loadF Server "m" "s");;
-    "data".
+    sync.Mutex__Lock (struct.loadF Server "m" (![ptrT] "s"));;
+    let: "data" := ref_zero (slice.T byteT) in
+    let: "$a0" := Fst (MapGet (struct.loadF Server "chunks" (![ptrT] "s")) (![stringT] "content_hash")) in
+    "data" <-[slice.T byteT] "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "m" (![ptrT] "s"));;
+    return: (![slice.T byteT] "data").
 
 Definition StartServer: val :=
   rec: "StartServer" "me" "dir_addr" :=
-    let: "dir" := dir.MakeClerk "dir_addr" in
-    let: "s" := struct.new Server [
+    let: "dir" := ref_zero ptrT in
+    let: "$a0" := dir.MakeClerk (![uint64T] "dir_addr") in
+    "dir" <-[ptrT] "$a0";;
+    let: "s" := ref_zero ptrT in
+    let: "$a0" := struct.new Server [
       "m" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));
       "chunks" ::= NewMap stringT (slice.T byteT) #();
-      "dir" ::= "dir";
-      "me" ::= "me"
+      "dir" ::= ![ptrT] "dir";
+      "me" ::= ![uint64T] "me"
     ] in
-    let: "handlers" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%ht #() in
-    MapInsert "handlers" WriteChunkId (λ: "req" "reply",
-      let: "args" := ParseWriteChunkArgs "req" in
-      Server__WriteChunk "s" "args";;
-      "reply" <-[slice.T byteT] (NewSlice byteT #0);;
+    "s" <-[ptrT] "$a0";;
+    let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
+    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
+    let: "$a0" := (λ: "req" "reply",
+      let: "args" := ref_zero (struct.t WriteChunkArgs) in
+      let: "$a0" := ParseWriteChunkArgs (![slice.T byteT] "req") in
+      "args" <-[struct.t WriteChunkArgs] "$a0";;
+      Server__WriteChunk (![ptrT] "s") (![struct.t WriteChunkArgs] "args");;
+      let: "$a0" := NewSlice byteT #0 in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    MapInsert "handlers" GetChunkId (λ: "req" "reply",
-      let: "args" := StringFromBytes "req" in
-      let: "ret" := Server__GetChunk "s" "args" in
-      "reply" <-[slice.T byteT] "ret";;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") WriteChunkId "$a0";;
+    let: "$a0" := (λ: "req" "reply",
+      let: "args" := ref_zero stringT in
+      let: "$a0" := StringFromBytes (![slice.T byteT] "req") in
+      "args" <-[stringT] "$a0";;
+      let: "ret" := ref_zero (slice.T byteT) in
+      let: "$a0" := Server__GetChunk (![ptrT] "s") (![stringT] "args") in
+      "ret" <-[slice.T byteT] "$a0";;
+      let: "$a0" := ![slice.T byteT] "ret" in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    let: "server" := urpc.MakeServer "handlers" in
-    urpc.Server__Serve "server" "me";;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") GetChunkId "$a0";;
+    let: "server" := ref_zero ptrT in
+    let: "$a0" := urpc.MakeServer (![mapT (arrowT unitT unitT)] "handlers") in
+    "server" <-[ptrT] "$a0";;
+    urpc.Server__Serve (![ptrT] "server") (![uint64T] "me");;
     #().

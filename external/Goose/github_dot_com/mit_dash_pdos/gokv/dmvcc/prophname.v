@@ -8,6 +8,6 @@ Local Coercion Var' s: expr := Var s.
 
 Definition Get: val :=
   rec: "Get" <> :=
-    machine.NewProph #().
+    return: (machine.NewProph #()).
 
 End code.

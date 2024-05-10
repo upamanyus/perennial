@@ -16,55 +16,45 @@ Definition Queue := struct.decl [
 
 Definition NewQueue: val :=
   rec: "NewQueue" "queue_size" :=
-    let: "lock" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
-    struct.mk Queue [
-      "queue" ::= NewSliceWithCap uint64T "queue_size" "queue_size";
-      "cond" ::= sync.NewCond "lock";
-      "lock" ::= "lock";
-      "first" ::= #0;
-      "count" ::= #0
-    ].
+    let: "lock" := ref_zero ptrT in
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    "lock" <-[ptrT] "$a0";;
+    return: (struct.mk Queue [
+       "queue" ::= NewSliceWithCap uint64T (![uint64T] "queue_size") (![uint64T] "queue_size");
+       "cond" ::= sync.NewCond (![ptrT] "lock");
+       "lock" ::= ![ptrT] "lock";
+       "first" ::= #0;
+       "count" ::= #0
+     ]).
 
 Definition Queue__Enqueue: val :=
   rec: "Queue__Enqueue" "q" "a" :=
-    sync.Mutex__Lock (struct.loadF Queue "lock" "q");;
-    let: "queue_size" := ref_to uint64T (slice.len (struct.loadF Queue "queue" "q")) in
-    Skip;;
-    (for: (λ: <>, (struct.loadF Queue "count" "q") ≥ (![uint64T] "queue_size")); (λ: <>, Skip) := λ: <>,
-      sync.Cond__Wait (struct.loadF Queue "cond" "q");;
-      Continue);;
-    let: "last" := ref_to uint64T (((struct.loadF Queue "first" "q") + (struct.loadF Queue "count" "q")) `rem` (![uint64T] "queue_size")) in
-    SliceSet uint64T (struct.loadF Queue "queue" "q") (![uint64T] "last") "a";;
-    struct.storeF Queue "count" "q" ((struct.loadF Queue "count" "q") + #1);;
-    sync.Mutex__Unlock (struct.loadF Queue "lock" "q");;
-    sync.Cond__Broadcast (struct.loadF Queue "cond" "q");;
-    #().
+    sync.Mutex__Lock (struct.loadF Queue "lock" (![ptrT] "q"));;
+    let: "queue_size" := ref_to uint64T (slice.len (struct.loadF Queue "queue" (![ptrT] "q"))) in
+    (for: (λ: <>, (struct.loadF Queue "count" (![ptrT] "q")) ≥ (![uint64T] "queue_size")); (λ: <>, Skip) := λ: <>,
+      sync.Cond__Wait (struct.loadF Queue "cond" (![ptrT] "q"));;
+      #()).
 
 Definition Queue__Dequeue: val :=
   rec: "Queue__Dequeue" "q" :=
-    sync.Mutex__Lock (struct.loadF Queue "lock" "q");;
-    let: "queue_size" := ref_to uint64T (slice.len (struct.loadF Queue "queue" "q")) in
-    Skip;;
-    (for: (λ: <>, (struct.loadF Queue "count" "q") = #0); (λ: <>, Skip) := λ: <>,
-      sync.Cond__Wait (struct.loadF Queue "cond" "q");;
-      Continue);;
-    let: "res" := SliceGet uint64T (struct.loadF Queue "queue" "q") (struct.loadF Queue "first" "q") in
-    struct.storeF Queue "first" "q" (((struct.loadF Queue "first" "q") + #1) `rem` (![uint64T] "queue_size"));;
-    struct.storeF Queue "count" "q" ((struct.loadF Queue "count" "q") - #1);;
-    sync.Mutex__Unlock (struct.loadF Queue "lock" "q");;
-    sync.Cond__Broadcast (struct.loadF Queue "cond" "q");;
-    "res".
+    sync.Mutex__Lock (struct.loadF Queue "lock" (![ptrT] "q"));;
+    let: "queue_size" := ref_to uint64T (slice.len (struct.loadF Queue "queue" (![ptrT] "q"))) in
+    (for: (λ: <>, (struct.loadF Queue "count" (![ptrT] "q")) = #0); (λ: <>, Skip) := λ: <>,
+      sync.Cond__Wait (struct.loadF Queue "cond" (![ptrT] "q"));;
+      #()).
 
 Definition Queue__Peek: val :=
   rec: "Queue__Peek" "q" :=
-    sync.Mutex__Lock (struct.loadF Queue "lock" "q");;
-    (if: (struct.loadF Queue "count" "q") > #0
+    sync.Mutex__Lock (struct.loadF Queue "lock" (![ptrT] "q"));;
+    (if: (struct.loadF Queue "count" (![ptrT] "q")) > #0
     then
-      let: "first" := SliceGet uint64T (struct.loadF Queue "queue" "q") (struct.loadF Queue "first" "q") in
-      sync.Mutex__Unlock (struct.loadF Queue "lock" "q");;
-      ("first", #true)
-    else
-      sync.Mutex__Unlock (struct.loadF Queue "lock" "q");;
-      (#0, #false)).
+      let: "first" := ref_zero uint64T in
+      let: "$a0" := SliceGet uint64T (struct.loadF Queue "queue" (![ptrT] "q")) (struct.loadF Queue "first" (![ptrT] "q")) in
+      "first" <-[uint64T] "$a0";;
+      sync.Mutex__Unlock (struct.loadF Queue "lock" (![ptrT] "q"));;
+      return: (![uint64T] "first", #true)
+    else #());;
+    sync.Mutex__Unlock (struct.loadF Queue "lock" (![ptrT] "q"));;
+    return: (#0, #false).
 
 End code.

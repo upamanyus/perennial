@@ -92,75 +92,106 @@ Definition waitDeletes: val :=
     Panic "axiom";;
     #().
 
-(* Proclaim lets the leader announce a new value without another election. *)
-Definition Election__Proclaim: val :=
-  rec: "Election__Proclaim" "e" "val" :=
-    (if: (struct.loadF Election "leaderLease" "e") = #(str"")
-    then ErrElectionNotLeader
-    else
-      let: "txn" := ref_to ptrT (Txn__IfCreateRevisionEq (StartTxn #()) (struct.loadF Election "leaderKey" "e") (struct.loadF Election "leaderRev" "e")) in
-      "txn" <-[ptrT] (Txn__Then (![ptrT] "txn") (OpPutWithLease (struct.loadF Election "leaderKey" "e") "val" (struct.loadF Election "leaderLease" "e")));;
-      let: ("tresp", "terr") := Txn__Commit (![ptrT] "txn") in
-      (if: "terr" ≠ ErrNone
-      then "terr"
-      else
-        (if: (~ (struct.loadF TxnResponse "Succeeded" "tresp"))
-        then
-          struct.storeF Election "leaderKey" "e" #(str"");;
-          ErrElectionNotLeader
-        else ErrNone))).
-
 (* Resign lets a leader start a new election. *)
 Definition Election__Resign: val :=
   rec: "Election__Resign" "e" :=
-    (if: (struct.loadF Election "leaderLease" "e") = #(str"")
-    then ErrNone
-    else
-      let: (<>, "err") := Txn__Commit (Txn__Then (Txn__IfCreateRevisionEq (StartTxn #()) (struct.loadF Election "leaderKey" "e") (struct.loadF Election "leaderRev" "e")) (OpDelete (struct.loadF Election "leaderKey" "e"))) in
-      struct.storeF Election "leaderKey" "e" #(str"");;
-      struct.storeF Election "leaderLease" "e" #(str"");;
-      "err").
+    (if: (struct.loadF Election "leaderLease" (![ptrT] "e")) = #(str"")
+    then return: (ErrNone)
+    else #());;
+    let: "err" := ref_zero uint64T in
+    let: <> := ref_zero ptrT in
+    let: ("$a0", "$a1") := Txn__Commit (Txn__Then (Txn__IfCreateRevisionEq (StartTxn #()) (struct.loadF Election "leaderKey" (![ptrT] "e")) (struct.loadF Election "leaderRev" (![ptrT] "e"))) (OpDelete (struct.loadF Election "leaderKey" (![ptrT] "e")))) in
+    "err" <-[uint64T] "$a1";;
+    "$a0";;
+    let: "$a0" := #(str"") in
+    struct.storeF Election "leaderKey" (![ptrT] "e") "$a0";;
+    let: "$a0" := #(str"") in
+    struct.storeF Election "leaderLease" (![ptrT] "e") "$a0";;
+    return: (![uint64T] "err").
+
+(* Proclaim lets the leader announce a new value without another election. *)
+Definition Election__Proclaim: val :=
+  rec: "Election__Proclaim" "e" "val" :=
+    (if: (struct.loadF Election "leaderLease" (![ptrT] "e")) = #(str"")
+    then return: (ErrElectionNotLeader)
+    else #());;
+    let: "txn" := ref_to ptrT (Txn__IfCreateRevisionEq (StartTxn #()) (struct.loadF Election "leaderKey" (![ptrT] "e")) (struct.loadF Election "leaderRev" (![ptrT] "e"))) in
+    let: "$a0" := Txn__Then (![ptrT] "txn") (OpPutWithLease (struct.loadF Election "leaderKey" (![ptrT] "e")) (![stringT] "val") (struct.loadF Election "leaderLease" (![ptrT] "e"))) in
+    "txn" <-[ptrT] "$a0";;
+    let: "terr" := ref_zero uint64T in
+    let: "tresp" := ref_zero ptrT in
+    let: ("$a0", "$a1") := Txn__Commit (![ptrT] "txn") in
+    "terr" <-[uint64T] "$a1";;
+    "tresp" <-[ptrT] "$a0";;
+    (if: (![uint64T] "terr") ≠ ErrNone
+    then return: (![uint64T] "terr")
+    else #());;
+    (if: (~ (struct.loadF TxnResponse "Succeeded" (![ptrT] "tresp")))
+    then
+      let: "$a0" := #(str"") in
+      struct.storeF Election "leaderKey" (![ptrT] "e") "$a0";;
+      return: (ErrElectionNotLeader)
+    else #());;
+    return: (ErrNone).
 
 Definition Election__Campaign: val :=
   rec: "Election__Campaign" "e" "val" :=
-    let: "l" := struct.loadF Election "lease" "e" in
-    let: "k" := (struct.loadF Election "keyPrefix" "e") + "l" in
-    let: "txn" := ref_to ptrT (Txn__IfCreateRevisionEq (StartTxn #()) "k" #0) in
-    "txn" <-[ptrT] (Txn__Then (![ptrT] "txn") (OpPutWithLease "k" "val" (struct.loadF Election "lease" "e")));;
-    "txn" <-[ptrT] (Txn__Else (![ptrT] "txn") (OpGet "k"));;
+    let: "l" := ref_zero stringT in
+    let: "$a0" := struct.loadF Election "lease" (![ptrT] "e") in
+    "l" <-[stringT] "$a0";;
+    let: "k" := ref_zero stringT in
+    let: "$a0" := (struct.loadF Election "keyPrefix" (![ptrT] "e")) + (![stringT] "l") in
+    "k" <-[stringT] "$a0";;
+    let: "txn" := ref_to ptrT (Txn__IfCreateRevisionEq (StartTxn #()) (![stringT] "k") #0) in
+    let: "$a0" := Txn__Then (![ptrT] "txn") (OpPutWithLease (![stringT] "k") (![stringT] "val") (struct.loadF Election "lease" (![ptrT] "e"))) in
+    "txn" <-[ptrT] "$a0";;
+    let: "$a0" := Txn__Else (![ptrT] "txn") (OpGet (![stringT] "k")) in
+    "txn" <-[ptrT] "$a0";;
     let: "resp" := ref (zero_val ptrT) in
     let: "err" := ref (zero_val uint64T) in
-    let: ("0_ret", "1_ret") := Txn__Commit (![ptrT] "txn") in
-    "resp" <-[ptrT] "0_ret";;
-    "err" <-[uint64T] "1_ret";;
+    let: ("$a0", "$a1") := Txn__Commit (![ptrT] "txn") in
+    "err" <-[uint64T] "$a1";;
+    "resp" <-[ptrT] "$a0";;
     (if: (![uint64T] "err") ≠ ErrNone
-    then ![uint64T] "err"
-    else
-      struct.storeF Election "leaderKey" "e" "k";;
-      struct.storeF Election "leaderRev" "e" (struct.loadF ResponseHeader "Revision" (struct.loadF TxnResponse "Header" (![ptrT] "resp")));;
-      struct.storeF Election "leaderLease" "e" "l";;
-      let: "done" := ref_to boolT #false in
-      (if: (~ (struct.loadF TxnResponse "Succeeded" (![ptrT] "resp")))
+    then return: (![uint64T] "err")
+    else #());;
+    let: "$a0" := ![stringT] "k" in
+    struct.storeF Election "leaderKey" (![ptrT] "e") "$a0";;
+    let: "$a0" := struct.loadF ResponseHeader "Revision" (struct.loadF TxnResponse "Header" (![ptrT] "resp")) in
+    struct.storeF Election "leaderRev" (![ptrT] "e") "$a0";;
+    let: "$a0" := ![stringT] "l" in
+    struct.storeF Election "leaderLease" (![ptrT] "e") "$a0";;
+    let: "done" := ref_to boolT #false in
+    (if: (~ (struct.loadF TxnResponse "Succeeded" (![ptrT] "resp")))
+    then
+      let: "kv" := ref_zero ptrT in
+      let: "$a0" := SliceGet ptrT (struct.loadF RangeResponse "Kvs" (SliceGet ptrT (struct.loadF TxnResponse "Responses" (![ptrT] "resp")) #0)) #0 in
+      "kv" <-[ptrT] "$a0";;
+      let: "$a0" := struct.loadF KeyValue "CreateRevision" (![ptrT] "kv") in
+      struct.storeF Election "leaderRev" (![ptrT] "e") "$a0";;
+      (if: (struct.loadF KeyValue "Value" (![ptrT] "kv")) ≠ (![stringT] "val")
       then
-        let: "kv" := SliceGet ptrT (struct.loadF RangeResponse "Kvs" (SliceGet ptrT (struct.loadF TxnResponse "Responses" (![ptrT] "resp")) #0)) #0 in
-        struct.storeF Election "leaderRev" "e" (struct.loadF KeyValue "CreateRevision" "kv");;
-        (if: (struct.loadF KeyValue "Value" "kv") ≠ "val"
-        then
-          "err" <-[uint64T] (Election__Proclaim "e" "val");;
-          (if: (![uint64T] "err") ≠ ErrNone
-          then
-            Election__Resign "e";;
-            "done" <-[boolT] #true
-          else #())
-        else #())
-      else #());;
-      (if: ![boolT] "done"
-      then ![uint64T] "err"
-      else
-        "err" <-[uint64T] (waitDeletes (struct.loadF Election "keyPrefix" "e") ((struct.loadF Election "leaderRev" "e") - #1));;
+        let: "$a0" := Election__Proclaim (![ptrT] "e") (![stringT] "val") in
+        "err" <-[uint64T] "$a0";;
         (if: (![uint64T] "err") ≠ ErrNone
-        then #()
+        then
+          Election__Resign (![ptrT] "e");;
+          let: "$a0" := #true in
+          "done" <-[boolT] "$a0";;
+          #()
         else #());;
-        ErrNone)).
+        #()
+      else #());;
+      #()
+    else #());;
+    (if: ![boolT] "done"
+    then return: (![uint64T] "err")
+    else #());;
+    let: "$a0" := waitDeletes (struct.loadF Election "keyPrefix" (![ptrT] "e")) ((struct.loadF Election "leaderRev" (![ptrT] "e")) - #1) in
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") ≠ ErrNone
+    then #()
+    else #());;
+    return: (ErrNone).
 
 End code.

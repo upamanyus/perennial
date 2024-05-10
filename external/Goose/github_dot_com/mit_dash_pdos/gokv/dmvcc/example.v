@@ -12,23 +12,37 @@ Local Coercion Var' s: expr := Var s.
 
 Definition main: val :=
   rec: "main" <> :=
-    let: "indexHost" := index.MakeServer #() in
-    let: "txnMgrHost" := txnmgr.MakeServer #() in
-    let: "txnCoordHost" := txncoordinator.MakeServer "indexHost" in
-    Fork (let: "txnCk" := txn.Begin "txnMgrHost" "txnCoordHost" "indexHost" in
-          txn.Clerk__DoTxn "txnCk" (λ: "t",
-            txn.Clerk__Put "t" #0 #(str"hello");;
-            txn.Clerk__Put "t" #1 #(str"world");;
-            #true
-            ));;
-    Fork (let: "txnCk" := txn.Begin "txnMgrHost" "txnCoordHost" "indexHost" in
-          txn.Clerk__DoTxn "txnCk" (λ: "t",
-            (if: (StringLength (txn.Clerk__Get "t" #0)) > #0
-            then machine.Assert ((StringLength (txn.Clerk__Get "t" #1)) > #0)
+    let: "indexHost" := ref_zero ptrT in
+    let: "$a0" := index.MakeServer #() in
+    "indexHost" <-[ptrT] "$a0";;
+    let: "txnMgrHost" := ref_zero ptrT in
+    let: "$a0" := txnmgr.MakeServer #() in
+    "txnMgrHost" <-[ptrT] "$a0";;
+    let: "txnCoordHost" := ref_zero ptrT in
+    let: "$a0" := txncoordinator.MakeServer (![ptrT] "indexHost") in
+    "txnCoordHost" <-[ptrT] "$a0";;
+    Fork (let: "txnCk" := ref_zero ptrT in
+          let: "$a0" := txn.Begin (![ptrT] "txnMgrHost") (![ptrT] "txnCoordHost") (![ptrT] "indexHost") in
+          "txnCk" <-[ptrT] "$a0";;
+          txn.Clerk__DoTxn (![ptrT] "txnCk") (λ: "t",
+            txn.Clerk__Put (![ptrT] "t") #0 #(str"hello");;
+            txn.Clerk__Put (![ptrT] "t") #1 #(str"world");;
+            return: (#true)
+            );;
+          #());;
+    Fork (let: "txnCk" := ref_zero ptrT in
+          let: "$a0" := txn.Begin (![ptrT] "txnMgrHost") (![ptrT] "txnCoordHost") (![ptrT] "indexHost") in
+          "txnCk" <-[ptrT] "$a0";;
+          txn.Clerk__DoTxn (![ptrT] "txnCk") (λ: "t",
+            (if: (StringLength (txn.Clerk__Get (![ptrT] "t") #0)) > #0
+            then
+              machine.Assert ((StringLength (txn.Clerk__Get (![ptrT] "t") #1)) > #0);;
+              #()
             else #());;
-            (* log.Printf("Val on txn2: '%s'", t.Get(1)) *)
-            #true
-            ));;
+            log.Printf #(str"Val on txn2: '%!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)s(MISSING)'") (txn.Clerk__Get (![ptrT] "t") #1);;
+            return: (#true)
+            );;
+          #());;
     machine.Sleep #100000000;;
     #().
 

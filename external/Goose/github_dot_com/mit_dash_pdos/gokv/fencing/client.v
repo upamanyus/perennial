@@ -13,22 +13,33 @@ Definition Clerk := struct.decl [
 
 Definition Clerk__FetchAndIncrement: val :=
   rec: "Clerk__FetchAndIncrement" "ck" "key" :=
-    let: "ret" := ref (zero_val uint64T) in
-    Skip;;
+    let: "ret" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val uint64T) in
+    "ret" <-[ptrT] "$a0";;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "err" := frontend.Clerk__FetchAndIncrement (struct.loadF Clerk "frontendCk" "ck") "key" "ret" in
-      (if: "err" = #0
+      let: "err" := ref_zero uint64T in
+      let: "$a0" := frontend.Clerk__FetchAndIncrement (struct.loadF Clerk "frontendCk" (![ptrT] "ck")) (![uint64T] "key") (![ptrT] "ret") in
+      "err" <-[uint64T] "$a0";;
+      (if: (![uint64T] "err") = #0
       then Break
-      else
-        let: "currentFrontend" := config.Clerk__Get (struct.loadF Clerk "configCk" "ck") in
-        struct.storeF Clerk "frontendCk" "ck" (frontend.MakeClerk "currentFrontend");;
-        Continue));;
-    ![uint64T] "ret".
+      else #());;
+      let: "currentFrontend" := ref_zero uint64T in
+      let: "$a0" := config.Clerk__Get (struct.loadF Clerk "configCk" (![ptrT] "ck")) in
+      "currentFrontend" <-[uint64T] "$a0";;
+      let: "$a0" := frontend.MakeClerk (![uint64T] "currentFrontend") in
+      struct.storeF Clerk "frontendCk" (![ptrT] "ck") "$a0";;
+      #()).
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "configHost" :=
-    let: "ck" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
-    struct.storeF Clerk "configCk" "ck" (config.MakeClerk "configHost");;
-    let: "currentFrontend" := config.Clerk__Get (struct.loadF Clerk "configCk" "ck") in
-    struct.storeF Clerk "frontendCk" "ck" (frontend.MakeClerk "currentFrontend");;
-    "ck".
+    let: "ck" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
+    "ck" <-[ptrT] "$a0";;
+    let: "$a0" := config.MakeClerk (![uint64T] "configHost") in
+    struct.storeF Clerk "configCk" (![ptrT] "ck") "$a0";;
+    let: "currentFrontend" := ref_zero uint64T in
+    let: "$a0" := config.Clerk__Get (struct.loadF Clerk "configCk" (![ptrT] "ck")) in
+    "currentFrontend" <-[uint64T] "$a0";;
+    let: "$a0" := frontend.MakeClerk (![uint64T] "currentFrontend") in
+    struct.storeF Clerk "frontendCk" (![ptrT] "ck") "$a0";;
+    return: (![ptrT] "ck").

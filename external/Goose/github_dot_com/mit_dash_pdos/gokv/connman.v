@@ -16,61 +16,81 @@ Definition ConnMan := struct.decl [
 
 Definition MakeConnMan: val :=
   rec: "MakeConnMan" <> :=
-    let: "c" := struct.alloc ConnMan (zero_val (struct.t ConnMan)) in
-    struct.storeF ConnMan "mu" "c" (struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)));;
-    struct.storeF ConnMan "rpcCls" "c" (NewMap HostName ptrT #());;
-    struct.storeF ConnMan "making" "c" (NewMap HostName ptrT #());;
-    "c".
+    let: "c" := ref_zero ptrT in
+    let: "$a0" := struct.alloc ConnMan (zero_val (struct.t ConnMan)) in
+    "c" <-[ptrT] "$a0";;
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    struct.storeF ConnMan "mu" (![ptrT] "c") "$a0";;
+    let: "$a0" := NewMap uint64T ptrT #() in
+    struct.storeF ConnMan "rpcCls" (![ptrT] "c") "$a0";;
+    let: "$a0" := NewMap uint64T ptrT #() in
+    struct.storeF ConnMan "making" (![ptrT] "c") "$a0";;
+    return: (![ptrT] "c").
 
 Definition ConnMan__getClient: val :=
   rec: "ConnMan__getClient" "c" "host" :=
     let: "ret" := ref (zero_val ptrT) in
-    sync.Mutex__Lock (struct.loadF ConnMan "mu" "c");;
-    Skip;;
+    sync.Mutex__Lock (struct.loadF ConnMan "mu" (![ptrT] "c"));;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: ("cl", "ok") := MapGet (struct.loadF ConnMan "rpcCls" "c") "host" in
-      (if: "ok"
+      let: "ok" := ref_zero boolT in
+      let: "cl" := ref_zero ptrT in
+      let: ("$a0", "$a1") := Fst (MapGet (struct.loadF ConnMan "rpcCls" (![ptrT] "c")) (![uint64T] "host")) in
+      "ok" <-[boolT] "$a1";;
+      "cl" <-[ptrT] "$a0";;
+      (if: ![boolT] "ok"
       then
-        "ret" <-[ptrT] "cl";;
+        let: "$a0" := ![ptrT] "cl" in
+        "ret" <-[ptrT] "$a0";;
         Break
-      else
-        let: ("cond", "ok") := MapGet (struct.loadF ConnMan "making" "c") "host" in
-        (if: "ok"
-        then
-          sync.Cond__Wait "cond";;
-          Continue
-        else
-          let: "my_cond" := sync.NewCond (struct.loadF ConnMan "mu" "c") in
-          MapInsert (struct.loadF ConnMan "making" "c") "host" "my_cond";;
-          sync.Mutex__Unlock (struct.loadF ConnMan "mu" "c");;
-          "ret" <-[ptrT] (urpc.MakeClient "host");;
-          sync.Mutex__Lock (struct.loadF ConnMan "mu" "c");;
-          MapInsert (struct.loadF ConnMan "rpcCls" "c") "host" (![ptrT] "ret");;
-          sync.Cond__Broadcast "my_cond";;
-          MapDelete (struct.loadF ConnMan "making" "c") "host";;
-          Break)));;
-    sync.Mutex__Unlock (struct.loadF ConnMan "mu" "c");;
-    ![ptrT] "ret".
+      else #());;
+      let: "cond" := ref_zero ptrT in
+      let: ("$a0", "$a1") := Fst (MapGet (struct.loadF ConnMan "making" (![ptrT] "c")) (![uint64T] "host")) in
+      "ok" <-[boolT] "$a1";;
+      "cond" <-[ptrT] "$a0";;
+      (if: ![boolT] "ok"
+      then
+        sync.Cond__Wait (![ptrT] "cond");;
+        Continue
+      else #());;
+      let: "my_cond" := ref_zero ptrT in
+      let: "$a0" := sync.NewCond (struct.loadF ConnMan "mu" (![ptrT] "c")) in
+      "my_cond" <-[ptrT] "$a0";;
+      let: "$a0" := ![ptrT] "my_cond" in
+      MapInsert (struct.loadF ConnMan "making" (![ptrT] "c")) (![uint64T] "host") "$a0";;
+      sync.Mutex__Unlock (struct.loadF ConnMan "mu" (![ptrT] "c"));;
+      let: "$a0" := urpc.MakeClient (![uint64T] "host") in
+      "ret" <-[ptrT] "$a0";;
+      sync.Mutex__Lock (struct.loadF ConnMan "mu" (![ptrT] "c"));;
+      let: "$a0" := ![ptrT] "ret" in
+      MapInsert (struct.loadF ConnMan "rpcCls" (![ptrT] "c")) (![uint64T] "host") "$a0";;
+      sync.Cond__Broadcast (![ptrT] "my_cond");;
+      MapDelete (struct.loadF ConnMan "making" (![ptrT] "c")) (![uint64T] "host");;
+      Break).
 
 (* This repeatedly retries the RPC after retryTimeout until it gets a response. *)
 Definition ConnMan__CallAtLeastOnce: val :=
   rec: "ConnMan__CallAtLeastOnce" "c" "host" "rpcid" "args" "reply" "retryTimeout" :=
     let: "cl" := ref (zero_val ptrT) in
-    "cl" <-[ptrT] (ConnMan__getClient "c" "host");;
-    Skip;;
+    let: "$a0" := ConnMan__getClient (![ptrT] "c") (![uint64T] "host") in
+    "cl" <-[ptrT] "$a0";;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "err" := urpc.Client__Call (![ptrT] "cl") "rpcid" "args" "reply" "retryTimeout" in
-      (if: "err" = urpc.ErrTimeout
+      let: "err" := ref_zero uint64T in
+      let: "$a0" := urpc.Client__Call (![ptrT] "cl") (![uint64T] "rpcid") (![slice.T byteT] "args") (![ptrT] "reply") (![uint64T] "retryTimeout") in
+      "err" <-[uint64T] "$a0";;
+      (if: (![uint64T] "err") = urpc.ErrTimeout
       then Continue
-      else
-        (if: "err" = urpc.ErrDisconnect
+      else #());;
+      (if: (![uint64T] "err") = urpc.ErrDisconnect
+      then
+        sync.Mutex__Lock (struct.loadF ConnMan "mu" (![ptrT] "c"));;
+        (if: (![ptrT] "cl") = (Fst (MapGet (struct.loadF ConnMan "rpcCls" (![ptrT] "c")) (![uint64T] "host")))
         then
-          sync.Mutex__Lock (struct.loadF ConnMan "mu" "c");;
-          (if: (![ptrT] "cl") = (Fst (MapGet (struct.loadF ConnMan "rpcCls" "c") "host"))
-          then MapDelete (struct.loadF ConnMan "rpcCls" "c") "host"
-          else #());;
-          sync.Mutex__Unlock (struct.loadF ConnMan "mu" "c");;
-          "cl" <-[ptrT] (ConnMan__getClient "c" "host");;
-          Continue
-        else Break)));;
-    #().
+          MapDelete (struct.loadF ConnMan "rpcCls" (![ptrT] "c")) (![uint64T] "host");;
+          #()
+        else #());;
+        sync.Mutex__Unlock (struct.loadF ConnMan "mu" (![ptrT] "c"));;
+        let: "$a0" := ConnMan__getClient (![ptrT] "c") (![uint64T] "host") in
+        "cl" <-[ptrT] "$a0";;
+        Continue
+      else #());;
+      Break).

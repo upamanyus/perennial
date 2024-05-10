@@ -19,40 +19,60 @@ Definition Server := struct.decl [
 
 Definition Server__HandleRequest: val :=
   rec: "Server__HandleRequest" "t" "handler" :=
-    (λ: "raw_args" "reply",
-      let: ("cid", "raw_args") := marshal.ReadInt "raw_args" in
-      let: ("seq", "raw_args") := marshal.ReadInt "raw_args" in
-      sync.Mutex__Lock (struct.loadF Server "mu" "t");;
-      let: "last" := Fst (MapGet (struct.loadF Server "lastSeq" "t") "cid") in
-      (if: "seq" ≤ "last"
-      then
-        "reply" <-[slice.T byteT] (Fst (MapGet (struct.loadF Server "lastReply" "t") "cid"));;
-        sync.Mutex__Unlock (struct.loadF Server "mu" "t");;
-        #()
-      else
-        "handler" "raw_args" "reply";;
-        MapInsert (struct.loadF Server "lastSeq" "t") "cid" "seq";;
-        MapInsert (struct.loadF Server "lastReply" "t") "cid" (![slice.T byteT] "reply");;
-        sync.Mutex__Unlock (struct.loadF Server "mu" "t");;
-        #())
-      ).
+    return: ((λ: "raw_args" "reply",
+       let: "cid" := ref_zero uint64T in
+       let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "raw_args") in
+       "raw_args" <-[slice.T byteT] "$a1";;
+       "cid" <-[uint64T] "$a0";;
+       let: "seq" := ref_zero uint64T in
+       let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "raw_args") in
+       "raw_args" <-[slice.T byteT] "$a1";;
+       "seq" <-[uint64T] "$a0";;
+       sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "t"));;
+       let: "last" := ref_zero uint64T in
+       let: "$a0" := Fst (MapGet (struct.loadF Server "lastSeq" (![ptrT] "t")) (![uint64T] "cid")) in
+       "last" <-[uint64T] "$a0";;
+       (if: (![uint64T] "seq") ≤ (![uint64T] "last")
+       then
+         let: "$a0" := Fst (MapGet (struct.loadF Server "lastReply" (![ptrT] "t")) (![uint64T] "cid")) in
+         (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+         sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "t"));;
+         return: (#())
+       else #());;
+       (![(arrowT unitT unitT)] "handler") (![slice.T byteT] "raw_args") (![ptrT] "reply");;
+       let: "$a0" := ![uint64T] "seq" in
+       MapInsert (struct.loadF Server "lastSeq" (![ptrT] "t")) (![uint64T] "cid") "$a0";;
+       let: "$a0" := ![slice.T byteT] (![ptrT] "reply") in
+       MapInsert (struct.loadF Server "lastReply" (![ptrT] "t")) (![uint64T] "cid") "$a0";;
+       sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "t"));;
+       #()
+       )).
 
 Definition Server__GetFreshCID: val :=
   rec: "Server__GetFreshCID" "t" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "t");;
-    let: "r" := struct.loadF Server "nextCID" "t" in
-    struct.storeF Server "nextCID" "t" (std.SumAssumeNoOverflow (struct.loadF Server "nextCID" "t") #1);;
-    sync.Mutex__Unlock (struct.loadF Server "mu" "t");;
-    "r".
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "t"));;
+    let: "r" := ref_zero uint64T in
+    let: "$a0" := struct.loadF Server "nextCID" (![ptrT] "t") in
+    "r" <-[uint64T] "$a0";;
+    let: "$a0" := std.SumAssumeNoOverflow (struct.loadF Server "nextCID" (![ptrT] "t")) #1 in
+    struct.storeF Server "nextCID" (![ptrT] "t") "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "t"));;
+    return: (![uint64T] "r").
 
 Definition MakeServer: val :=
   rec: "MakeServer" <> :=
-    let: "t" := struct.alloc Server (zero_val (struct.t Server)) in
-    struct.storeF Server "lastReply" "t" (NewMap uint64T (slice.T byteT) #());;
-    struct.storeF Server "lastSeq" "t" (NewMap uint64T uint64T #());;
-    struct.storeF Server "nextCID" "t" #0;;
-    struct.storeF Server "mu" "t" (struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)));;
-    "t".
+    let: "t" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Server (zero_val (struct.t Server)) in
+    "t" <-[ptrT] "$a0";;
+    let: "$a0" := NewMap uint64T (slice.T byteT) #() in
+    struct.storeF Server "lastReply" (![ptrT] "t") "$a0";;
+    let: "$a0" := NewMap uint64T uint64T #() in
+    struct.storeF Server "lastSeq" (![ptrT] "t") "$a0";;
+    let: "$a0" := #0 in
+    struct.storeF Server "nextCID" (![ptrT] "t") "$a0";;
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    struct.storeF Server "mu" (![ptrT] "t") "$a0";;
+    return: (![ptrT] "t").
 
 Definition Client := struct.decl [
   "cid" :: uint64T;
@@ -61,19 +81,34 @@ Definition Client := struct.decl [
 
 Definition Client__NewRequest: val :=
   rec: "Client__NewRequest" "c" "request" :=
-    let: "seq" := struct.loadF Client "nextSeq" "c" in
-    struct.storeF Client "nextSeq" "c" (std.SumAssumeNoOverflow (struct.loadF Client "nextSeq" "c") #1);;
-    let: "data1" := NewSliceWithCap byteT #0 ((#8 + #8) + (slice.len "request")) in
-    let: "data2" := marshal.WriteInt "data1" (struct.loadF Client "cid" "c") in
-    let: "data3" := marshal.WriteInt "data2" "seq" in
-    let: "data4" := marshal.WriteBytes "data3" "request" in
-    "data4".
+    let: "seq" := ref_zero uint64T in
+    let: "$a0" := struct.loadF Client "nextSeq" (![ptrT] "c") in
+    "seq" <-[uint64T] "$a0";;
+    let: "$a0" := std.SumAssumeNoOverflow (struct.loadF Client "nextSeq" (![ptrT] "c")) #1 in
+    struct.storeF Client "nextSeq" (![ptrT] "c") "$a0";;
+    let: "data1" := ref_zero (slice.T byteT) in
+    let: "$a0" := NewSliceWithCap byteT #0 ((#8 + #8) + (slice.len (![slice.T byteT] "request"))) in
+    "data1" <-[slice.T byteT] "$a0";;
+    let: "data2" := ref_zero (slice.T byteT) in
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "data1") (struct.loadF Client "cid" (![ptrT] "c")) in
+    "data2" <-[slice.T byteT] "$a0";;
+    let: "data3" := ref_zero (slice.T byteT) in
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "data2") (![uint64T] "seq") in
+    "data3" <-[slice.T byteT] "$a0";;
+    let: "data4" := ref_zero (slice.T byteT) in
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "data3") (![slice.T byteT] "request") in
+    "data4" <-[slice.T byteT] "$a0";;
+    return: (![slice.T byteT] "data4").
 
 Definition MakeClient: val :=
   rec: "MakeClient" "cid" :=
-    let: "c" := struct.alloc Client (zero_val (struct.t Client)) in
-    struct.storeF Client "cid" "c" "cid";;
-    struct.storeF Client "nextSeq" "c" #1;;
-    "c".
+    let: "c" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Client (zero_val (struct.t Client)) in
+    "c" <-[ptrT] "$a0";;
+    let: "$a0" := ![uint64T] "cid" in
+    struct.storeF Client "cid" (![ptrT] "c") "$a0";;
+    let: "$a0" := #1 in
+    struct.storeF Client "nextSeq" (![ptrT] "c") "$a0";;
+    return: (![ptrT] "c").
 
 End code.

@@ -22,20 +22,27 @@ Definition Server := struct.decl [
 
 Definition MakeServer: val :=
   rec: "MakeServer" <> :=
-    let: "p" := machine.NewProph #() in
-    let: "txnMgr" := struct.new Server [
-      "p" ::= "p";
+    let: "p" := ref_zero ProphIdT in
+    let: "$a0" := machine.NewProph #() in
+    "p" <-[ProphIdT] "$a0";;
+    let: "txnMgr" := ref_zero ptrT in
+    let: "$a0" := struct.new Server [
+      "p" ::= ![ProphIdT] "p";
       "nextTid" ::= #1
     ] in
-    struct.storeF Server "mu" "txnMgr" (struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)));;
-    "txnMgr".
+    "txnMgr" <-[ptrT] "$a0";;
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    struct.storeF Server "mu" (![ptrT] "txnMgr") "$a0";;
+    return: (![ptrT] "txnMgr").
 
 Definition Server__New: val :=
   rec: "Server__New" "txnMgr" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "txnMgr");;
-    let: "tid" := struct.loadF Server "nextTid" "txnMgr" in
-    struct.storeF Server "nextTid" "txnMgr" ((struct.loadF Server "nextTid" "txnMgr") + #1);;
-    sync.Mutex__Unlock (struct.loadF Server "mu" "txnMgr");;
-    "tid".
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "txnMgr"));;
+    let: "tid" := ref_zero uint64T in
+    let: "$a0" := struct.loadF Server "nextTid" (![ptrT] "txnMgr") in
+    "tid" <-[uint64T] "$a0";;
+    struct.storeF Server "nextTid" (![ptrT] "txnMgr") ((struct.loadF Server "nextTid" (![ptrT] "txnMgr")) + #1);;
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "txnMgr"));;
+    return: (![uint64T] "tid").
 
 End code.

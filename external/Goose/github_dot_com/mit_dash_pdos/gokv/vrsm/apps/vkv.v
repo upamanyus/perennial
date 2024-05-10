@@ -18,13 +18,12 @@ Definition Clerk := struct.decl [
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "confHosts" :=
-    struct.new Clerk [
-      "cl" ::= exactlyonce.MakeClerk "confHosts"
-    ].
+    return: (struct.new Clerk [
+       "cl" ::= exactlyonce.MakeClerk (![slice.T uint64T] "confHosts")
+     ]).
 
 (* PutArgs from server.go *)
 
-(* begin arg structs and marshalling *)
 Definition PutArgs := struct.decl [
   "Key" :: stringT;
   "Val" :: stringT
@@ -39,35 +38,40 @@ Definition OP_COND_PUT : expr := #(U8 2).
 Definition encodePutArgs: val :=
   rec: "encodePutArgs" "args" :=
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #1 (#1 + #8)) in
-    SliceSet byteT (![slice.T byteT] "enc") #0 OP_PUT;;
-    "enc" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "enc") (StringLength (struct.loadF PutArgs "Key" "args")));;
-    "enc" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "enc") (StringToBytes (struct.loadF PutArgs "Key" "args")));;
-    "enc" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "enc") (StringToBytes (struct.loadF PutArgs "Val" "args")));;
-    ![slice.T byteT] "enc".
+    let: "$a0" := OP_PUT in
+    SliceSet byteT (![slice.T byteT] "enc") #0 "$a0";;
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (StringLength (struct.loadF PutArgs "Key" (![ptrT] "args"))) in
+    "enc" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "enc") (StringToBytes (struct.loadF PutArgs "Key" (![ptrT] "args"))) in
+    "enc" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "enc") (StringToBytes (struct.loadF PutArgs "Val" (![ptrT] "args"))) in
+    "enc" <-[slice.T byteT] "$a0";;
+    return: (![slice.T byteT] "enc").
 
 Definition Clerk__Put: val :=
   rec: "Clerk__Put" "ck" "key" "val" :=
-    let: "args" := struct.new PutArgs [
-      "Key" ::= "key";
-      "Val" ::= "val"
+    let: "args" := ref_zero ptrT in
+    let: "$a0" := struct.new PutArgs [
+      "Key" ::= ![stringT] "key";
+      "Val" ::= ![stringT] "val"
     ] in
-    exactlyonce.Clerk__ApplyExactlyOnce (struct.loadF Clerk "cl" "ck") (encodePutArgs "args");;
+    "args" <-[ptrT] "$a0";;
+    exactlyonce.Clerk__ApplyExactlyOnce (struct.loadF Clerk "cl" (![ptrT] "ck")) (encodePutArgs (![ptrT] "args"));;
     #().
-
-Definition getArgs: ty := stringT.
 
 Definition encodeGetArgs: val :=
   rec: "encodeGetArgs" "args" :=
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #1 #1) in
-    SliceSet byteT (![slice.T byteT] "enc") #0 OP_GET;;
-    "enc" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "enc") (StringToBytes "args"));;
-    ![slice.T byteT] "enc".
+    let: "$a0" := OP_GET in
+    SliceSet byteT (![slice.T byteT] "enc") #0 "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "enc") (StringToBytes (![stringT] "args")) in
+    "enc" <-[slice.T byteT] "$a0";;
+    return: (![slice.T byteT] "enc").
 
 Definition Clerk__Get: val :=
   rec: "Clerk__Get" "ck" "key" :=
-    StringFromBytes (exactlyonce.Clerk__ApplyReadonly (struct.loadF Clerk "cl" "ck") (encodeGetArgs "key")).
+    return: (StringFromBytes (exactlyonce.Clerk__ApplyReadonly (struct.loadF Clerk "cl" (![ptrT] "ck")) (encodeGetArgs (![stringT] "key")))).
 
-(* begin arg structs and marshalling *)
 Definition CondPutArgs := struct.decl [
   "Key" :: stringT;
   "Expect" :: stringT;
@@ -77,27 +81,33 @@ Definition CondPutArgs := struct.decl [
 Definition encodeCondPutArgs: val :=
   rec: "encodeCondPutArgs" "args" :=
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #1 (#1 + #8)) in
-    SliceSet byteT (![slice.T byteT] "enc") #0 OP_COND_PUT;;
-    "enc" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "enc") (StringLength (struct.loadF CondPutArgs "Key" "args")));;
-    "enc" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "enc") (StringToBytes (struct.loadF CondPutArgs "Key" "args")));;
-    "enc" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "enc") (StringLength (struct.loadF CondPutArgs "Expect" "args")));;
-    "enc" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "enc") (StringToBytes (struct.loadF CondPutArgs "Expect" "args")));;
-    "enc" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "enc") (StringToBytes (struct.loadF CondPutArgs "Val" "args")));;
-    ![slice.T byteT] "enc".
+    let: "$a0" := OP_COND_PUT in
+    SliceSet byteT (![slice.T byteT] "enc") #0 "$a0";;
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (StringLength (struct.loadF CondPutArgs "Key" (![ptrT] "args"))) in
+    "enc" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "enc") (StringToBytes (struct.loadF CondPutArgs "Key" (![ptrT] "args"))) in
+    "enc" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (StringLength (struct.loadF CondPutArgs "Expect" (![ptrT] "args"))) in
+    "enc" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "enc") (StringToBytes (struct.loadF CondPutArgs "Expect" (![ptrT] "args"))) in
+    "enc" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "enc") (StringToBytes (struct.loadF CondPutArgs "Val" (![ptrT] "args"))) in
+    "enc" <-[slice.T byteT] "$a0";;
+    return: (![slice.T byteT] "enc").
 
 Definition Clerk__CondPut: val :=
   rec: "Clerk__CondPut" "ck" "key" "expect" "val" :=
-    let: "args" := struct.new CondPutArgs [
-      "Key" ::= "key";
-      "Expect" ::= "expect";
-      "Val" ::= "val"
+    let: "args" := ref_zero ptrT in
+    let: "$a0" := struct.new CondPutArgs [
+      "Key" ::= ![stringT] "key";
+      "Expect" ::= ![stringT] "expect";
+      "Val" ::= ![stringT] "val"
     ] in
-    StringFromBytes (exactlyonce.Clerk__ApplyExactlyOnce (struct.loadF Clerk "cl" "ck") (encodeCondPutArgs "args")).
+    "args" <-[ptrT] "$a0";;
+    return: (StringFromBytes (exactlyonce.Clerk__ApplyExactlyOnce (struct.loadF Clerk "cl" (![ptrT] "ck")) (encodeCondPutArgs (![ptrT] "args")))).
 
 (* clerkpool.go *)
 
-(* TODO: should implement clerk pool at the exactlyonce level, so that we can
-   avoid aking ownership of a whole clerk just to do a Get(). *)
 Definition ClerkPool := struct.decl [
   "mu" :: ptrT;
   "cls" :: slice.T ptrT;
@@ -106,42 +116,48 @@ Definition ClerkPool := struct.decl [
 
 Definition MakeClerkPool: val :=
   rec: "MakeClerkPool" "confHosts" :=
-    struct.new ClerkPool [
-      "mu" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));
-      "cls" ::= NewSlice ptrT #0;
-      "confHosts" ::= "confHosts"
-    ].
+    return: (struct.new ClerkPool [
+       "mu" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));
+       "cls" ::= NewSlice ptrT #0;
+       "confHosts" ::= ![slice.T uint64T] "confHosts"
+     ]).
 
 (* TODO: get rid of stale clerks from the ck.cls list?
    TODO: keep failed clerks out of ck.cls list? Maybe f(cl) can return an
    optional error saying "get rid of cl". *)
 Definition ClerkPool__doWithClerk: val :=
   rec: "ClerkPool__doWithClerk" "ck" "f" :=
-    sync.Mutex__Lock (struct.loadF ClerkPool "mu" "ck");;
+    sync.Mutex__Lock (struct.loadF ClerkPool "mu" (![ptrT] "ck"));;
     let: "cl" := ref (zero_val ptrT) in
-    (if: (slice.len (struct.loadF ClerkPool "cls" "ck")) > #0
+    (if: (slice.len (struct.loadF ClerkPool "cls" (![ptrT] "ck"))) > #0
     then
-      "cl" <-[ptrT] (SliceGet ptrT (struct.loadF ClerkPool "cls" "ck") #0);;
-      struct.storeF ClerkPool "cls" "ck" (SliceSkip ptrT (struct.loadF ClerkPool "cls" "ck") #1);;
-      sync.Mutex__Unlock (struct.loadF ClerkPool "mu" "ck");;
-      "f" (![ptrT] "cl");;
-      sync.Mutex__Lock (struct.loadF ClerkPool "mu" "ck");;
-      struct.storeF ClerkPool "cls" "ck" (SliceAppend ptrT (struct.loadF ClerkPool "cls" "ck") (![ptrT] "cl"));;
-      sync.Mutex__Unlock (struct.loadF ClerkPool "mu" "ck");;
+      let: "$a0" := SliceGet ptrT (struct.loadF ClerkPool "cls" (![ptrT] "ck")) #0 in
+      "cl" <-[ptrT] "$a0";;
+      let: "$a0" := SliceSkip ptrT (struct.loadF ClerkPool "cls" (![ptrT] "ck")) #1 in
+      struct.storeF ClerkPool "cls" (![ptrT] "ck") "$a0";;
+      sync.Mutex__Unlock (struct.loadF ClerkPool "mu" (![ptrT] "ck"));;
+      (![(arrowT unitT unitT)] "f") (![ptrT] "cl");;
+      sync.Mutex__Lock (struct.loadF ClerkPool "mu" (![ptrT] "ck"));;
+      let: "$a0" := SliceAppend ptrT (struct.loadF ClerkPool "cls" (![ptrT] "ck")) (![ptrT] "cl") in
+      struct.storeF ClerkPool "cls" (![ptrT] "ck") "$a0";;
+      sync.Mutex__Unlock (struct.loadF ClerkPool "mu" (![ptrT] "ck"));;
       #()
     else
-      sync.Mutex__Unlock (struct.loadF ClerkPool "mu" "ck");;
-      "cl" <-[ptrT] (MakeClerk (struct.loadF ClerkPool "confHosts" "ck"));;
-      "f" (![ptrT] "cl");;
-      sync.Mutex__Lock (struct.loadF ClerkPool "mu" "ck");;
-      struct.storeF ClerkPool "cls" "ck" (SliceAppend ptrT (struct.loadF ClerkPool "cls" "ck") (![ptrT] "cl"));;
-      sync.Mutex__Unlock (struct.loadF ClerkPool "mu" "ck");;
-      #()).
+      sync.Mutex__Unlock (struct.loadF ClerkPool "mu" (![ptrT] "ck"));;
+      let: "$a0" := MakeClerk (struct.loadF ClerkPool "confHosts" (![ptrT] "ck")) in
+      "cl" <-[ptrT] "$a0";;
+      (![(arrowT unitT unitT)] "f") (![ptrT] "cl");;
+      sync.Mutex__Lock (struct.loadF ClerkPool "mu" (![ptrT] "ck"));;
+      let: "$a0" := SliceAppend ptrT (struct.loadF ClerkPool "cls" (![ptrT] "ck")) (![ptrT] "cl") in
+      struct.storeF ClerkPool "cls" (![ptrT] "ck") "$a0";;
+      sync.Mutex__Unlock (struct.loadF ClerkPool "mu" (![ptrT] "ck"));;
+      #());;
+    #().
 
 Definition ClerkPool__Put: val :=
   rec: "ClerkPool__Put" "ck" "key" "val" :=
-    ClerkPool__doWithClerk "ck" (λ: "ck",
-      Clerk__Put "ck" "key" "val";;
+    ClerkPool__doWithClerk (![ptrT] "ck") (λ: "ck",
+      Clerk__Put (![ptrT] "ck") (![stringT] "key") (![stringT] "val");;
       #()
       );;
     #().
@@ -149,29 +165,33 @@ Definition ClerkPool__Put: val :=
 Definition ClerkPool__Get: val :=
   rec: "ClerkPool__Get" "ck" "key" :=
     let: "ret" := ref (zero_val stringT) in
-    ClerkPool__doWithClerk "ck" (λ: "ck",
-      "ret" <-[stringT] (Clerk__Get "ck" "key");;
+    ClerkPool__doWithClerk (![ptrT] "ck") (λ: "ck",
+      let: "$a0" := Clerk__Get (![ptrT] "ck") (![stringT] "key") in
+      "ret" <-[stringT] "$a0";;
       #()
       );;
-    ![stringT] "ret".
+    return: (![stringT] "ret").
 
 Definition ClerkPool__CondPut: val :=
   rec: "ClerkPool__CondPut" "ck" "key" "expect" "val" :=
     let: "ret" := ref (zero_val stringT) in
-    ClerkPool__doWithClerk "ck" (λ: "ck",
-      "ret" <-[stringT] (Clerk__CondPut "ck" "key" "expect" "val");;
+    ClerkPool__doWithClerk (![ptrT] "ck") (λ: "ck",
+      let: "$a0" := Clerk__CondPut (![ptrT] "ck") (![stringT] "key") (![stringT] "expect") (![stringT] "val") in
+      "ret" <-[stringT] "$a0";;
       #()
       );;
-    ![stringT] "ret".
+    return: (![stringT] "ret").
 
 Definition MakeKv: val :=
   rec: "MakeKv" "confHosts" :=
-    let: "ck" := MakeClerkPool "confHosts" in
-    struct.new kv.Kv [
-      "Put" ::= ClerkPool__Put "ck";
-      "Get" ::= ClerkPool__Get "ck";
-      "ConditionalPut" ::= ClerkPool__CondPut "ck"
-    ].
+    let: "ck" := ref_zero ptrT in
+    let: "$a0" := MakeClerkPool (![slice.T uint64T] "confHosts") in
+    "ck" <-[ptrT] "$a0";;
+    return: (struct.new kv.Kv [
+       "Put" ::= ClerkPool__Put (![ptrT] "ck");
+       "Get" ::= ClerkPool__Get (![ptrT] "ck");
+       "ConditionalPut" ::= ClerkPool__CondPut (![ptrT] "ck")
+     ]).
 
 (* server.go *)
 
@@ -183,112 +203,160 @@ Definition KVState := struct.decl [
 
 Definition decodePutArgs: val :=
   rec: "decodePutArgs" "raw_args" :=
-    let: "enc" := ref_to (slice.T byteT) (SliceSkip byteT "raw_args" #1) in
-    let: "args" := struct.alloc PutArgs (zero_val (struct.t PutArgs)) in
+    let: "enc" := ref_to (slice.T byteT) (SliceSkip byteT (![slice.T byteT] "raw_args") #1) in
+    let: "args" := ref_zero ptrT in
+    let: "$a0" := struct.alloc PutArgs (zero_val (struct.t PutArgs)) in
+    "args" <-[ptrT] "$a0";;
     let: "l" := ref (zero_val uint64T) in
-    let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "enc") in
-    "l" <-[uint64T] "0_ret";;
-    "enc" <-[slice.T byteT] "1_ret";;
-    struct.storeF PutArgs "Key" "args" (StringFromBytes (SliceTake (![slice.T byteT] "enc") (![uint64T] "l")));;
-    struct.storeF PutArgs "Val" "args" (StringFromBytes (SliceSkip byteT (![slice.T byteT] "enc") (![uint64T] "l")));;
-    "args".
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc") in
+    "enc" <-[slice.T byteT] "$a1";;
+    "l" <-[uint64T] "$a0";;
+    let: "$a0" := StringFromBytes (SliceTake (![slice.T byteT] "enc") (![uint64T] "l")) in
+    struct.storeF PutArgs "Key" (![ptrT] "args") "$a0";;
+    let: "$a0" := StringFromBytes (SliceSkip byteT (![slice.T byteT] "enc") (![uint64T] "l")) in
+    struct.storeF PutArgs "Val" (![ptrT] "args") "$a0";;
+    return: (![ptrT] "args").
+
+Definition getArgs: ty := stringT.
 
 Definition decodeGetArgs: val :=
   rec: "decodeGetArgs" "raw_args" :=
-    StringFromBytes (SliceSkip byteT "raw_args" #1).
+    return: (StringFromBytes (SliceSkip byteT (![slice.T byteT] "raw_args") #1)).
 
 Definition decodeCondPutArgs: val :=
   rec: "decodeCondPutArgs" "raw_args" :=
-    let: "enc" := ref_to (slice.T byteT) (SliceSkip byteT "raw_args" #1) in
-    let: "args" := struct.alloc CondPutArgs (zero_val (struct.t CondPutArgs)) in
+    let: "enc" := ref_to (slice.T byteT) (SliceSkip byteT (![slice.T byteT] "raw_args") #1) in
+    let: "args" := ref_zero ptrT in
+    let: "$a0" := struct.alloc CondPutArgs (zero_val (struct.t CondPutArgs)) in
+    "args" <-[ptrT] "$a0";;
     let: "l" := ref (zero_val uint64T) in
-    let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "enc") in
-    "l" <-[uint64T] "0_ret";;
-    "enc" <-[slice.T byteT] "1_ret";;
-    let: ("keybytes", "enc2") := marshal.ReadBytes (![slice.T byteT] "enc") (![uint64T] "l") in
-    struct.storeF CondPutArgs "Key" "args" (StringFromBytes "keybytes");;
-    let: ("0_ret", "1_ret") := marshal.ReadInt "enc2" in
-    "l" <-[uint64T] "0_ret";;
-    "enc" <-[slice.T byteT] "1_ret";;
-    struct.storeF CondPutArgs "Expect" "args" (StringFromBytes (SliceTake (![slice.T byteT] "enc") (![uint64T] "l")));;
-    struct.storeF CondPutArgs "Val" "args" (StringFromBytes (SliceSkip byteT (![slice.T byteT] "enc") (![uint64T] "l")));;
-    "args".
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc") in
+    "enc" <-[slice.T byteT] "$a1";;
+    "l" <-[uint64T] "$a0";;
+    let: "enc2" := ref_zero (slice.T byteT) in
+    let: "keybytes" := ref_zero (slice.T byteT) in
+    let: ("$a0", "$a1") := marshal.ReadBytes (![slice.T byteT] "enc") (![uint64T] "l") in
+    "enc2" <-[slice.T byteT] "$a1";;
+    "keybytes" <-[slice.T byteT] "$a0";;
+    let: "$a0" := StringFromBytes (![slice.T byteT] "keybytes") in
+    struct.storeF CondPutArgs "Key" (![ptrT] "args") "$a0";;
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc2") in
+    "enc" <-[slice.T byteT] "$a1";;
+    "l" <-[uint64T] "$a0";;
+    let: "$a0" := StringFromBytes (SliceTake (![slice.T byteT] "enc") (![uint64T] "l")) in
+    struct.storeF CondPutArgs "Expect" (![ptrT] "args") "$a0";;
+    let: "$a0" := StringFromBytes (SliceSkip byteT (![slice.T byteT] "enc") (![uint64T] "l")) in
+    struct.storeF CondPutArgs "Val" (![ptrT] "args") "$a0";;
+    return: (![ptrT] "args").
 
 (* end of marshalling *)
 Definition KVState__put: val :=
   rec: "KVState__put" "s" "args" :=
-    MapInsert (struct.loadF KVState "kvs" "s") (struct.loadF PutArgs "Key" "args") (struct.loadF PutArgs "Val" "args");;
-    NewSlice byteT #0.
+    let: "$a0" := struct.loadF PutArgs "Val" (![ptrT] "args") in
+    MapInsert (struct.loadF KVState "kvs" (![ptrT] "s")) (struct.loadF PutArgs "Key" (![ptrT] "args")) "$a0";;
+    return: (NewSlice byteT #0).
 
 Definition KVState__get: val :=
   rec: "KVState__get" "s" "args" :=
-    StringToBytes (Fst (MapGet (struct.loadF KVState "kvs" "s") "args")).
+    return: (StringToBytes (Fst (MapGet (struct.loadF KVState "kvs" (![ptrT] "s")) (![stringT] "args")))).
 
 Definition KVState__apply: val :=
   rec: "KVState__apply" "s" "args" "vnum" :=
-    (if: (SliceGet byteT "args" #0) = OP_PUT
+    (if: (SliceGet byteT (![slice.T byteT] "args") #0) = OP_PUT
     then
-      let: "args" := decodePutArgs "args" in
-      MapInsert (struct.loadF KVState "vnums" "s") (struct.loadF PutArgs "Key" "args") "vnum";;
-      KVState__put "s" "args"
+      let: "args" := ref_zero ptrT in
+      let: "$a0" := decodePutArgs (![slice.T byteT] "args") in
+      "args" <-[ptrT] "$a0";;
+      let: "$a0" := ![uint64T] "vnum" in
+      MapInsert (struct.loadF KVState "vnums" (![ptrT] "s")) (struct.loadF PutArgs "Key" (![ptrT] "args")) "$a0";;
+      return: (KVState__put (![ptrT] "s") (![ptrT] "args"))
     else
-      (if: (SliceGet byteT "args" #0) = OP_GET
+      (if: (SliceGet byteT (![slice.T byteT] "args") #0) = OP_GET
       then
-        let: "key" := decodeGetArgs "args" in
-        MapInsert (struct.loadF KVState "vnums" "s") "key" "vnum";;
-        KVState__get "s" "key"
+        let: "key" := ref_zero stringT in
+        let: "$a0" := decodeGetArgs (![slice.T byteT] "args") in
+        "key" <-[stringT] "$a0";;
+        let: "$a0" := ![uint64T] "vnum" in
+        MapInsert (struct.loadF KVState "vnums" (![ptrT] "s")) (![stringT] "key") "$a0";;
+        return: (KVState__get (![ptrT] "s") (![stringT] "key"))
       else
-        (if: (SliceGet byteT "args" #0) = OP_COND_PUT
+        (if: (SliceGet byteT (![slice.T byteT] "args") #0) = OP_COND_PUT
         then
-          let: "args" := decodeCondPutArgs "args" in
-          (if: (Fst (MapGet (struct.loadF KVState "kvs" "s") (struct.loadF CondPutArgs "Key" "args"))) = (struct.loadF CondPutArgs "Expect" "args")
+          let: "args" := ref_zero ptrT in
+          let: "$a0" := decodeCondPutArgs (![slice.T byteT] "args") in
+          "args" <-[ptrT] "$a0";;
+          (if: (Fst (MapGet (struct.loadF KVState "kvs" (![ptrT] "s")) (struct.loadF CondPutArgs "Key" (![ptrT] "args")))) = (struct.loadF CondPutArgs "Expect" (![ptrT] "args"))
           then
-            MapInsert (struct.loadF KVState "vnums" "s") (struct.loadF CondPutArgs "Key" "args") "vnum";;
-            MapInsert (struct.loadF KVState "kvs" "s") (struct.loadF CondPutArgs "Key" "args") (struct.loadF CondPutArgs "Val" "args");;
-            StringToBytes #(str"ok")
-          else StringToBytes #(str""))
+            let: "$a0" := ![uint64T] "vnum" in
+            MapInsert (struct.loadF KVState "vnums" (![ptrT] "s")) (struct.loadF CondPutArgs "Key" (![ptrT] "args")) "$a0";;
+            let: "$a0" := struct.loadF CondPutArgs "Val" (![ptrT] "args") in
+            MapInsert (struct.loadF KVState "kvs" (![ptrT] "s")) (struct.loadF CondPutArgs "Key" (![ptrT] "args")) "$a0";;
+            return: (StringToBytes #(str"ok"))
+          else #());;
+          return: (StringToBytes #(str""))
         else
           Panic "unexpected op type";;
-          #()))).
+          #());;
+        #());;
+      #());;
+    #().
 
 Definition KVState__applyReadonly: val :=
   rec: "KVState__applyReadonly" "s" "args" :=
-    (if: (SliceGet byteT "args" #0) ≠ OP_GET
-    then Panic "expected a GET as readonly-operation"
+    (if: (SliceGet byteT (![slice.T byteT] "args") #0) ≠ OP_GET
+    then
+      Panic "expected a GET as readonly-operation";;
+      #()
     else #());;
-    let: "key" := decodeGetArgs "args" in
-    let: "reply" := KVState__get "s" "key" in
-    let: ("vnum", "ok") := MapGet (struct.loadF KVState "vnums" "s") "key" in
-    (if: "ok"
-    then ("vnum", "reply")
-    else (struct.loadF KVState "minVnum" "s", "reply")).
+    let: "key" := ref_zero stringT in
+    let: "$a0" := decodeGetArgs (![slice.T byteT] "args") in
+    "key" <-[stringT] "$a0";;
+    let: "reply" := ref_zero (slice.T byteT) in
+    let: "$a0" := KVState__get (![ptrT] "s") (![stringT] "key") in
+    "reply" <-[slice.T byteT] "$a0";;
+    let: "ok" := ref_zero boolT in
+    let: "vnum" := ref_zero uint64T in
+    let: ("$a0", "$a1") := Fst (MapGet (struct.loadF KVState "vnums" (![ptrT] "s")) (![stringT] "key")) in
+    "ok" <-[boolT] "$a1";;
+    "vnum" <-[uint64T] "$a0";;
+    (if: ![boolT] "ok"
+    then return: (![uint64T] "vnum", ![slice.T byteT] "reply")
+    else return: (struct.loadF KVState "minVnum" (![ptrT] "s"), ![slice.T byteT] "reply"));;
+    #().
 
 Definition KVState__getState: val :=
   rec: "KVState__getState" "s" :=
-    map__string__marshal.EncodeStringMap (struct.loadF KVState "kvs" "s").
+    return: (map__string__marshal.EncodeStringMap (struct.loadF KVState "kvs" (![ptrT] "s"))).
 
 Definition KVState__setState: val :=
   rec: "KVState__setState" "s" "snap" "nextIndex" :=
-    struct.storeF KVState "minVnum" "s" "nextIndex";;
-    struct.storeF KVState "vnums" "s" (NewMap stringT uint64T #());;
-    struct.storeF KVState "kvs" "s" (map__string__marshal.DecodeStringMap "snap");;
+    let: "$a0" := ![uint64T] "nextIndex" in
+    struct.storeF KVState "minVnum" (![ptrT] "s") "$a0";;
+    let: "$a0" := NewMap stringT uint64T #() in
+    struct.storeF KVState "vnums" (![ptrT] "s") "$a0";;
+    let: "$a0" := map__string__marshal.DecodeStringMap (![slice.T byteT] "snap") in
+    struct.storeF KVState "kvs" (![ptrT] "s") "$a0";;
     #().
 
 Definition makeVersionedStateMachine: val :=
   rec: "makeVersionedStateMachine" <> :=
-    let: "s" := struct.alloc KVState (zero_val (struct.t KVState)) in
-    struct.storeF KVState "kvs" "s" (NewMap stringT stringT #());;
-    struct.storeF KVState "vnums" "s" (NewMap stringT uint64T #());;
-    struct.new exactlyonce.VersionedStateMachine [
-      "ApplyVolatile" ::= KVState__apply "s";
-      "ApplyReadonly" ::= KVState__applyReadonly "s";
-      "GetState" ::= (λ: <>,
-        KVState__getState "s"
-        );
-      "SetState" ::= KVState__setState "s"
-    ].
+    let: "s" := ref_zero ptrT in
+    let: "$a0" := struct.alloc KVState (zero_val (struct.t KVState)) in
+    "s" <-[ptrT] "$a0";;
+    let: "$a0" := NewMap stringT stringT #() in
+    struct.storeF KVState "kvs" (![ptrT] "s") "$a0";;
+    let: "$a0" := NewMap stringT uint64T #() in
+    struct.storeF KVState "vnums" (![ptrT] "s") "$a0";;
+    return: (struct.new exactlyonce.VersionedStateMachine [
+       "ApplyVolatile" ::= KVState__apply (![ptrT] "s");
+       "ApplyReadonly" ::= KVState__applyReadonly (![ptrT] "s");
+       "GetState" ::= (λ: <>,
+         return: (KVState__getState (![ptrT] "s"))
+         );
+       "SetState" ::= KVState__setState (![ptrT] "s")
+     ]).
 
 Definition Start: val :=
   rec: "Start" "fname" "host" "confHosts" :=
-    replica.Server__Serve (storage.MakePbServer (exactlyonce.MakeExactlyOnceStateMachine (makeVersionedStateMachine #())) "fname" "confHosts") "host";;
+    replica.Server__Serve (storage.MakePbServer (exactlyonce.MakeExactlyOnceStateMachine (makeVersionedStateMachine #())) (![stringT] "fname") (![slice.T uint64T] "confHosts")) (![uint64T] "host");;
     #().

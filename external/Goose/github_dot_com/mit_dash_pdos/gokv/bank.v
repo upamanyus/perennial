@@ -19,107 +19,132 @@ Definition BankClerk := struct.decl [
 
 Definition acquire_two_good: val :=
   rec: "acquire_two_good" "lck" "l1" "l2" :=
-    (if: "l1" < "l2"
+    (if: (![stringT] "l1") < (![stringT] "l2")
     then
-      lockservice.LockClerk__Lock "lck" "l1";;
-      lockservice.LockClerk__Lock "lck" "l2"
+      lockservice.LockClerk__Lock (![ptrT] "lck") (![stringT] "l1");;
+      lockservice.LockClerk__Lock (![ptrT] "lck") (![stringT] "l2");;
+      #()
     else
-      lockservice.LockClerk__Lock "lck" "l2";;
-      lockservice.LockClerk__Lock "lck" "l1");;
-    #().
+      lockservice.LockClerk__Lock (![ptrT] "lck") (![stringT] "l2");;
+      lockservice.LockClerk__Lock (![ptrT] "lck") (![stringT] "l1");;
+      #());;
+    return: (#()).
 
 Definition acquire_two: val :=
   rec: "acquire_two" "lck" "l1" "l2" :=
-    lockservice.LockClerk__Lock "lck" "l1";;
-    lockservice.LockClerk__Lock "lck" "l2";;
-    #().
+    lockservice.LockClerk__Lock (![ptrT] "lck") (![stringT] "l1");;
+    lockservice.LockClerk__Lock (![ptrT] "lck") (![stringT] "l2");;
+    return: (#()).
 
 Definition release_two: val :=
   rec: "release_two" "lck" "l1" "l2" :=
-    lockservice.LockClerk__Unlock "lck" "l1";;
-    lockservice.LockClerk__Unlock "lck" "l2";;
-    #().
+    lockservice.LockClerk__Unlock (![ptrT] "lck") (![stringT] "l1");;
+    lockservice.LockClerk__Unlock (![ptrT] "lck") (![stringT] "l2");;
+    return: (#()).
 
 Definition encodeInt: val :=
   rec: "encodeInt" "a" :=
-    StringFromBytes (marshal.WriteInt slice.nil "a").
+    return: (StringFromBytes (marshal.WriteInt slice.nil (![uint64T] "a"))).
 
 Definition decodeInt: val :=
   rec: "decodeInt" "a" :=
-    let: ("v", <>) := marshal.ReadInt (StringToBytes "a") in
-    "v".
+    let: <> := ref_zero (slice.T byteT) in
+    let: "v" := ref_zero uint64T in
+    let: ("$a0", "$a1") := marshal.ReadInt (StringToBytes (![stringT] "a")) in
+    "$a1";;
+    "v" <-[uint64T] "$a0";;
+    return: (![uint64T] "v").
 
 (* Requires that the account numbers are smaller than num_accounts
    If account balance in acc_from is at least amount, transfer amount to acc_to *)
 Definition BankClerk__transfer_internal: val :=
   rec: "BankClerk__transfer_internal" "bck" "acc_from" "acc_to" "amount" :=
-    acquire_two (struct.loadF BankClerk "lck" "bck") "acc_from" "acc_to";;
-    let: "old_amount" := decodeInt ((struct.loadF kv.Kv "Get" (struct.loadF BankClerk "kvck" "bck")) "acc_from") in
-    (if: "old_amount" ≥ "amount"
+    acquire_two (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![stringT] "acc_from") (![stringT] "acc_to");;
+    let: "old_amount" := ref_zero uint64T in
+    let: "$a0" := decodeInt ((struct.loadF kv.Kv "Get" (struct.loadF BankClerk "kvck" (![ptrT] "bck"))) (![stringT] "acc_from")) in
+    "old_amount" <-[uint64T] "$a0";;
+    (if: (![uint64T] "old_amount") ≥ (![uint64T] "amount")
     then
-      (struct.loadF kv.Kv "Put" (struct.loadF BankClerk "kvck" "bck")) "acc_from" (encodeInt ("old_amount" - "amount"));;
-      (struct.loadF kv.Kv "Put" (struct.loadF BankClerk "kvck" "bck")) "acc_to" (encodeInt ((decodeInt ((struct.loadF kv.Kv "Get" (struct.loadF BankClerk "kvck" "bck")) "acc_to")) + "amount"))
+      (struct.loadF kv.Kv "Put" (struct.loadF BankClerk "kvck" (![ptrT] "bck"))) (![stringT] "acc_from") (encodeInt ((![uint64T] "old_amount") - (![uint64T] "amount")));;
+      (struct.loadF kv.Kv "Put" (struct.loadF BankClerk "kvck" (![ptrT] "bck"))) (![stringT] "acc_to") (encodeInt ((decodeInt ((struct.loadF kv.Kv "Get" (struct.loadF BankClerk "kvck" (![ptrT] "bck"))) (![stringT] "acc_to"))) + (![uint64T] "amount")));;
+      #()
     else #());;
-    release_two (struct.loadF BankClerk "lck" "bck") "acc_from" "acc_to";;
+    release_two (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![stringT] "acc_from") (![stringT] "acc_to");;
     #().
 
 Definition BankClerk__SimpleTransfer: val :=
   rec: "BankClerk__SimpleTransfer" "bck" :=
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "src" := machine.RandomUint64 #() in
-      let: "dst" := machine.RandomUint64 #() in
-      let: "amount" := machine.RandomUint64 #() in
-      (if: (("src" < (slice.len (struct.loadF BankClerk "accts" "bck"))) && ("dst" < (slice.len (struct.loadF BankClerk "accts" "bck")))) && ("src" ≠ "dst")
+      let: "src" := ref_zero uint64T in
+      let: "$a0" := machine.RandomUint64 #() in
+      "src" <-[uint64T] "$a0";;
+      let: "dst" := ref_zero uint64T in
+      let: "$a0" := machine.RandomUint64 #() in
+      "dst" <-[uint64T] "$a0";;
+      let: "amount" := ref_zero uint64T in
+      let: "$a0" := machine.RandomUint64 #() in
+      "amount" <-[uint64T] "$a0";;
+      (if: (((![uint64T] "src") < (slice.len (struct.loadF BankClerk "accts" (![ptrT] "bck")))) && ((![uint64T] "dst") < (slice.len (struct.loadF BankClerk "accts" (![ptrT] "bck"))))) && ((![uint64T] "src") ≠ (![uint64T] "dst"))
       then
-        BankClerk__transfer_internal "bck" (SliceGet stringT (struct.loadF BankClerk "accts" "bck") "src") (SliceGet stringT (struct.loadF BankClerk "accts" "bck") "dst") "amount";;
-        Continue
-      else Continue));;
-    #().
+        BankClerk__transfer_internal (![ptrT] "bck") (SliceGet stringT (struct.loadF BankClerk "accts" (![ptrT] "bck")) (![uint64T] "src")) (SliceGet stringT (struct.loadF BankClerk "accts" (![ptrT] "bck")) (![uint64T] "dst")) (![uint64T] "amount");;
+        #()
+      else #());;
+      #()).
 
 Definition BankClerk__get_total: val :=
   rec: "BankClerk__get_total" "bck" :=
     let: "sum" := ref (zero_val uint64T) in
-    ForSlice stringT <> "acct" (struct.loadF BankClerk "accts" "bck")
-      (lockservice.LockClerk__Lock (struct.loadF BankClerk "lck" "bck") "acct";;
-      "sum" <-[uint64T] ((![uint64T] "sum") + (decodeInt ((struct.loadF kv.Kv "Get" (struct.loadF BankClerk "kvck" "bck")) "acct"))));;
-    ForSlice stringT <> "acct" (struct.loadF BankClerk "accts" "bck")
-      (lockservice.LockClerk__Unlock (struct.loadF BankClerk "lck" "bck") "acct");;
-    ![uint64T] "sum".
+    ForSlice stringT <> "acct" (struct.loadF BankClerk "accts" (![ptrT] "bck"))
+      (lockservice.LockClerk__Lock (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![stringT] "acct");;
+      let: "$a0" := (![uint64T] "sum") + (decodeInt ((struct.loadF kv.Kv "Get" (struct.loadF BankClerk "kvck" (![ptrT] "bck"))) (![stringT] "acct"))) in
+      "sum" <-[uint64T] "$a0";;
+      #());;
+    ForSlice stringT <> "acct" (struct.loadF BankClerk "accts" (![ptrT] "bck"))
+      (lockservice.LockClerk__Unlock (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![stringT] "acct");;
+      #());;
+    return: (![uint64T] "sum").
 
 Definition BankClerk__SimpleAudit: val :=
   rec: "BankClerk__SimpleAudit" "bck" :=
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      (if: (BankClerk__get_total "bck") ≠ BAL_TOTAL
+      (if: (BankClerk__get_total (![ptrT] "bck")) ≠ BAL_TOTAL
       then
         Panic "Balance total invariant violated";;
-        Continue
-      else Continue));;
-    #().
+        #()
+      else #());;
+      #()).
 
 Definition MakeBankClerkSlice: val :=
   rec: "MakeBankClerkSlice" "lck" "kv" "init_flag" "accts" :=
-    let: "bck" := struct.alloc BankClerk (zero_val (struct.t BankClerk)) in
-    struct.storeF BankClerk "lck" "bck" "lck";;
-    struct.storeF BankClerk "kvck" "bck" "kv";;
-    struct.storeF BankClerk "accts" "bck" "accts";;
-    lockservice.LockClerk__Lock (struct.loadF BankClerk "lck" "bck") "init_flag";;
-    (if: ((struct.loadF kv.Kv "Get" (struct.loadF BankClerk "kvck" "bck")) "init_flag") = #(str"")
+    let: "bck" := ref_zero ptrT in
+    let: "$a0" := struct.alloc BankClerk (zero_val (struct.t BankClerk)) in
+    "bck" <-[ptrT] "$a0";;
+    let: "$a0" := ![ptrT] "lck" in
+    struct.storeF BankClerk "lck" (![ptrT] "bck") "$a0";;
+    let: "$a0" := ![ptrT] "kv" in
+    struct.storeF BankClerk "kvck" (![ptrT] "bck") "$a0";;
+    let: "$a0" := ![slice.T stringT] "accts" in
+    struct.storeF BankClerk "accts" (![ptrT] "bck") "$a0";;
+    lockservice.LockClerk__Lock (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![stringT] "init_flag");;
+    (if: ((struct.loadF kv.Kv "Get" (struct.loadF BankClerk "kvck" (![ptrT] "bck"))) (![stringT] "init_flag")) = #(str"")
     then
-      (struct.loadF kv.Kv "Put" (struct.loadF BankClerk "kvck" "bck")) (SliceGet stringT (struct.loadF BankClerk "accts" "bck") #0) (encodeInt BAL_TOTAL);;
-      ForSlice stringT <> "acct" (SliceSkip stringT (struct.loadF BankClerk "accts" "bck") #1)
-        ((struct.loadF kv.Kv "Put" (struct.loadF BankClerk "kvck" "bck")) "acct" (encodeInt #0));;
-      (struct.loadF kv.Kv "Put" (struct.loadF BankClerk "kvck" "bck")) "init_flag" #(str"1")
+      (struct.loadF kv.Kv "Put" (struct.loadF BankClerk "kvck" (![ptrT] "bck"))) (SliceGet stringT (struct.loadF BankClerk "accts" (![ptrT] "bck")) #0) (encodeInt BAL_TOTAL);;
+      ForSlice stringT <> "acct" (SliceSkip stringT (struct.loadF BankClerk "accts" (![ptrT] "bck")) #1)
+        ((struct.loadF kv.Kv "Put" (struct.loadF BankClerk "kvck" (![ptrT] "bck"))) (![stringT] "acct") (encodeInt #0);;
+        #());;
+      (struct.loadF kv.Kv "Put" (struct.loadF BankClerk "kvck" (![ptrT] "bck"))) (![stringT] "init_flag") #(str"1");;
+      #()
     else #());;
-    lockservice.LockClerk__Unlock (struct.loadF BankClerk "lck" "bck") "init_flag";;
-    "bck".
+    lockservice.LockClerk__Unlock (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![stringT] "init_flag");;
+    return: (![ptrT] "bck").
 
 Definition MakeBankClerk: val :=
   rec: "MakeBankClerk" "lck" "kv" "init_flag" "acc1" "acc2" :=
     let: "accts" := ref (zero_val (slice.T stringT)) in
-    "accts" <-[slice.T stringT] (SliceAppend stringT (![slice.T stringT] "accts") "acc1");;
-    "accts" <-[slice.T stringT] (SliceAppend stringT (![slice.T stringT] "accts") "acc2");;
-    MakeBankClerkSlice "lck" "kv" "init_flag" (![slice.T stringT] "accts").
+    let: "$a0" := SliceAppend stringT (![slice.T stringT] "accts") (![stringT] "acc1") in
+    "accts" <-[slice.T stringT] "$a0";;
+    let: "$a0" := SliceAppend stringT (![slice.T stringT] "accts") (![stringT] "acc2") in
+    "accts" <-[slice.T stringT] "$a0";;
+    return: (MakeBankClerkSlice (![ptrT] "lck") (![ptrT] "kv") (![stringT] "init_flag") (![slice.T stringT] "accts")).
 
 End code.

@@ -22,18 +22,26 @@ Definition PutArgs := struct.decl [
 
 Definition EncPutArgs: val :=
   rec: "EncPutArgs" "args" :=
-    let: "enc" := marshal.NewEnc #16 in
-    marshal.Enc__PutInt "enc" (struct.loadF PutArgs "v" "args");;
-    marshal.Enc__PutInt "enc" (struct.loadF PutArgs "epoch" "args");;
-    marshal.Enc__Finish "enc".
+    let: "enc" := ref_zero (struct.t marshal.Enc) in
+    let: "$a0" := marshal.NewEnc #16 in
+    "enc" <-[struct.t marshal.Enc] "$a0";;
+    marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (struct.loadF PutArgs "v" (![ptrT] "args"));;
+    marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (struct.loadF PutArgs "epoch" (![ptrT] "args"));;
+    return: (marshal.Enc__Finish (![struct.t marshal.Enc] "enc")).
 
 Definition DecPutArgs: val :=
   rec: "DecPutArgs" "raw_args" :=
-    let: "dec" := marshal.NewDec "raw_args" in
-    let: "args" := struct.alloc PutArgs (zero_val (struct.t PutArgs)) in
-    struct.storeF PutArgs "v" "args" (marshal.Dec__GetInt "dec");;
-    struct.storeF PutArgs "epoch" "args" (marshal.Dec__GetInt "dec");;
-    "args".
+    let: "dec" := ref_zero (struct.t marshal.Dec) in
+    let: "$a0" := marshal.NewDec (![slice.T byteT] "raw_args") in
+    "dec" <-[struct.t marshal.Dec] "$a0";;
+    let: "args" := ref_zero ptrT in
+    let: "$a0" := struct.alloc PutArgs (zero_val (struct.t PutArgs)) in
+    "args" <-[ptrT] "$a0";;
+    let: "$a0" := marshal.Dec__GetInt (![struct.t marshal.Dec] "dec") in
+    struct.storeF PutArgs "v" (![ptrT] "args") "$a0";;
+    let: "$a0" := marshal.Dec__GetInt (![struct.t marshal.Dec] "dec") in
+    struct.storeF PutArgs "epoch" (![ptrT] "args") "$a0";;
+    return: (![ptrT] "args").
 
 Definition GetArgs := struct.decl [
   "epoch" :: uint64T
@@ -41,16 +49,23 @@ Definition GetArgs := struct.decl [
 
 Definition EncGetArgs: val :=
   rec: "EncGetArgs" "args" :=
-    let: "enc" := marshal.NewEnc #8 in
-    marshal.Enc__PutInt "enc" (struct.loadF GetArgs "epoch" "args");;
-    marshal.Enc__Finish "enc".
+    let: "enc" := ref_zero (struct.t marshal.Enc) in
+    let: "$a0" := marshal.NewEnc #8 in
+    "enc" <-[struct.t marshal.Enc] "$a0";;
+    marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (struct.loadF GetArgs "epoch" (![ptrT] "args"));;
+    return: (marshal.Enc__Finish (![struct.t marshal.Enc] "enc")).
 
 Definition DecGetArgs: val :=
   rec: "DecGetArgs" "raw_args" :=
-    let: "dec" := marshal.NewDec "raw_args" in
-    let: "args" := struct.alloc GetArgs (zero_val (struct.t GetArgs)) in
-    struct.storeF GetArgs "epoch" "args" (marshal.Dec__GetInt "dec");;
-    "args".
+    let: "dec" := ref_zero (struct.t marshal.Dec) in
+    let: "$a0" := marshal.NewDec (![slice.T byteT] "raw_args") in
+    "dec" <-[struct.t marshal.Dec] "$a0";;
+    let: "args" := ref_zero ptrT in
+    let: "$a0" := struct.alloc GetArgs (zero_val (struct.t GetArgs)) in
+    "args" <-[ptrT] "$a0";;
+    let: "$a0" := marshal.Dec__GetInt (![struct.t marshal.Dec] "dec") in
+    struct.storeF GetArgs "epoch" (![ptrT] "args") "$a0";;
+    return: (![ptrT] "args").
 
 Definition GetReply := struct.decl [
   "err" :: uint64T;
@@ -59,18 +74,26 @@ Definition GetReply := struct.decl [
 
 Definition EncGetReply: val :=
   rec: "EncGetReply" "reply" :=
-    let: "enc" := marshal.NewEnc #16 in
-    marshal.Enc__PutInt "enc" (struct.loadF GetReply "err" "reply");;
-    marshal.Enc__PutInt "enc" (struct.loadF GetReply "val" "reply");;
-    marshal.Enc__Finish "enc".
+    let: "enc" := ref_zero (struct.t marshal.Enc) in
+    let: "$a0" := marshal.NewEnc #16 in
+    "enc" <-[struct.t marshal.Enc] "$a0";;
+    marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (struct.loadF GetReply "err" (![ptrT] "reply"));;
+    marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (struct.loadF GetReply "val" (![ptrT] "reply"));;
+    return: (marshal.Enc__Finish (![struct.t marshal.Enc] "enc")).
 
 Definition DecGetReply: val :=
   rec: "DecGetReply" "raw_reply" :=
-    let: "dec" := marshal.NewDec "raw_reply" in
-    let: "reply" := struct.alloc GetReply (zero_val (struct.t GetReply)) in
-    struct.storeF GetReply "err" "reply" (marshal.Dec__GetInt "dec");;
-    struct.storeF GetReply "val" "reply" (marshal.Dec__GetInt "dec");;
-    "reply".
+    let: "dec" := ref_zero (struct.t marshal.Dec) in
+    let: "$a0" := marshal.NewDec (![slice.T byteT] "raw_reply") in
+    "dec" <-[struct.t marshal.Dec] "$a0";;
+    let: "reply" := ref_zero ptrT in
+    let: "$a0" := struct.alloc GetReply (zero_val (struct.t GetReply)) in
+    "reply" <-[ptrT] "$a0";;
+    let: "$a0" := marshal.Dec__GetInt (![struct.t marshal.Dec] "dec") in
+    struct.storeF GetReply "err" (![ptrT] "reply") "$a0";;
+    let: "$a0" := marshal.Dec__GetInt (![struct.t marshal.Dec] "dec") in
+    struct.storeF GetReply "val" (![ptrT] "reply") "$a0";;
+    return: (![ptrT] "reply").
 
 (* client.go *)
 
@@ -87,62 +110,99 @@ Definition Clerk := struct.decl [
 
 Definition Clerk__Get: val :=
   rec: "Clerk__Get" "c" "epoch" :=
-    let: "enc" := marshal.NewEnc #8 in
-    marshal.Enc__PutInt "enc" "epoch";;
-    let: "req" := marshal.Enc__Finish "enc" in
-    let: "valProph" := machine.NewProph #() in
-    let: "reply_ptr" := ref (zero_val (slice.T byteT)) in
-    let: "err" := urpc.Client__Call (struct.loadF Clerk "cl" "c") RPC_GET "req" "reply_ptr" #100 in
-    (if: "err" ≠ #0
+    let: "enc" := ref_zero (struct.t marshal.Enc) in
+    let: "$a0" := marshal.NewEnc #8 in
+    "enc" <-[struct.t marshal.Enc] "$a0";;
+    marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (![uint64T] "epoch");;
+    let: "req" := ref_zero (slice.T byteT) in
+    let: "$a0" := marshal.Enc__Finish (![struct.t marshal.Enc] "enc") in
+    "req" <-[slice.T byteT] "$a0";;
+    let: "valProph" := ref_zero ProphIdT in
+    let: "$a0" := machine.NewProph #() in
+    "valProph" <-[ProphIdT] "$a0";;
+    let: "reply_ptr" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply_ptr" <-[ptrT] "$a0";;
+    let: "err" := ref_zero uint64T in
+    let: "$a0" := urpc.Client__Call (struct.loadF Clerk "cl" (![ptrT] "c")) RPC_GET (![slice.T byteT] "req") (![ptrT] "reply_ptr") #100 in
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") ≠ #0
     then
-      (* log.Println("ctr: urpc get call failed/timed out") *)
-      machine.Exit #1
+      log.Println #(str"ctr: urpc get call failed/timed out");;
+      machine.Exit #1;;
+      #()
     else #());;
-    let: "r" := DecGetReply (![slice.T byteT] "reply_ptr") in
-    (if: (struct.loadF GetReply "err" "r") ≠ ENone
+    let: "r" := ref_zero ptrT in
+    let: "$a0" := DecGetReply (![slice.T byteT] (![ptrT] "reply_ptr")) in
+    "r" <-[ptrT] "$a0";;
+    (if: (struct.loadF GetReply "err" (![ptrT] "r")) ≠ ENone
     then
-      (* log.Println("ctr: get() stale epoch number") *)
-      machine.Exit #1
+      log.Println #(str"ctr: get() stale epoch number");;
+      machine.Exit #1;;
+      #()
     else #());;
-    ResolveProph "valProph" (struct.loadF GetReply "val" "r");;
-    struct.loadF GetReply "val" "r".
+    ResolveProph (![ProphIdT] "valProph") (struct.loadF GetReply "val" (![ptrT] "r"));;
+    return: (struct.loadF GetReply "val" (![ptrT] "r")).
 
 Definition Clerk__Put: val :=
   rec: "Clerk__Put" "c" "v" "epoch" :=
-    let: "args" := struct.new PutArgs [
-      "v" ::= "v";
-      "epoch" ::= "epoch"
+    let: "args" := ref_zero ptrT in
+    let: "$a0" := struct.new PutArgs [
+      "v" ::= ![uint64T] "v";
+      "epoch" ::= ![uint64T] "epoch"
     ] in
-    let: "req" := erpc.Client__NewRequest (struct.loadF Clerk "e" "c") (EncPutArgs "args") in
-    let: "reply_ptr" := ref (zero_val (slice.T byteT)) in
-    let: "err" := urpc.Client__Call (struct.loadF Clerk "cl" "c") RPC_PUT "req" "reply_ptr" #100 in
-    (if: "err" ≠ #0
+    "args" <-[ptrT] "$a0";;
+    let: "req" := ref_zero (slice.T byteT) in
+    let: "$a0" := erpc.Client__NewRequest (struct.loadF Clerk "e" (![ptrT] "c")) (EncPutArgs (![ptrT] "args")) in
+    "req" <-[slice.T byteT] "$a0";;
+    let: "reply_ptr" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply_ptr" <-[ptrT] "$a0";;
+    let: "err" := ref_zero uint64T in
+    let: "$a0" := urpc.Client__Call (struct.loadF Clerk "cl" (![ptrT] "c")) RPC_PUT (![slice.T byteT] "req") (![ptrT] "reply_ptr") #100 in
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") ≠ #0
     then
-      (* log.Println("ctr: urpc put call failed/timed out") *)
-      machine.Exit #1
+      log.Println #(str"ctr: urpc put call failed/timed out");;
+      machine.Exit #1;;
+      #()
     else #());;
-    let: "dec" := marshal.NewDec (![slice.T byteT] "reply_ptr") in
-    let: "epochErr" := marshal.Dec__GetInt "dec" in
-    (if: "epochErr" ≠ ENone
+    let: "dec" := ref_zero (struct.t marshal.Dec) in
+    let: "$a0" := marshal.NewDec (![slice.T byteT] (![ptrT] "reply_ptr")) in
+    "dec" <-[struct.t marshal.Dec] "$a0";;
+    let: "epochErr" := ref_zero uint64T in
+    let: "$a0" := marshal.Dec__GetInt (![struct.t marshal.Dec] "dec") in
+    "epochErr" <-[uint64T] "$a0";;
+    (if: (![uint64T] "epochErr") ≠ ENone
     then
-      (* log.Println("ctr: get() stale epoch number") *)
-      machine.Exit #1
+      log.Println #(str"ctr: get() stale epoch number");;
+      machine.Exit #1;;
+      #()
     else #());;
-    #().
+    return: (#()).
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "host" :=
-    let: "ck" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
-    struct.storeF Clerk "cl" "ck" (urpc.MakeClient "host");;
-    let: "reply_ptr" := ref (zero_val (slice.T byteT)) in
-    let: "err" := urpc.Client__Call (struct.loadF Clerk "cl" "ck") RPC_FRESHCID (NewSlice byteT #0) "reply_ptr" #100 in
-    (if: "err" ≠ #0
+    let: "ck" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
+    "ck" <-[ptrT] "$a0";;
+    let: "$a0" := urpc.MakeClient (![uint64T] "host") in
+    struct.storeF Clerk "cl" (![ptrT] "ck") "$a0";;
+    let: "reply_ptr" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply_ptr" <-[ptrT] "$a0";;
+    let: "err" := ref_zero uint64T in
+    let: "$a0" := urpc.Client__Call (struct.loadF Clerk "cl" (![ptrT] "ck")) RPC_FRESHCID (NewSlice byteT #0) (![ptrT] "reply_ptr") #100 in
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") ≠ #0
     then
-      (* log.Println("ctr: urpc getcid call failed/timed out") *)
-      machine.Exit #1
+      log.Println #(str"ctr: urpc getcid call failed/timed out");;
+      machine.Exit #1;;
+      #()
     else #());;
-    struct.storeF Clerk "e" "ck" (erpc.MakeClient (marshal.Dec__GetInt (marshal.NewDec (![slice.T byteT] "reply_ptr"))));;
-    "ck".
+    let: "$a0" := erpc.MakeClient (marshal.Dec__GetInt (marshal.NewDec (![slice.T byteT] (![ptrT] "reply_ptr")))) in
+    struct.storeF Clerk "e" (![ptrT] "ck") "$a0";;
+    return: (![ptrT] "ck").
 
 (* server.go *)
 
@@ -155,62 +215,97 @@ Definition Server := struct.decl [
 
 Definition Server__Put: val :=
   rec: "Server__Put" "s" "args" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "s");;
-    (if: (struct.loadF PutArgs "epoch" "args") < (struct.loadF Server "lastEpoch" "s")
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
+    (if: (struct.loadF PutArgs "epoch" (![ptrT] "args")) < (struct.loadF Server "lastEpoch" (![ptrT] "s"))
     then
-      sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-      EStale
-    else
-      struct.storeF Server "lastEpoch" "s" (struct.loadF PutArgs "epoch" "args");;
-      struct.storeF Server "v" "s" (struct.loadF PutArgs "v" "args");;
-      sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-      ENone).
+      sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+      return: (EStale)
+    else #());;
+    let: "$a0" := struct.loadF PutArgs "epoch" (![ptrT] "args") in
+    struct.storeF Server "lastEpoch" (![ptrT] "s") "$a0";;
+    let: "$a0" := struct.loadF PutArgs "v" (![ptrT] "args") in
+    struct.storeF Server "v" (![ptrT] "s") "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+    return: (ENone).
 
 Definition Server__Get: val :=
   rec: "Server__Get" "s" "epoch" "reply" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "s");;
-    struct.storeF GetReply "err" "reply" ENone;;
-    (if: "epoch" < (struct.loadF Server "lastEpoch" "s")
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
+    let: "$a0" := ENone in
+    struct.storeF GetReply "err" (![ptrT] "reply") "$a0";;
+    (if: (![uint64T] "epoch") < (struct.loadF Server "lastEpoch" (![ptrT] "s"))
     then
-      sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-      struct.storeF GetReply "err" "reply" EStale;;
-      #()
-    else
-      struct.storeF Server "lastEpoch" "s" "epoch";;
-      struct.storeF GetReply "val" "reply" (struct.loadF Server "v" "s");;
-      machine.Linearize #();;
-      sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-      #()).
+      sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+      let: "$a0" := EStale in
+      struct.storeF GetReply "err" (![ptrT] "reply") "$a0";;
+      return: (#())
+    else #());;
+    let: "$a0" := ![uint64T] "epoch" in
+    struct.storeF Server "lastEpoch" (![ptrT] "s") "$a0";;
+    let: "$a0" := struct.loadF Server "v" (![ptrT] "s") in
+    struct.storeF GetReply "val" (![ptrT] "reply") "$a0";;
+    machine.Linearize #();;
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+    return: (#()).
 
 Definition StartServer: val :=
   rec: "StartServer" "me" :=
-    let: "s" := struct.alloc Server (zero_val (struct.t Server)) in
-    struct.storeF Server "mu" "s" (struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)));;
-    struct.storeF Server "e" "s" (erpc.MakeServer #());;
-    struct.storeF Server "v" "s" #0;;
-    let: "handlers" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%ht #() in
-    MapInsert "handlers" RPC_GET (λ: "raw_args" "raw_reply",
-      let: "dec" := marshal.NewDec "raw_args" in
-      let: "epoch" := marshal.Dec__GetInt "dec" in
-      let: "reply" := struct.alloc GetReply (zero_val (struct.t GetReply)) in
-      Server__Get "s" "epoch" "reply";;
-      "raw_reply" <-[slice.T byteT] (EncGetReply "reply");;
+    let: "s" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Server (zero_val (struct.t Server)) in
+    "s" <-[ptrT] "$a0";;
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    struct.storeF Server "mu" (![ptrT] "s") "$a0";;
+    let: "$a0" := erpc.MakeServer #() in
+    struct.storeF Server "e" (![ptrT] "s") "$a0";;
+    let: "$a0" := #0 in
+    struct.storeF Server "v" (![ptrT] "s") "$a0";;
+    let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
+    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
+    let: "$a0" := (λ: "raw_args" "raw_reply",
+      let: "dec" := ref_zero (struct.t marshal.Dec) in
+      let: "$a0" := marshal.NewDec (![slice.T byteT] "raw_args") in
+      "dec" <-[struct.t marshal.Dec] "$a0";;
+      let: "epoch" := ref_zero uint64T in
+      let: "$a0" := marshal.Dec__GetInt (![struct.t marshal.Dec] "dec") in
+      "epoch" <-[uint64T] "$a0";;
+      let: "reply" := ref_zero ptrT in
+      let: "$a0" := struct.alloc GetReply (zero_val (struct.t GetReply)) in
+      "reply" <-[ptrT] "$a0";;
+      Server__Get (![ptrT] "s") (![uint64T] "epoch") (![ptrT] "reply");;
+      let: "$a0" := EncGetReply (![ptrT] "reply") in
+      (![ptrT] "raw_reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    MapInsert "handlers" RPC_PUT (erpc.Server__HandleRequest (struct.loadF Server "e" "s") (λ: "raw_args" "reply",
-      let: "args" := DecPutArgs "raw_args" in
-      let: "err" := Server__Put "s" "args" in
-      let: "enc" := marshal.NewEnc #8 in
-      marshal.Enc__PutInt "enc" "err";;
-      "reply" <-[slice.T byteT] (marshal.Enc__Finish "enc");;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") RPC_GET "$a0";;
+    let: "$a0" := erpc.Server__HandleRequest (struct.loadF Server "e" (![ptrT] "s")) (λ: "raw_args" "reply",
+      let: "args" := ref_zero ptrT in
+      let: "$a0" := DecPutArgs (![slice.T byteT] "raw_args") in
+      "args" <-[ptrT] "$a0";;
+      let: "err" := ref_zero uint64T in
+      let: "$a0" := Server__Put (![ptrT] "s") (![ptrT] "args") in
+      "err" <-[uint64T] "$a0";;
+      let: "enc" := ref_zero (struct.t marshal.Enc) in
+      let: "$a0" := marshal.NewEnc #8 in
+      "enc" <-[struct.t marshal.Enc] "$a0";;
+      marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (![uint64T] "err");;
+      let: "$a0" := marshal.Enc__Finish (![struct.t marshal.Enc] "enc") in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
       #()
-      ));;
-    MapInsert "handlers" RPC_FRESHCID (λ: "raw_args" "reply",
-      let: "enc" := marshal.NewEnc #8 in
-      marshal.Enc__PutInt "enc" (erpc.Server__GetFreshCID (struct.loadF Server "e" "s"));;
-      "reply" <-[slice.T byteT] (marshal.Enc__Finish "enc");;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") RPC_PUT "$a0";;
+    let: "$a0" := (λ: "raw_args" "reply",
+      let: "enc" := ref_zero (struct.t marshal.Enc) in
+      let: "$a0" := marshal.NewEnc #8 in
+      "enc" <-[struct.t marshal.Enc] "$a0";;
+      marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (erpc.Server__GetFreshCID (struct.loadF Server "e" (![ptrT] "s")));;
+      let: "$a0" := marshal.Enc__Finish (![struct.t marshal.Enc] "enc") in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    let: "r" := urpc.MakeServer "handlers" in
-    urpc.Server__Serve "r" "me";;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") RPC_FRESHCID "$a0";;
+    let: "r" := ref_zero ptrT in
+    let: "$a0" := urpc.MakeServer (![mapT (arrowT unitT unitT)] "handlers") in
+    "r" <-[ptrT] "$a0";;
+    urpc.Server__Serve (![ptrT] "r") (![uint64T] "me");;
     #().

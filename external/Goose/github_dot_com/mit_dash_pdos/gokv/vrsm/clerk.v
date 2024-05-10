@@ -21,111 +21,114 @@ Definition Clerk := struct.decl [
 
 Definition makeClerks: val :=
   rec: "makeClerks" "servers" :=
-    let: "clerks" := NewSlice ptrT (slice.len "servers") in
+    let: "clerks" := ref_zero (slice.T ptrT) in
+    let: "$a0" := NewSlice ptrT (slice.len (![slice.T uint64T] "servers")) in
+    "clerks" <-[slice.T ptrT] "$a0";;
     let: "i" := ref_to uint64T #0 in
-    Skip;;
-    (for: (λ: <>, (![uint64T] "i") < (slice.len "clerks")); (λ: <>, Skip) := λ: <>,
-      SliceSet ptrT "clerks" (![uint64T] "i") (replica.MakeClerk (SliceGet uint64T "servers" (![uint64T] "i")));;
+    (for: (λ: <>, (![uint64T] "i") < (slice.len (![slice.T ptrT] "clerks"))); (λ: <>, Skip) := λ: <>,
+      let: "$a0" := replica.MakeClerk (SliceGet uint64T (![slice.T uint64T] "servers") (![uint64T] "i")) in
+      SliceSet ptrT (![slice.T ptrT] "clerks") (![uint64T] "i") "$a0";;
       "i" <-[uint64T] ((![uint64T] "i") + #1);;
-      Continue);;
-    "clerks".
+      #()).
 
 Definition Make: val :=
   rec: "Make" "confHosts" :=
-    let: "ck" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
-    struct.storeF Clerk "confCk" "ck" (configservice.MakeClerk "confHosts");;
-    Skip;;
+    let: "ck" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
+    "ck" <-[ptrT] "$a0";;
+    let: "$a0" := configservice.MakeClerk (![slice.T uint64T] "confHosts") in
+    struct.storeF Clerk "confCk" (![ptrT] "ck") "$a0";;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "config" := configservice.Clerk__GetConfig (struct.loadF Clerk "confCk" "ck") in
-      (if: (slice.len "config") = #0
+      let: "config" := ref_zero (slice.T uint64T) in
+      let: "$a0" := configservice.Clerk__GetConfig (struct.loadF Clerk "confCk" (![ptrT] "ck")) in
+      "config" <-[slice.T uint64T] "$a0";;
+      (if: (slice.len (![slice.T uint64T] "config")) = #0
       then Continue
       else
-        struct.storeF Clerk "replicaClerks" "ck" (makeClerks "config");;
-        Break));;
-    struct.storeF Clerk "preferredReplica" "ck" ((machine.RandomUint64 #()) `rem` (slice.len (struct.loadF Clerk "replicaClerks" "ck")));;
-    let: ("0_ret", "1_ret") := grove__ffi.GetTimeRange #() in
-    struct.storeF Clerk "lastPreferenceRefresh" "ck" "0_ret";;
-    "1_ret";;
-    "ck".
+        let: "$a0" := makeClerks (![slice.T uint64T] "config") in
+        struct.storeF Clerk "replicaClerks" (![ptrT] "ck") "$a0";;
+        Break);;
+      #()).
 
 (* will retry forever *)
 Definition Clerk__Apply: val :=
   rec: "Clerk__Apply" "ck" "op" :=
     let: "ret" := ref (zero_val (slice.T byteT)) in
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       let: "err" := ref (zero_val uint64T) in
-      let: ("0_ret", "1_ret") := replica.Clerk__Apply (SliceGet ptrT (struct.loadF Clerk "replicaClerks" "ck") #0) "op" in
-      "err" <-[uint64T] "0_ret";;
-      "ret" <-[slice.T byteT] "1_ret";;
+      let: ("$a0", "$a1") := replica.Clerk__Apply (SliceGet ptrT (struct.loadF Clerk "replicaClerks" (![ptrT] "ck")) #0) (![slice.T byteT] "op") in
+      "ret" <-[slice.T byteT] "$a1";;
+      "err" <-[uint64T] "$a0";;
       (if: (![uint64T] "err") = e.None
       then Break
       else
         machine.Sleep (#100 * #1000000);;
-        let: "config" := configservice.Clerk__GetConfig (struct.loadF Clerk "confCk" "ck") in
-        (if: (slice.len "config") > #0
-        then struct.storeF Clerk "replicaClerks" "ck" (makeClerks "config")
+        let: "config" := ref_zero (slice.T uint64T) in
+        let: "$a0" := configservice.Clerk__GetConfig (struct.loadF Clerk "confCk" (![ptrT] "ck")) in
+        "config" <-[slice.T uint64T] "$a0";;
+        (if: (slice.len (![slice.T uint64T] "config")) > #0
+        then
+          let: "$a0" := makeClerks (![slice.T uint64T] "config") in
+          struct.storeF Clerk "replicaClerks" (![ptrT] "ck") "$a0";;
+          #()
         else #());;
-        Continue));;
-    ![slice.T byteT] "ret".
+        Continue);;
+      #()).
 
 Definition Clerk__maybeRefreshPreference: val :=
   rec: "Clerk__maybeRefreshPreference" "ck" :=
-    let: ("now", <>) := grove__ffi.GetTimeRange #() in
-    (if: "now" > ((struct.loadF Clerk "lastPreferenceRefresh" "ck") + PreferenceRefreshTime)
+    let: <> := ref_zero uint64T in
+    let: "now" := ref_zero uint64T in
+    let: ("$a0", "$a1") := grove__ffi.GetTimeRange #() in
+    "$a1";;
+    "now" <-[uint64T] "$a0";;
+    (if: (![uint64T] "now") > ((struct.loadF Clerk "lastPreferenceRefresh" (![ptrT] "ck")) + PreferenceRefreshTime)
     then
-      struct.storeF Clerk "preferredReplica" "ck" ((machine.RandomUint64 #()) `rem` (slice.len (struct.loadF Clerk "replicaClerks" "ck")));;
-      let: ("0_ret", "1_ret") := grove__ffi.GetTimeRange #() in
-      struct.storeF Clerk "lastPreferenceRefresh" "ck" "0_ret";;
-      "1_ret";;
+      let: "$a0" := (machine.RandomUint64 #()) `rem` (slice.len (struct.loadF Clerk "replicaClerks" (![ptrT] "ck"))) in
+      struct.storeF Clerk "preferredReplica" (![ptrT] "ck") "$a0";;
+      let: ("$a0", "$a1") := grove__ffi.GetTimeRange #() in
+      "$a1";;
+      struct.storeF Clerk "lastPreferenceRefresh" (![ptrT] "ck") "$a0";;
       #()
-    else #()).
+    else #());;
+    #().
 
 Definition Clerk__ApplyRo2: val :=
   rec: "Clerk__ApplyRo2" "ck" "op" :=
     let: "ret" := ref (zero_val (slice.T byteT)) in
-    Clerk__maybeRefreshPreference "ck";;
-    Skip;;
+    Clerk__maybeRefreshPreference (![ptrT] "ck");;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "offset" := struct.loadF Clerk "preferredReplica" "ck" in
+      let: "offset" := ref_zero uint64T in
+      let: "$a0" := struct.loadF Clerk "preferredReplica" (![ptrT] "ck") in
+      "offset" <-[uint64T] "$a0";;
       let: "err" := ref (zero_val uint64T) in
       let: "i" := ref (zero_val uint64T) in
-      Skip;;
-      (for: (λ: <>, (![uint64T] "i") < (slice.len (struct.loadF Clerk "replicaClerks" "ck"))); (λ: <>, Skip) := λ: <>,
-        let: "k" := ((![uint64T] "i") + "offset") `rem` (slice.len (struct.loadF Clerk "replicaClerks" "ck")) in
-        let: ("0_ret", "1_ret") := replica.Clerk__ApplyRo (SliceGet ptrT (struct.loadF Clerk "replicaClerks" "ck") "k") "op" in
-        "err" <-[uint64T] "0_ret";;
-        "ret" <-[slice.T byteT] "1_ret";;
+      (for: (λ: <>, (![uint64T] "i") < (slice.len (struct.loadF Clerk "replicaClerks" (![ptrT] "ck")))); (λ: <>, Skip) := λ: <>,
+        let: "k" := ref_zero uint64T in
+        let: "$a0" := ((![uint64T] "i") + (![uint64T] "offset")) `rem` (slice.len (struct.loadF Clerk "replicaClerks" (![ptrT] "ck"))) in
+        "k" <-[uint64T] "$a0";;
+        let: ("$a0", "$a1") := replica.Clerk__ApplyRo (SliceGet ptrT (struct.loadF Clerk "replicaClerks" (![ptrT] "ck")) (![uint64T] "k")) (![slice.T byteT] "op") in
+        "ret" <-[slice.T byteT] "$a1";;
+        "err" <-[uint64T] "$a0";;
         (if: (![uint64T] "err") = e.None
         then
-          struct.storeF Clerk "preferredReplica" "ck" "k";;
+          let: "$a0" := ![uint64T] "k" in
+          struct.storeF Clerk "preferredReplica" (![ptrT] "ck") "$a0";;
           Break
-        else
-          "i" <-[uint64T] ((![uint64T] "i") + #1);;
-          let: ("0_ret", "1_ret") := grove__ffi.GetTimeRange #() in
-          struct.storeF Clerk "lastPreferenceRefresh" "ck" "0_ret";;
-          "1_ret";;
-          Continue));;
-      (if: (![uint64T] "err") = e.None
-      then Break
-      else
-        let: "timeToSleep" := #5 + ((machine.RandomUint64 #()) `rem` #10) in
-        machine.Sleep ("timeToSleep" * #1000000);;
-        let: "config" := configservice.Clerk__GetConfig (struct.loadF Clerk "confCk" "ck") in
-        (if: (slice.len "config") > #0
-        then
-          struct.storeF Clerk "replicaClerks" "ck" (makeClerks "config");;
-          let: ("0_ret", "1_ret") := grove__ffi.GetTimeRange #() in
-          struct.storeF Clerk "lastPreferenceRefresh" "ck" "0_ret";;
-          "1_ret";;
-          struct.storeF Clerk "preferredReplica" "ck" ((machine.RandomUint64 #()) `rem` (slice.len (struct.loadF Clerk "replicaClerks" "ck")))
         else #());;
-        Continue));;
-    ![slice.T byteT] "ret".
+        "i" <-[uint64T] ((![uint64T] "i") + #1);;
+        let: ("$a0", "$a1") := grove__ffi.GetTimeRange #() in
+        "$a1";;
+        struct.storeF Clerk "lastPreferenceRefresh" (![ptrT] "ck") "$a0";;
+        Continue)).
 
 Definition Clerk__ApplyRo: val :=
   rec: "Clerk__ApplyRo" "ck" "op" :=
-    let: "p" := trusted__proph.NewProph #() in
-    let: "v" := Clerk__ApplyRo2 "ck" "op" in
-    trusted__proph.ResolveBytes "p" "v";;
-    "v".
+    let: "p" := ref_zero ProphIdT in
+    let: "$a0" := trusted__proph.NewProph #() in
+    "p" <-[ProphIdT] "$a0";;
+    let: "v" := ref_zero (slice.T byteT) in
+    let: "$a0" := Clerk__ApplyRo2 (![ptrT] "ck") (![slice.T byteT] "op") in
+    "v" <-[slice.T byteT] "$a0";;
+    trusted__proph.ResolveBytes (![ProphIdT] "p") (![slice.T byteT] "v");;
+    return: (![slice.T byteT] "v").

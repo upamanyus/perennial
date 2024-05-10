@@ -27,68 +27,80 @@ Definition lr2 : expr := #102.
 Definition mk_lconfig_hosts: val :=
   rec: "mk_lconfig_hosts" <> :=
     let: "configHosts" := ref_to (slice.T uint64T) (NewSlice uint64T #0) in
-    SliceAppend uint64T (![slice.T uint64T] "configHosts") lconfigHost.
+    return: (SliceAppend uint64T (![slice.T uint64T] "configHosts") lconfigHost).
 
 Definition mk_dconfig_hosts: val :=
   rec: "mk_dconfig_hosts" <> :=
     let: "configHosts" := ref_to (slice.T uint64T) (NewSlice uint64T #0) in
-    SliceAppend uint64T (![slice.T uint64T] "configHosts") dconfigHost.
+    return: (SliceAppend uint64T (![slice.T uint64T] "configHosts") dconfigHost).
 
 Definition mk_lconfig_paxosHosts: val :=
   rec: "mk_lconfig_paxosHosts" <> :=
     let: "configHosts" := ref_to (slice.T uint64T) (NewSlice uint64T #0) in
-    SliceAppend uint64T (![slice.T uint64T] "configHosts") lconfigHostPaxos.
+    return: (SliceAppend uint64T (![slice.T uint64T] "configHosts") lconfigHostPaxos).
 
 Definition mk_dconfig_paxosHosts: val :=
   rec: "mk_dconfig_paxosHosts" <> :=
     let: "configHosts" := ref_to (slice.T uint64T) (NewSlice uint64T #0) in
-    SliceAppend uint64T (![slice.T uint64T] "configHosts") dconfigHostPaxos.
+    return: (SliceAppend uint64T (![slice.T uint64T] "configHosts") dconfigHostPaxos).
 
 Definition lconfig_main: val :=
   rec: "lconfig_main" "fname" :=
     let: "servers" := ref_to (slice.T uint64T) (NewSlice uint64T #0) in
-    "servers" <-[slice.T uint64T] (SliceAppend uint64T (![slice.T uint64T] "servers") lr1);;
-    "servers" <-[slice.T uint64T] (SliceAppend uint64T (![slice.T uint64T] "servers") lr2);;
-    configservice.StartServer "fname" lconfigHost lconfigHostPaxos (mk_lconfig_paxosHosts #()) (![slice.T uint64T] "servers");;
+    let: "$a0" := SliceAppend uint64T (![slice.T uint64T] "servers") lr1 in
+    "servers" <-[slice.T uint64T] "$a0";;
+    let: "$a0" := SliceAppend uint64T (![slice.T uint64T] "servers") lr2 in
+    "servers" <-[slice.T uint64T] "$a0";;
+    configservice.StartServer (![stringT] "fname") lconfigHost lconfigHostPaxos (mk_lconfig_paxosHosts #()) (![slice.T uint64T] "servers");;
     #().
 
 Definition dconfig_main: val :=
   rec: "dconfig_main" "fname" :=
     let: "servers" := ref_to (slice.T uint64T) (NewSlice uint64T #0) in
-    "servers" <-[slice.T uint64T] (SliceAppend uint64T (![slice.T uint64T] "servers") dr1);;
-    "servers" <-[slice.T uint64T] (SliceAppend uint64T (![slice.T uint64T] "servers") dr2);;
-    configservice.StartServer "fname" dconfigHost dconfigHostPaxos (mk_dconfig_paxosHosts #()) (![slice.T uint64T] "servers");;
+    let: "$a0" := SliceAppend uint64T (![slice.T uint64T] "servers") dr1 in
+    "servers" <-[slice.T uint64T] "$a0";;
+    let: "$a0" := SliceAppend uint64T (![slice.T uint64T] "servers") dr2 in
+    "servers" <-[slice.T uint64T] "$a0";;
+    configservice.StartServer (![stringT] "fname") dconfigHost dconfigHostPaxos (mk_dconfig_paxosHosts #()) (![slice.T uint64T] "servers");;
     #().
 
 Definition kv_replica_main: val :=
   rec: "kv_replica_main" "fname" "me" "configHost" :=
-    let: "x" := ref (zero_val uint64T) in
-    "x" <-[uint64T] #1;;
+    let: "x" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val uint64T) in
+    "x" <-[ptrT] "$a0";;
+    let: "$a0" := #1 in
+    (![ptrT] "x") <-[uint64T] "$a0";;
     let: "configHosts" := ref_to (slice.T uint64T) (NewSlice uint64T #0) in
-    "configHosts" <-[slice.T uint64T] (SliceAppend uint64T (![slice.T uint64T] "configHosts") "configHost");;
-    vkv.Start "fname" "me" (![slice.T uint64T] "configHosts");;
+    let: "$a0" := SliceAppend uint64T (![slice.T uint64T] "configHosts") (![uint64T] "configHost") in
+    "configHosts" <-[slice.T uint64T] "$a0";;
+    vkv.Start (![stringT] "fname") (![uint64T] "me") (![slice.T uint64T] "configHosts");;
     #().
 
 Definition makeBankClerk: val :=
   rec: "makeBankClerk" <> :=
-    let: "kvck" := vkv.MakeKv (mk_dconfig_hosts #()) in
-    let: "lck" := lockservice.MakeLockClerk (vkv.MakeKv (mk_lconfig_hosts #())) in
-    bank.MakeBankClerk "lck" "kvck" #(str"init") #(str"a1") #(str"a2").
+    let: "kvck" := ref_zero ptrT in
+    let: "$a0" := vkv.MakeKv (mk_dconfig_hosts #()) in
+    "kvck" <-[ptrT] "$a0";;
+    let: "lck" := ref_zero ptrT in
+    let: "$a0" := lockservice.MakeLockClerk (vkv.MakeKv (mk_lconfig_hosts #())) in
+    "lck" <-[ptrT] "$a0";;
+    return: (bank.MakeBankClerk (![ptrT] "lck") (![ptrT] "kvck") #(str"init") #(str"a1") #(str"a2")).
 
 Definition bank_transferer_main: val :=
   rec: "bank_transferer_main" <> :=
-    let: "bck" := makeBankClerk #() in
-    Skip;;
+    let: "bck" := ref_zero ptrT in
+    let: "$a0" := makeBankClerk #() in
+    "bck" <-[ptrT] "$a0";;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      bank.BankClerk__SimpleTransfer "bck";;
-      Continue);;
-    #().
+      bank.BankClerk__SimpleTransfer (![ptrT] "bck");;
+      #()).
 
 Definition bank_auditor_main: val :=
   rec: "bank_auditor_main" <> :=
-    let: "bck" := makeBankClerk #() in
-    Skip;;
+    let: "bck" := ref_zero ptrT in
+    let: "$a0" := makeBankClerk #() in
+    "bck" <-[ptrT] "$a0";;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      bank.BankClerk__SimpleAudit "bck";;
-      Continue);;
-    #().
+      bank.BankClerk__SimpleAudit (![ptrT] "bck");;
+      #()).

@@ -18,90 +18,111 @@ Definition BankClerk := struct.decl [
 
 Definition acquire_two: val :=
   rec: "acquire_two" "lck" "l1" "l2" :=
-    (if: "l1" < "l2"
+    (if: (![uint64T] "l1") < (![uint64T] "l2")
     then
-      lockservice.LockClerk__Lock "lck" "l1";;
-      lockservice.LockClerk__Lock "lck" "l2"
+      lockservice.LockClerk__Lock (![ptrT] "lck") (![uint64T] "l1");;
+      lockservice.LockClerk__Lock (![ptrT] "lck") (![uint64T] "l2");;
+      #()
     else
-      lockservice.LockClerk__Lock "lck" "l2";;
-      lockservice.LockClerk__Lock "lck" "l1");;
-    #().
+      lockservice.LockClerk__Lock (![ptrT] "lck") (![uint64T] "l2");;
+      lockservice.LockClerk__Lock (![ptrT] "lck") (![uint64T] "l1");;
+      #());;
+    return: (#()).
 
 Definition release_two: val :=
   rec: "release_two" "lck" "l1" "l2" :=
-    lockservice.LockClerk__Unlock "lck" "l1";;
-    lockservice.LockClerk__Unlock "lck" "l2";;
-    #().
+    lockservice.LockClerk__Unlock (![ptrT] "lck") (![uint64T] "l1");;
+    lockservice.LockClerk__Unlock (![ptrT] "lck") (![uint64T] "l2");;
+    return: (#()).
 
 (* Requires that the account numbers are smaller than num_accounts
    If account balance in acc_from is at least amount, transfer amount to acc_to *)
 Definition BankClerk__transfer_internal: val :=
   rec: "BankClerk__transfer_internal" "bck" "acc_from" "acc_to" "amount" :=
-    acquire_two (struct.loadF BankClerk "lck" "bck") "acc_from" "acc_to";;
-    let: "old_amount" := memkv.DecodeUint64 (memkv.SeqKVClerk__Get (struct.loadF BankClerk "kvck" "bck") "acc_from") in
-    (if: "old_amount" ≥ "amount"
+    acquire_two (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![uint64T] "acc_from") (![uint64T] "acc_to");;
+    let: "old_amount" := ref_zero uint64T in
+    let: "$a0" := memkv.DecodeUint64 (memkv.SeqKVClerk__Get (struct.loadF BankClerk "kvck" (![ptrT] "bck")) (![uint64T] "acc_from")) in
+    "old_amount" <-[uint64T] "$a0";;
+    (if: (![uint64T] "old_amount") ≥ (![uint64T] "amount")
     then
-      memkv.SeqKVClerk__Put (struct.loadF BankClerk "kvck" "bck") "acc_from" (memkv.EncodeUint64 ("old_amount" - "amount"));;
-      memkv.SeqKVClerk__Put (struct.loadF BankClerk "kvck" "bck") "acc_to" (memkv.EncodeUint64 ((memkv.DecodeUint64 (memkv.SeqKVClerk__Get (struct.loadF BankClerk "kvck" "bck") "acc_to")) + "amount"))
+      memkv.SeqKVClerk__Put (struct.loadF BankClerk "kvck" (![ptrT] "bck")) (![uint64T] "acc_from") (memkv.EncodeUint64 ((![uint64T] "old_amount") - (![uint64T] "amount")));;
+      memkv.SeqKVClerk__Put (struct.loadF BankClerk "kvck" (![ptrT] "bck")) (![uint64T] "acc_to") (memkv.EncodeUint64 ((memkv.DecodeUint64 (memkv.SeqKVClerk__Get (struct.loadF BankClerk "kvck" (![ptrT] "bck")) (![uint64T] "acc_to"))) + (![uint64T] "amount")));;
+      #()
     else #());;
-    release_two (struct.loadF BankClerk "lck" "bck") "acc_from" "acc_to";;
+    release_two (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![uint64T] "acc_from") (![uint64T] "acc_to");;
     #().
 
 Definition BankClerk__SimpleTransfer: val :=
   rec: "BankClerk__SimpleTransfer" "bck" :=
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "src" := machine.RandomUint64 #() in
-      let: "dst" := machine.RandomUint64 #() in
-      let: "amount" := machine.RandomUint64 #() in
-      (if: (("src" < (slice.len (struct.loadF BankClerk "accts" "bck"))) && ("dst" < (slice.len (struct.loadF BankClerk "accts" "bck")))) && ("src" ≠ "dst")
+      let: "src" := ref_zero uint64T in
+      let: "$a0" := machine.RandomUint64 #() in
+      "src" <-[uint64T] "$a0";;
+      let: "dst" := ref_zero uint64T in
+      let: "$a0" := machine.RandomUint64 #() in
+      "dst" <-[uint64T] "$a0";;
+      let: "amount" := ref_zero uint64T in
+      let: "$a0" := machine.RandomUint64 #() in
+      "amount" <-[uint64T] "$a0";;
+      (if: (((![uint64T] "src") < (slice.len (struct.loadF BankClerk "accts" (![ptrT] "bck")))) && ((![uint64T] "dst") < (slice.len (struct.loadF BankClerk "accts" (![ptrT] "bck"))))) && ((![uint64T] "src") ≠ (![uint64T] "dst"))
       then
-        BankClerk__transfer_internal "bck" (SliceGet uint64T (struct.loadF BankClerk "accts" "bck") "src") (SliceGet uint64T (struct.loadF BankClerk "accts" "bck") "dst") "amount";;
-        Continue
-      else Continue));;
-    #().
+        BankClerk__transfer_internal (![ptrT] "bck") (SliceGet uint64T (struct.loadF BankClerk "accts" (![ptrT] "bck")) (![uint64T] "src")) (SliceGet uint64T (struct.loadF BankClerk "accts" (![ptrT] "bck")) (![uint64T] "dst")) (![uint64T] "amount");;
+        #()
+      else #());;
+      #()).
 
 Definition BankClerk__get_total: val :=
   rec: "BankClerk__get_total" "bck" :=
     let: "sum" := ref (zero_val uint64T) in
-    ForSlice uint64T <> "acct" (struct.loadF BankClerk "accts" "bck")
-      (lockservice.LockClerk__Lock (struct.loadF BankClerk "lck" "bck") "acct";;
-      "sum" <-[uint64T] ((![uint64T] "sum") + (memkv.DecodeUint64 (memkv.SeqKVClerk__Get (struct.loadF BankClerk "kvck" "bck") "acct"))));;
-    ForSlice uint64T <> "acct" (struct.loadF BankClerk "accts" "bck")
-      (lockservice.LockClerk__Unlock (struct.loadF BankClerk "lck" "bck") "acct");;
-    ![uint64T] "sum".
+    ForSlice uint64T <> "acct" (struct.loadF BankClerk "accts" (![ptrT] "bck"))
+      (lockservice.LockClerk__Lock (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![uint64T] "acct");;
+      let: "$a0" := (![uint64T] "sum") + (memkv.DecodeUint64 (memkv.SeqKVClerk__Get (struct.loadF BankClerk "kvck" (![ptrT] "bck")) (![uint64T] "acct"))) in
+      "sum" <-[uint64T] "$a0";;
+      #());;
+    ForSlice uint64T <> "acct" (struct.loadF BankClerk "accts" (![ptrT] "bck"))
+      (lockservice.LockClerk__Unlock (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![uint64T] "acct");;
+      #());;
+    return: (![uint64T] "sum").
 
 Definition BankClerk__SimpleAudit: val :=
   rec: "BankClerk__SimpleAudit" "bck" :=
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      (if: (BankClerk__get_total "bck") ≠ BAL_TOTAL
+      (if: (BankClerk__get_total (![ptrT] "bck")) ≠ BAL_TOTAL
       then
         Panic "Balance total invariant violated";;
-        Continue
-      else Continue));;
-    #().
+        #()
+      else #());;
+      #()).
 
 Definition MakeBankClerkSlice: val :=
   rec: "MakeBankClerkSlice" "lockhost" "kvhost" "cm" "init_flag" "accts" "cid" :=
-    let: "bck" := struct.alloc BankClerk (zero_val (struct.t BankClerk)) in
-    struct.storeF BankClerk "lck" "bck" (lockservice.MakeLockClerk "lockhost" "cm");;
-    struct.storeF BankClerk "kvck" "bck" (memkv.MakeSeqKVClerk "kvhost" "cm");;
-    struct.storeF BankClerk "accts" "bck" "accts";;
-    lockservice.LockClerk__Lock (struct.loadF BankClerk "lck" "bck") "init_flag";;
-    (if: std.BytesEqual (memkv.SeqKVClerk__Get (struct.loadF BankClerk "kvck" "bck") "init_flag") (NewSlice byteT #0)
+    let: "bck" := ref_zero ptrT in
+    let: "$a0" := struct.alloc BankClerk (zero_val (struct.t BankClerk)) in
+    "bck" <-[ptrT] "$a0";;
+    let: "$a0" := lockservice.MakeLockClerk (![uint64T] "lockhost") (![ptrT] "cm") in
+    struct.storeF BankClerk "lck" (![ptrT] "bck") "$a0";;
+    let: "$a0" := memkv.MakeSeqKVClerk (![uint64T] "kvhost") (![ptrT] "cm") in
+    struct.storeF BankClerk "kvck" (![ptrT] "bck") "$a0";;
+    let: "$a0" := ![slice.T uint64T] "accts" in
+    struct.storeF BankClerk "accts" (![ptrT] "bck") "$a0";;
+    lockservice.LockClerk__Lock (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![uint64T] "init_flag");;
+    (if: std.BytesEqual (memkv.SeqKVClerk__Get (struct.loadF BankClerk "kvck" (![ptrT] "bck")) (![uint64T] "init_flag")) (NewSlice byteT #0)
     then
-      memkv.SeqKVClerk__Put (struct.loadF BankClerk "kvck" "bck") (SliceGet uint64T (struct.loadF BankClerk "accts" "bck") #0) (memkv.EncodeUint64 BAL_TOTAL);;
-      ForSlice uint64T <> "acct" (SliceSkip uint64T (struct.loadF BankClerk "accts" "bck") #1)
-        (memkv.SeqKVClerk__Put (struct.loadF BankClerk "kvck" "bck") "acct" (memkv.EncodeUint64 #0));;
-      memkv.SeqKVClerk__Put (struct.loadF BankClerk "kvck" "bck") "init_flag" (NewSlice byteT #1)
+      memkv.SeqKVClerk__Put (struct.loadF BankClerk "kvck" (![ptrT] "bck")) (SliceGet uint64T (struct.loadF BankClerk "accts" (![ptrT] "bck")) #0) (memkv.EncodeUint64 BAL_TOTAL);;
+      ForSlice uint64T <> "acct" (SliceSkip uint64T (struct.loadF BankClerk "accts" (![ptrT] "bck")) #1)
+        (memkv.SeqKVClerk__Put (struct.loadF BankClerk "kvck" (![ptrT] "bck")) (![uint64T] "acct") (memkv.EncodeUint64 #0);;
+        #());;
+      memkv.SeqKVClerk__Put (struct.loadF BankClerk "kvck" (![ptrT] "bck")) (![uint64T] "init_flag") (NewSlice byteT #1);;
+      #()
     else #());;
-    lockservice.LockClerk__Unlock (struct.loadF BankClerk "lck" "bck") "init_flag";;
-    "bck".
+    lockservice.LockClerk__Unlock (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![uint64T] "init_flag");;
+    return: (![ptrT] "bck").
 
 Definition MakeBankClerk: val :=
   rec: "MakeBankClerk" "lockhost" "kvhost" "cm" "init_flag" "acc1" "acc2" "cid" :=
     let: "accts" := ref (zero_val (slice.T uint64T)) in
-    "accts" <-[slice.T uint64T] (SliceAppend uint64T (![slice.T uint64T] "accts") "acc1");;
-    "accts" <-[slice.T uint64T] (SliceAppend uint64T (![slice.T uint64T] "accts") "acc2");;
-    MakeBankClerkSlice "lockhost" "kvhost" "cm" "init_flag" (![slice.T uint64T] "accts") "cid".
+    let: "$a0" := SliceAppend uint64T (![slice.T uint64T] "accts") (![uint64T] "acc1") in
+    "accts" <-[slice.T uint64T] "$a0";;
+    let: "$a0" := SliceAppend uint64T (![slice.T uint64T] "accts") (![uint64T] "acc2") in
+    "accts" <-[slice.T uint64T] "$a0";;
+    return: (MakeBankClerkSlice (![uint64T] "lockhost") (![uint64T] "kvhost") (![ptrT] "cm") (![uint64T] "init_flag") (![slice.T uint64T] "accts") (![uint64T] "cid")).

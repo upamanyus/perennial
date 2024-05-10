@@ -8,17 +8,20 @@ From Perennial.goose_lang Require Import ffi.grove_prelude.
 
 Definition LoopOnKey: val :=
   rec: "LoopOnKey" "key" "config" :=
-    let: "ck" := client.MakeClerk "config" in
-    let: "lowerBound" := ref_to uint64T (client.Clerk__FetchAndIncrement "ck" "key") in
-    Skip;;
+    let: "ck" := ref_zero ptrT in
+    let: "$a0" := client.MakeClerk (![uint64T] "config") in
+    "ck" <-[ptrT] "$a0";;
+    let: "lowerBound" := ref_to uint64T (client.Clerk__FetchAndIncrement (![ptrT] "ck") (![uint64T] "key")) in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "v" := client.Clerk__FetchAndIncrement "ck" "key" in
-      machine.Assert ("v" > (![uint64T] "lowerBound"));;
-      (if: ("v" `rem` #1000) = #0
+      let: "v" := ref_zero uint64T in
+      let: "$a0" := client.Clerk__FetchAndIncrement (![ptrT] "ck") (![uint64T] "key") in
+      "v" <-[uint64T] "$a0";;
+      machine.Assert ((![uint64T] "v") > (![uint64T] "lowerBound"));;
+      (if: ((![uint64T] "v") `rem` #1000) = #0
       then
-        (* log.Printf("reached %d >= %d", key, v) *)
+        log.Printf #(str"reached %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING) >= %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "key") (![uint64T] "v");;
         #()
       else #());;
-      "lowerBound" <-[uint64T] "v";;
-      Continue);;
-    #().
+      let: "$a0" := ![uint64T] "v" in
+      "lowerBound" <-[uint64T] "$a0";;
+      #()).

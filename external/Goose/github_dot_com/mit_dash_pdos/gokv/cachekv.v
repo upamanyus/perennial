@@ -20,88 +20,122 @@ Definition CacheKv := struct.decl [
 
 Definition DecodeValue: val :=
   rec: "DecodeValue" "v" :=
-    let: "e" := ref_to (slice.T byteT) (StringToBytes "v") in
-    let: ("l", "vBytes") := marshal.ReadInt (![slice.T byteT] "e") in
-    struct.mk cacheValue [
-      "l" ::= "l";
-      "v" ::= StringFromBytes "vBytes"
-    ].
+    let: "e" := ref_to (slice.T byteT) (StringToBytes (![stringT] "v")) in
+    let: "vBytes" := ref_zero (slice.T byteT) in
+    let: "l" := ref_zero uint64T in
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "e") in
+    "vBytes" <-[slice.T byteT] "$a1";;
+    "l" <-[uint64T] "$a0";;
+    return: (struct.mk cacheValue [
+       "l" ::= ![uint64T] "l";
+       "v" ::= StringFromBytes (![slice.T byteT] "vBytes")
+     ]).
 
 Definition EncodeValue: val :=
   rec: "EncodeValue" "c" :=
     let: "e" := ref_to (slice.T byteT) (NewSlice byteT #0) in
-    "e" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "e") (struct.get cacheValue "l" "c"));;
-    "e" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "e") (StringToBytes (struct.get cacheValue "v" "c")));;
-    StringFromBytes (![slice.T byteT] "e").
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (struct.get cacheValue "l" (![struct.t cacheValue] "c")) in
+    "e" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "e") (StringToBytes (struct.get cacheValue "v" (![struct.t cacheValue] "c"))) in
+    "e" <-[slice.T byteT] "$a0";;
+    return: (StringFromBytes (![slice.T byteT] "e")).
 
 Definition max: val :=
   rec: "max" "a" "b" :=
-    (if: "a" > "b"
-    then "a"
-    else "b").
+    (if: (![uint64T] "a") > (![uint64T] "b")
+    then return: (![uint64T] "a")
+    else #());;
+    return: (![uint64T] "b").
 
 Definition Make: val :=
   rec: "Make" "kv" :=
-    struct.new CacheKv [
-      "kv" ::= "kv";
-      "mu" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));
-      "cache" ::= NewMap stringT (struct.t cacheValue) #()
-    ].
+    return: (struct.new CacheKv [
+       "kv" ::= ![ptrT] "kv";
+       "mu" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));
+       "cache" ::= NewMap stringT (struct.t cacheValue) #()
+     ]).
 
 Definition CacheKv__Get: val :=
   rec: "CacheKv__Get" "k" "key" :=
-    sync.Mutex__Lock (struct.loadF CacheKv "mu" "k");;
-    let: ("cv", "ok") := MapGet (struct.loadF CacheKv "cache" "k") "key" in
-    let: (<>, "high") := grove__ffi.GetTimeRange #() in
-    (if: "ok" && ("high" < (struct.get cacheValue "l" "cv"))
+    sync.Mutex__Lock (struct.loadF CacheKv "mu" (![ptrT] "k"));;
+    let: "ok" := ref_zero boolT in
+    let: "cv" := ref_zero (struct.t cacheValue) in
+    let: ("$a0", "$a1") := Fst (MapGet (struct.loadF CacheKv "cache" (![ptrT] "k")) (![stringT] "key")) in
+    "ok" <-[boolT] "$a1";;
+    "cv" <-[struct.t cacheValue] "$a0";;
+    let: "high" := ref_zero uint64T in
+    let: <> := ref_zero uint64T in
+    let: ("$a0", "$a1") := grove__ffi.GetTimeRange #() in
+    "high" <-[uint64T] "$a1";;
+    "$a0";;
+    (if: (![boolT] "ok") && ((![uint64T] "high") < (struct.get cacheValue "l" (![struct.t cacheValue] "cv")))
     then
-      sync.Mutex__Unlock (struct.loadF CacheKv "mu" "k");;
-      struct.get cacheValue "v" "cv"
-    else
-      MapDelete (struct.loadF CacheKv "cache" "k") "key";;
-      sync.Mutex__Unlock (struct.loadF CacheKv "mu" "k");;
-      struct.get cacheValue "v" (DecodeValue ((struct.loadF kv.Kv "Get" (struct.loadF CacheKv "kv" "k")) "key"))).
+      sync.Mutex__Unlock (struct.loadF CacheKv "mu" (![ptrT] "k"));;
+      return: (struct.get cacheValue "v" (![struct.t cacheValue] "cv"))
+    else #());;
+    MapDelete (struct.loadF CacheKv "cache" (![ptrT] "k")) (![stringT] "key");;
+    sync.Mutex__Unlock (struct.loadF CacheKv "mu" (![ptrT] "k"));;
+    return: (struct.get cacheValue "v" (DecodeValue ((struct.loadF kv.Kv "Get" (struct.loadF CacheKv "kv" (![ptrT] "k"))) (![stringT] "key")))).
 
 Definition CacheKv__GetAndCache: val :=
   rec: "CacheKv__GetAndCache" "k" "key" "cachetime" :=
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "enc" := (struct.loadF kv.Kv "Get" (struct.loadF CacheKv "kv" "k")) "key" in
-      let: "old" := DecodeValue "enc" in
-      let: (<>, "latest") := grove__ffi.GetTimeRange #() in
-      let: "newLeaseExpiration" := max ("latest" + "cachetime") (struct.get cacheValue "l" "old") in
-      let: "resp" := (struct.loadF kv.Kv "ConditionalPut" (struct.loadF CacheKv "kv" "k")) "key" "enc" (EncodeValue (struct.mk cacheValue [
-        "v" ::= struct.get cacheValue "v" "old";
-        "l" ::= "newLeaseExpiration"
+      let: "enc" := ref_zero stringT in
+      let: "$a0" := (struct.loadF kv.Kv "Get" (struct.loadF CacheKv "kv" (![ptrT] "k"))) (![stringT] "key") in
+      "enc" <-[stringT] "$a0";;
+      let: "old" := ref_zero (struct.t cacheValue) in
+      let: "$a0" := DecodeValue (![stringT] "enc") in
+      "old" <-[struct.t cacheValue] "$a0";;
+      let: "latest" := ref_zero uint64T in
+      let: <> := ref_zero uint64T in
+      let: ("$a0", "$a1") := grove__ffi.GetTimeRange #() in
+      "latest" <-[uint64T] "$a1";;
+      "$a0";;
+      let: "newLeaseExpiration" := ref_zero uint64T in
+      let: "$a0" := max ((![uint64T] "latest") + (![uint64T] "cachetime")) (struct.get cacheValue "l" (![struct.t cacheValue] "old")) in
+      "newLeaseExpiration" <-[uint64T] "$a0";;
+      let: "resp" := ref_zero stringT in
+      let: "$a0" := (struct.loadF kv.Kv "ConditionalPut" (struct.loadF CacheKv "kv" (![ptrT] "k"))) (![stringT] "key") (![stringT] "enc") (EncodeValue (struct.mk cacheValue [
+        "v" ::= struct.get cacheValue "v" (![struct.t cacheValue] "old");
+        "l" ::= ![uint64T] "newLeaseExpiration"
       ])) in
-      (if: "resp" = #(str"ok")
+      "resp" <-[stringT] "$a0";;
+      (if: (![stringT] "resp") = #(str"ok")
       then
-        sync.Mutex__Lock (struct.loadF CacheKv "mu" "k");;
-        MapInsert (struct.loadF CacheKv "cache" "k") "key" (struct.mk cacheValue [
-          "v" ::= struct.get cacheValue "v" "old";
-          "l" ::= "newLeaseExpiration"
-        ]);;
+        sync.Mutex__Lock (struct.loadF CacheKv "mu" (![ptrT] "k"));;
+        let: "$a0" := struct.mk cacheValue [
+          "v" ::= struct.get cacheValue "v" (![struct.t cacheValue] "old");
+          "l" ::= ![uint64T] "newLeaseExpiration"
+        ] in
+        MapInsert (struct.loadF CacheKv "cache" (![ptrT] "k")) (![stringT] "key") "$a0";;
         Break
-      else Continue));;
-    let: "ret" := struct.get cacheValue "v" (Fst (MapGet (struct.loadF CacheKv "cache" "k") "key")) in
-    sync.Mutex__Unlock (struct.loadF CacheKv "mu" "k");;
-    "ret".
+      else #());;
+      #()).
 
 Definition CacheKv__Put: val :=
   rec: "CacheKv__Put" "k" "key" "val" :=
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "enc" := (struct.loadF kv.Kv "Get" (struct.loadF CacheKv "kv" "k")) "key" in
-      let: "leaseExpiration" := struct.get cacheValue "l" (DecodeValue "enc") in
-      let: ("earliest", <>) := grove__ffi.GetTimeRange #() in
-      (if: "leaseExpiration" > "earliest"
+      let: "enc" := ref_zero stringT in
+      let: "$a0" := (struct.loadF kv.Kv "Get" (struct.loadF CacheKv "kv" (![ptrT] "k"))) (![stringT] "key") in
+      "enc" <-[stringT] "$a0";;
+      let: "leaseExpiration" := ref_zero uint64T in
+      let: "$a0" := struct.get cacheValue "l" (DecodeValue (![stringT] "enc")) in
+      "leaseExpiration" <-[uint64T] "$a0";;
+      let: <> := ref_zero uint64T in
+      let: "earliest" := ref_zero uint64T in
+      let: ("$a0", "$a1") := grove__ffi.GetTimeRange #() in
+      "$a1";;
+      "earliest" <-[uint64T] "$a0";;
+      (if: (![uint64T] "leaseExpiration") > (![uint64T] "earliest")
       then Continue
-      else
-        let: "resp" := (struct.loadF kv.Kv "ConditionalPut" (struct.loadF CacheKv "kv" "k")) "key" "enc" (EncodeValue (struct.mk cacheValue [
-          "v" ::= "val";
-          "l" ::= #0
-        ])) in
-        (if: "resp" = #(str"ok")
-        then Break
-        else Continue)));;
-    #().
+      else #());;
+      let: "resp" := ref_zero stringT in
+      let: "$a0" := (struct.loadF kv.Kv "ConditionalPut" (struct.loadF CacheKv "kv" (![ptrT] "k"))) (![stringT] "key") (![stringT] "enc") (EncodeValue (struct.mk cacheValue [
+        "v" ::= ![stringT] "val";
+        "l" ::= #0
+      ])) in
+      "resp" <-[stringT] "$a0";;
+      (if: (![stringT] "resp") = #(str"ok")
+      then Break
+      else #());;
+      #()).

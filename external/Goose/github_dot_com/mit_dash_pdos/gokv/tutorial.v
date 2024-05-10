@@ -22,17 +22,19 @@ Definition ParticipantServer := struct.decl [
 
 Definition ParticipantServer__GetPreference: val :=
   rec: "ParticipantServer__GetPreference" "s" :=
-    sync.Mutex__Lock (struct.loadF ParticipantServer "m" "s");;
-    let: "pref" := struct.loadF ParticipantServer "preference" "s" in
-    sync.Mutex__Unlock (struct.loadF ParticipantServer "m" "s");;
-    "pref".
+    sync.Mutex__Lock (struct.loadF ParticipantServer "m" (![ptrT] "s"));;
+    let: "pref" := ref_zero boolT in
+    let: "$a0" := struct.loadF ParticipantServer "preference" (![ptrT] "s") in
+    "pref" <-[boolT] "$a0";;
+    sync.Mutex__Unlock (struct.loadF ParticipantServer "m" (![ptrT] "s"));;
+    return: (![boolT] "pref").
 
 Definition MakeParticipant: val :=
   rec: "MakeParticipant" "pref" :=
-    struct.new ParticipantServer [
-      "m" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));
-      "preference" ::= "pref"
-    ].
+    return: (struct.new ParticipantServer [
+       "m" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));
+       "preference" ::= ![boolT] "pref"
+     ]).
 
 Definition ParticipantClerk := struct.decl [
   "client" :: ptrT
@@ -40,8 +42,8 @@ Definition ParticipantClerk := struct.decl [
 
 Definition CoordinatorServer := struct.decl [
   "m" :: ptrT;
-  "decision" :: Decision;
-  "preferences" :: slice.T Decision;
+  "decision" :: byteT;
+  "preferences" :: slice.T byteT;
   "participants" :: slice.T ptrT
 ].
 
@@ -57,117 +59,179 @@ Definition GetPreferenceId : expr := #0.
 
 Definition prefToByte: val :=
   rec: "prefToByte" "pref" :=
-    (if: "pref"
-    then #(U8 1)
-    else #(U8 0)).
+    (if: ![boolT] "pref"
+    then return: (#(U8 1))
+    else return: (#(U8 0)));;
+    #().
 
 Definition byteToPref: val :=
   rec: "byteToPref" "b" :=
-    "b" = #(U8 1).
+    return: ((![byteT] "b") = #(U8 1)).
 
 Definition ParticipantClerk__GetPreference: val :=
   rec: "ParticipantClerk__GetPreference" "ck" :=
-    let: "req" := NewSlice byteT #0 in
+    let: "req" := ref_zero (slice.T byteT) in
+    let: "$a0" := NewSlice byteT #0 in
+    "req" <-[slice.T byteT] "$a0";;
     let: "reply" := ref_to (slice.T byteT) (NewSlice byteT #0) in
-    let: "err" := urpc.Client__Call (struct.loadF ParticipantClerk "client" "ck") GetPreferenceId "req" "reply" #1000 in
-    machine.Assume ("err" = #0);;
-    let: "b" := SliceGet byteT (![slice.T byteT] "reply") #0 in
-    byteToPref "b".
+    let: "err" := ref_zero uint64T in
+    let: "$a0" := urpc.Client__Call (struct.loadF ParticipantClerk "client" (![ptrT] "ck")) GetPreferenceId (![slice.T byteT] "req") "reply" #1000 in
+    "err" <-[uint64T] "$a0";;
+    machine.Assume ((![uint64T] "err") = #0);;
+    let: "b" := ref_zero byteT in
+    let: "$a0" := SliceGet byteT (![slice.T byteT] "reply") #0 in
+    "b" <-[byteT] "$a0";;
+    return: (byteToPref (![byteT] "b")).
 
 (* make a decision once we have all the preferences
 
    assumes we have all preferences (ie, no Unknown) *)
 Definition CoordinatorServer__makeDecision: val :=
   rec: "CoordinatorServer__makeDecision" "s" :=
-    sync.Mutex__Lock (struct.loadF CoordinatorServer "m" "s");;
-    ForSlice byteT <> "pref" (struct.loadF CoordinatorServer "preferences" "s")
-      ((if: "pref" = Abort
-      then struct.storeF CoordinatorServer "decision" "s" Abort
-      else #()));;
-    (if: (struct.loadF CoordinatorServer "decision" "s") = Unknown
-    then struct.storeF CoordinatorServer "decision" "s" Commit
+    sync.Mutex__Lock (struct.loadF CoordinatorServer "m" (![ptrT] "s"));;
+    ForSlice byteT <> "pref" (struct.loadF CoordinatorServer "preferences" (![ptrT] "s"))
+      ((if: (![byteT] "pref") = Abort
+      then
+        let: "$a0" := Abort in
+        struct.storeF CoordinatorServer "decision" (![ptrT] "s") "$a0";;
+        #()
+      else #());;
+      #());;
+    (if: (struct.loadF CoordinatorServer "decision" (![ptrT] "s")) = Unknown
+    then
+      let: "$a0" := Commit in
+      struct.storeF CoordinatorServer "decision" (![ptrT] "s") "$a0";;
+      #()
     else #());;
-    sync.Mutex__Unlock (struct.loadF CoordinatorServer "m" "s");;
+    sync.Mutex__Unlock (struct.loadF CoordinatorServer "m" (![ptrT] "s"));;
     #().
 
 Definition prefToDecision: val :=
   rec: "prefToDecision" "pref" :=
-    (if: "pref"
-    then Commit
-    else Abort).
+    (if: ![boolT] "pref"
+    then return: (Commit)
+    else return: (Abort));;
+    #().
 
 Definition CoordinatorServer__backgroundLoop: val :=
   rec: "CoordinatorServer__backgroundLoop" "s" :=
-    ForSlice ptrT "i" "h" (struct.loadF CoordinatorServer "participants" "s")
-      (let: "pref" := ParticipantClerk__GetPreference "h" in
-      sync.Mutex__Lock (struct.loadF CoordinatorServer "m" "s");;
-      SliceSet byteT (struct.loadF CoordinatorServer "preferences" "s") "i" (prefToDecision "pref");;
-      sync.Mutex__Unlock (struct.loadF CoordinatorServer "m" "s"));;
-    CoordinatorServer__makeDecision "s";;
+    ForSlice ptrT "i" "h" (struct.loadF CoordinatorServer "participants" (![ptrT] "s"))
+      (let: "pref" := ref_zero boolT in
+      let: "$a0" := ParticipantClerk__GetPreference (![ptrT] "h") in
+      "pref" <-[boolT] "$a0";;
+      sync.Mutex__Lock (struct.loadF CoordinatorServer "m" (![ptrT] "s"));;
+      let: "$a0" := prefToDecision (![boolT] "pref") in
+      SliceSet byteT (struct.loadF CoordinatorServer "preferences" (![ptrT] "s")) (![intT] "i") "$a0";;
+      sync.Mutex__Unlock (struct.loadF CoordinatorServer "m" (![ptrT] "s"));;
+      #());;
+    CoordinatorServer__makeDecision (![ptrT] "s");;
     #().
 
 Definition MakeCoordinator: val :=
   rec: "MakeCoordinator" "participants" :=
-    let: "decision" := Unknown in
-    let: "m" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
-    let: "preferences" := NewSlice Decision (slice.len "participants") in
+    let: "decision" := ref_zero byteT in
+    let: "$a0" := Unknown in
+    "decision" <-[byteT] "$a0";;
+    let: "m" := ref_zero ptrT in
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    "m" <-[ptrT] "$a0";;
+    let: "preferences" := ref_zero (slice.T byteT) in
+    let: "$a0" := NewSlice byteT (slice.len (![slice.T uint64T] "participants")) in
+    "preferences" <-[slice.T byteT] "$a0";;
     let: "clerks" := ref_to (slice.T ptrT) (NewSlice ptrT #0) in
-    ForSlice uint64T <> "a" "participants"
-      (let: "client" := urpc.MakeClient "a" in
-      "clerks" <-[slice.T ptrT] (SliceAppend ptrT (![slice.T ptrT] "clerks") (struct.new ParticipantClerk [
-        "client" ::= "client"
-      ])));;
-    struct.new CoordinatorServer [
-      "m" ::= "m";
-      "decision" ::= "decision";
-      "preferences" ::= "preferences";
-      "participants" ::= ![slice.T ptrT] "clerks"
-    ].
-
-Definition CoordinatorClerk__GetDecision: val :=
-  rec: "CoordinatorClerk__GetDecision" "ck" :=
-    let: "req" := NewSlice byteT #0 in
-    let: "reply" := ref_to (slice.T byteT) (NewSlice byteT #1) in
-    let: "err" := urpc.Client__Call (struct.loadF CoordinatorClerk "client" "ck") "GetDecisionId" "req" "reply" #1000 in
-    machine.Assume ("err" = #0);;
-    SliceGet byteT (![slice.T byteT] "reply") #0.
-
-Definition CoordinatorServer__GetDecision: val :=
-  rec: "CoordinatorServer__GetDecision" "s" :=
-    sync.Mutex__Lock (struct.loadF CoordinatorServer "m" "s");;
-    let: "decision" := struct.loadF CoordinatorServer "decision" "s" in
-    sync.Mutex__Unlock (struct.loadF CoordinatorServer "m" "s");;
-    "decision".
+    ForSlice uint64T <> "a" (![slice.T uint64T] "participants")
+      (let: "client" := ref_zero ptrT in
+      let: "$a0" := urpc.MakeClient (![uint64T] "a") in
+      "client" <-[ptrT] "$a0";;
+      let: "$a0" := SliceAppend ptrT (![slice.T ptrT] "clerks") (struct.new ParticipantClerk [
+        "client" ::= ![ptrT] "client"
+      ]) in
+      "clerks" <-[slice.T ptrT] "$a0";;
+      #());;
+    return: (struct.new CoordinatorServer [
+       "m" ::= ![ptrT] "m";
+       "decision" ::= ![byteT] "decision";
+       "preferences" ::= ![slice.T byteT] "preferences";
+       "participants" ::= ![slice.T ptrT] "clerks"
+     ]).
 
 Definition GetDecisionId : expr := #1.
 
+Definition CoordinatorClerk__GetDecision: val :=
+  rec: "CoordinatorClerk__GetDecision" "ck" :=
+    let: "req" := ref_zero (slice.T byteT) in
+    let: "$a0" := NewSlice byteT #0 in
+    "req" <-[slice.T byteT] "$a0";;
+    let: "reply" := ref_to (slice.T byteT) (NewSlice byteT #1) in
+    let: "err" := ref_zero uint64T in
+    let: "$a0" := urpc.Client__Call (struct.loadF CoordinatorClerk "client" (![ptrT] "ck")) GetDecisionId (![slice.T byteT] "req") "reply" #1000 in
+    "err" <-[uint64T] "$a0";;
+    machine.Assume ((![uint64T] "err") = #0);;
+    return: (SliceGet byteT (![slice.T byteT] "reply") #0).
+
+Definition CoordinatorServer__GetDecision: val :=
+  rec: "CoordinatorServer__GetDecision" "s" :=
+    sync.Mutex__Lock (struct.loadF CoordinatorServer "m" (![ptrT] "s"));;
+    let: "decision" := ref_zero byteT in
+    let: "$a0" := struct.loadF CoordinatorServer "decision" (![ptrT] "s") in
+    "decision" <-[byteT] "$a0";;
+    sync.Mutex__Unlock (struct.loadF CoordinatorServer "m" (![ptrT] "s"));;
+    return: (![byteT] "decision").
+
 Definition CoordinatorMain: val :=
   rec: "CoordinatorMain" "me" "participants" :=
-    let: "coordinator" := MakeCoordinator "participants" in
-    let: "handlers" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%ht #() in
-    MapInsert "handlers" GetDecisionId (λ: "_req" "reply",
-      let: "decision" := CoordinatorServer__GetDecision "coordinator" in
-      let: "replyData" := NewSlice byteT #1 in
-      SliceSet byteT "replyData" #0 "decision";;
-      "reply" <-[slice.T byteT] "replyData";;
+    let: "coordinator" := ref_zero ptrT in
+    let: "$a0" := MakeCoordinator (![slice.T uint64T] "participants") in
+    "coordinator" <-[ptrT] "$a0";;
+    let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
+    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
+    let: "$a0" := (λ: "_req" "reply",
+      let: "decision" := ref_zero byteT in
+      let: "$a0" := CoordinatorServer__GetDecision (![ptrT] "coordinator") in
+      "decision" <-[byteT] "$a0";;
+      let: "replyData" := ref_zero (slice.T byteT) in
+      let: "$a0" := NewSlice byteT #1 in
+      "replyData" <-[slice.T byteT] "$a0";;
+      let: "$a0" := ![byteT] "decision" in
+      SliceSet byteT (![slice.T byteT] "replyData") #0 "$a0";;
+      let: "$a0" := ![slice.T byteT] "replyData" in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    let: "server" := urpc.MakeServer "handlers" in
-    urpc.Server__Serve "server" "me";;
-    Fork (CoordinatorServer__backgroundLoop "coordinator");;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") GetDecisionId "$a0";;
+    let: "server" := ref_zero ptrT in
+    let: "$a0" := urpc.MakeServer (![mapT (arrowT unitT unitT)] "handlers") in
+    "server" <-[ptrT] "$a0";;
+    urpc.Server__Serve (![ptrT] "server") (![uint64T] "me");;
+    Fork (CoordinatorServer__backgroundLoop (![ptrT] "coordinator");;
+          #());;
     #().
 
 Definition ParticipantMain: val :=
   rec: "ParticipantMain" "me" "pref" :=
-    let: "participant" := MakeParticipant "pref" in
-    let: "handlers" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%ht #() in
-    MapInsert "handlers" GetPreferenceId (λ: "_req" "reply",
-      let: "pref" := ParticipantServer__GetPreference "participant" in
-      let: "replyData" := NewSlice byteT #1 in
-      SliceSet byteT "replyData" #0 (prefToByte "pref");;
-      "reply" <-[slice.T byteT] "replyData";;
+    let: "participant" := ref_zero ptrT in
+    let: "$a0" := MakeParticipant (![boolT] "pref") in
+    "participant" <-[ptrT] "$a0";;
+    let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
+    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
+    let: "$a0" := (λ: "_req" "reply",
+      let: "pref" := ref_zero boolT in
+      let: "$a0" := ParticipantServer__GetPreference (![ptrT] "participant") in
+      "pref" <-[boolT] "$a0";;
+      let: "replyData" := ref_zero (slice.T byteT) in
+      let: "$a0" := NewSlice byteT #1 in
+      "replyData" <-[slice.T byteT] "$a0";;
+      let: "$a0" := prefToByte (![boolT] "pref") in
+      SliceSet byteT (![slice.T byteT] "replyData") #0 "$a0";;
+      let: "$a0" := ![slice.T byteT] "replyData" in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    let: "server" := urpc.MakeServer "handlers" in
-    urpc.Server__Serve "server" "me";;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") GetPreferenceId "$a0";;
+    let: "server" := ref_zero ptrT in
+    let: "$a0" := urpc.MakeServer (![mapT (arrowT unitT unitT)] "handlers") in
+    "server" <-[ptrT] "$a0";;
+    urpc.Server__Serve (![ptrT] "server") (![uint64T] "me");;
     #().

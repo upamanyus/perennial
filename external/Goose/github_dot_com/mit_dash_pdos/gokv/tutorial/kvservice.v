@@ -27,17 +27,15 @@ Definition Client := struct.decl [
 
 Definition makeClient: val :=
   rec: "makeClient" "hostname" :=
-    struct.new Client [
-      "cl" ::= urpc.MakeClient "hostname"
-    ].
+    return: (struct.new Client [
+       "cl" ::= urpc.MakeClient (![uint64T] "hostname")
+     ]).
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "host" :=
-    struct.new Clerk [
-      "rpcCl" ::= makeClient "host"
-    ].
-
-Definition Error: ty := uint64T.
+    return: (struct.new Clerk [
+       "rpcCl" ::= makeClient (![uint64T] "host")
+     ]).
 
 Definition rpcIdGetFreshNum : expr := #0.
 
@@ -47,26 +45,8 @@ Definition rpcIdConditionalPut : expr := #2.
 
 Definition rpcIdGet : expr := #3.
 
-(* DecodeUint64 from kvservice.gb.go *)
-
-Definition DecodeUint64: val :=
-  rec: "DecodeUint64" "x" :=
-    let: ("a", <>) := marshal.ReadInt "x" in
-    "a".
-
-(* Client__getFreshNumRpc from kvservice_rpc.gb.go *)
-
-Definition Client__getFreshNumRpc: val :=
-  rec: "Client__getFreshNumRpc" "cl" :=
-    let: "reply" := ref (zero_val (slice.T byteT)) in
-    let: "err" := urpc.Client__Call (struct.loadF Client "cl" "cl") rpcIdGetFreshNum (NewSlice byteT #0) "reply" #100 in
-    (if: "err" = urpc.ErrNone
-    then (DecodeUint64 (![slice.T byteT] "reply"), "err")
-    else (#0, "err")).
-
 (* putArgs from kvservice.gb.go *)
 
-(* Put *)
 Definition putArgs := struct.decl [
   "opId" :: uint64T;
   "key" :: stringT;
@@ -76,50 +56,71 @@ Definition putArgs := struct.decl [
 Definition encodePutArgs: val :=
   rec: "encodePutArgs" "a" :=
     let: "e" := ref_to (slice.T byteT) (NewSlice byteT #0) in
-    "e" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "e") (struct.loadF putArgs "opId" "a"));;
-    let: "keyBytes" := StringToBytes (struct.loadF putArgs "key" "a") in
-    "e" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "e") (slice.len "keyBytes"));;
-    "e" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "e") "keyBytes");;
-    "e" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "e") (StringToBytes (struct.loadF putArgs "val" "a")));;
-    ![slice.T byteT] "e".
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (struct.loadF putArgs "opId" (![ptrT] "a")) in
+    "e" <-[slice.T byteT] "$a0";;
+    let: "keyBytes" := ref_zero (slice.T byteT) in
+    let: "$a0" := StringToBytes (struct.loadF putArgs "key" (![ptrT] "a")) in
+    "keyBytes" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (slice.len (![slice.T byteT] "keyBytes")) in
+    "e" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "e") (![slice.T byteT] "keyBytes") in
+    "e" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "e") (StringToBytes (struct.loadF putArgs "val" (![ptrT] "a"))) in
+    "e" <-[slice.T byteT] "$a0";;
+    return: (![slice.T byteT] "e").
 
 (* Client__putRpc from kvservice_rpc.gb.go *)
 
 Definition Client__putRpc: val :=
   rec: "Client__putRpc" "cl" "args" :=
     let: "reply" := ref (zero_val (slice.T byteT)) in
-    let: "err" := urpc.Client__Call (struct.loadF Client "cl" "cl") rpcIdPut (encodePutArgs "args") "reply" #100 in
-    (if: "err" = urpc.ErrNone
-    then "err"
-    else "err").
+    let: "err" := ref_zero uint64T in
+    let: "$a0" := urpc.Client__Call (struct.loadF Client "cl" (![ptrT] "cl")) rpcIdPut (encodePutArgs (![ptrT] "args")) "reply" #100 in
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") = urpc.ErrNone
+    then return: (![uint64T] "err")
+    else #());;
+    return: (![uint64T] "err").
+
+(* DecodeUint64 from kvservice.gb.go *)
+
+Definition DecodeUint64: val :=
+  rec: "DecodeUint64" "x" :=
+    let: <> := ref_zero (slice.T byteT) in
+    let: "a" := ref_zero uint64T in
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "x") in
+    "$a1";;
+    "a" <-[uint64T] "$a0";;
+    return: (![uint64T] "a").
+
+(* Client__getFreshNumRpc from kvservice_rpc.gb.go *)
+
+Definition Client__getFreshNumRpc: val :=
+  rec: "Client__getFreshNumRpc" "cl" :=
+    let: "reply" := ref (zero_val (slice.T byteT)) in
+    let: "err" := ref_zero uint64T in
+    let: "$a0" := urpc.Client__Call (struct.loadF Client "cl" (![ptrT] "cl")) rpcIdGetFreshNum (NewSlice byteT #0) "reply" #100 in
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") = urpc.ErrNone
+    then return: (DecodeUint64 (![slice.T byteT] "reply"), ![uint64T] "err")
+    else #());;
+    return: (#0, ![uint64T] "err").
 
 Definition Clerk__Put: val :=
   rec: "Clerk__Put" "ck" "key" "val" :=
     let: "err" := ref (zero_val uint64T) in
     let: "opId" := ref (zero_val uint64T) in
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: ("0_ret", "1_ret") := Client__getFreshNumRpc (struct.loadF Clerk "rpcCl" "ck") in
-      "opId" <-[uint64T] "0_ret";;
-      "err" <-[uint64T] "1_ret";;
+      let: ("$a0", "$a1") := Client__getFreshNumRpc (struct.loadF Clerk "rpcCl" (![ptrT] "ck")) in
+      "err" <-[uint64T] "$a1";;
+      "opId" <-[uint64T] "$a0";;
       (if: (![uint64T] "err") = #0
       then Break
-      else Continue));;
-    Skip;;
-    (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "args" := struct.new putArgs [
-        "opId" ::= ![uint64T] "opId";
-        "key" ::= "key";
-        "val" ::= "val"
-      ] in
-      (if: (Client__putRpc (struct.loadF Clerk "rpcCl" "ck") "args") = urpc.ErrNone
-      then Break
-      else Continue));;
-    #().
+      else #());;
+      #()).
 
 (* conditionalPutArgs from kvservice.gb.go *)
 
-(* ConditionalPut *)
 Definition conditionalPutArgs := struct.decl [
   "opId" :: uint64T;
   "key" :: stringT;
@@ -130,25 +131,38 @@ Definition conditionalPutArgs := struct.decl [
 Definition encodeConditionalPutArgs: val :=
   rec: "encodeConditionalPutArgs" "a" :=
     let: "e" := ref_to (slice.T byteT) (NewSlice byteT #0) in
-    "e" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "e") (struct.loadF conditionalPutArgs "opId" "a"));;
-    let: "keyBytes" := StringToBytes (struct.loadF conditionalPutArgs "key" "a") in
-    "e" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "e") (slice.len "keyBytes"));;
-    "e" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "e") "keyBytes");;
-    let: "expectedValBytes" := StringToBytes (struct.loadF conditionalPutArgs "expectedVal" "a") in
-    "e" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "e") (slice.len "expectedValBytes"));;
-    "e" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "e") "expectedValBytes");;
-    "e" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "e") (StringToBytes (struct.loadF conditionalPutArgs "newVal" "a")));;
-    ![slice.T byteT] "e".
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (struct.loadF conditionalPutArgs "opId" (![ptrT] "a")) in
+    "e" <-[slice.T byteT] "$a0";;
+    let: "keyBytes" := ref_zero (slice.T byteT) in
+    let: "$a0" := StringToBytes (struct.loadF conditionalPutArgs "key" (![ptrT] "a")) in
+    "keyBytes" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (slice.len (![slice.T byteT] "keyBytes")) in
+    "e" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "e") (![slice.T byteT] "keyBytes") in
+    "e" <-[slice.T byteT] "$a0";;
+    let: "expectedValBytes" := ref_zero (slice.T byteT) in
+    let: "$a0" := StringToBytes (struct.loadF conditionalPutArgs "expectedVal" (![ptrT] "a")) in
+    "expectedValBytes" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (slice.len (![slice.T byteT] "expectedValBytes")) in
+    "e" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "e") (![slice.T byteT] "expectedValBytes") in
+    "e" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "e") (StringToBytes (struct.loadF conditionalPutArgs "newVal" (![ptrT] "a"))) in
+    "e" <-[slice.T byteT] "$a0";;
+    return: (![slice.T byteT] "e").
 
 (* Client__conditionalPutRpc from kvservice_rpc.gb.go *)
 
 Definition Client__conditionalPutRpc: val :=
   rec: "Client__conditionalPutRpc" "cl" "args" :=
     let: "reply" := ref (zero_val (slice.T byteT)) in
-    let: "err" := urpc.Client__Call (struct.loadF Client "cl" "cl") rpcIdConditionalPut (encodeConditionalPutArgs "args") "reply" #100 in
-    (if: "err" = urpc.ErrNone
-    then (StringFromBytes (![slice.T byteT] "reply"), "err")
-    else (#(str""), "err")).
+    let: "err" := ref_zero uint64T in
+    let: "$a0" := urpc.Client__Call (struct.loadF Client "cl" (![ptrT] "cl")) rpcIdConditionalPut (encodeConditionalPutArgs (![ptrT] "args")) "reply" #100 in
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") = urpc.ErrNone
+    then return: (StringFromBytes (![slice.T byteT] "reply"), ![uint64T] "err")
+    else #());;
+    return: (#(str""), ![uint64T] "err").
 
 (* returns true if ConditionalPut was successful, false if current value did not
    match expected value. *)
@@ -156,34 +170,17 @@ Definition Clerk__ConditionalPut: val :=
   rec: "Clerk__ConditionalPut" "ck" "key" "expectedVal" "newVal" :=
     let: "err" := ref (zero_val uint64T) in
     let: "opId" := ref (zero_val uint64T) in
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: ("0_ret", "1_ret") := Client__getFreshNumRpc (struct.loadF Clerk "rpcCl" "ck") in
-      "opId" <-[uint64T] "0_ret";;
-      "err" <-[uint64T] "1_ret";;
+      let: ("$a0", "$a1") := Client__getFreshNumRpc (struct.loadF Clerk "rpcCl" (![ptrT] "ck")) in
+      "err" <-[uint64T] "$a1";;
+      "opId" <-[uint64T] "$a0";;
       (if: (![uint64T] "err") = #0
       then Break
-      else Continue));;
-    let: "ret" := ref (zero_val boolT) in
-    Skip;;
-    (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "args" := struct.new conditionalPutArgs [
-        "opId" ::= ![uint64T] "opId";
-        "key" ::= "key";
-        "expectedVal" ::= "expectedVal";
-        "newVal" ::= "newVal"
-      ] in
-      let: ("reply", "err") := Client__conditionalPutRpc (struct.loadF Clerk "rpcCl" "ck") "args" in
-      (if: "err" = urpc.ErrNone
-      then
-        "ret" <-[boolT] ("reply" = #(str"ok"));;
-        Break
-      else Continue));;
-    ![boolT] "ret".
+      else #());;
+      #()).
 
 (* getArgs from kvservice.gb.go *)
 
-(* Get *)
 Definition getArgs := struct.decl [
   "opId" :: uint64T;
   "key" :: stringT
@@ -192,19 +189,24 @@ Definition getArgs := struct.decl [
 Definition encodeGetArgs: val :=
   rec: "encodeGetArgs" "a" :=
     let: "e" := ref_to (slice.T byteT) (NewSlice byteT #0) in
-    "e" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "e") (struct.loadF getArgs "opId" "a"));;
-    "e" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "e") (StringToBytes (struct.loadF getArgs "key" "a")));;
-    ![slice.T byteT] "e".
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (struct.loadF getArgs "opId" (![ptrT] "a")) in
+    "e" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "e") (StringToBytes (struct.loadF getArgs "key" (![ptrT] "a"))) in
+    "e" <-[slice.T byteT] "$a0";;
+    return: (![slice.T byteT] "e").
 
 (* Client__getRpc from kvservice_rpc.gb.go *)
 
 Definition Client__getRpc: val :=
   rec: "Client__getRpc" "cl" "args" :=
     let: "reply" := ref (zero_val (slice.T byteT)) in
-    let: "err" := urpc.Client__Call (struct.loadF Client "cl" "cl") rpcIdGet (encodeGetArgs "args") "reply" #100 in
-    (if: "err" = urpc.ErrNone
-    then (StringFromBytes (![slice.T byteT] "reply"), "err")
-    else (#(str""), "err")).
+    let: "err" := ref_zero uint64T in
+    let: "$a0" := urpc.Client__Call (struct.loadF Client "cl" (![ptrT] "cl")) rpcIdGet (encodeGetArgs (![ptrT] "args")) "reply" #100 in
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") = urpc.ErrNone
+    then return: (StringFromBytes (![slice.T byteT] "reply"), ![uint64T] "err")
+    else #());;
+    return: (#(str""), ![uint64T] "err").
 
 (* returns true if ConditionalPut was successful, false if current value did not
    match expected value. *)
@@ -212,87 +214,112 @@ Definition Clerk__Get: val :=
   rec: "Clerk__Get" "ck" "key" :=
     let: "err" := ref (zero_val uint64T) in
     let: "opId" := ref (zero_val uint64T) in
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: ("0_ret", "1_ret") := Client__getFreshNumRpc (struct.loadF Clerk "rpcCl" "ck") in
-      "opId" <-[uint64T] "0_ret";;
-      "err" <-[uint64T] "1_ret";;
+      let: ("$a0", "$a1") := Client__getFreshNumRpc (struct.loadF Clerk "rpcCl" (![ptrT] "ck")) in
+      "err" <-[uint64T] "$a1";;
+      "opId" <-[uint64T] "$a0";;
       (if: (![uint64T] "err") = #0
       then Break
-      else Continue));;
-    let: "ret" := ref (zero_val stringT) in
-    Skip;;
-    (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "args" := struct.new getArgs [
-        "opId" ::= ![uint64T] "opId";
-        "key" ::= "key"
-      ] in
-      let: ("reply", "err") := Client__getRpc (struct.loadF Clerk "rpcCl" "ck") "args" in
-      (if: "err" = urpc.ErrNone
-      then
-        "ret" <-[stringT] "reply";;
-        Break
-      else Continue));;
-    ![stringT] "ret".
+      else #());;
+      #()).
 
 (* kvservice.gb.go *)
 
 (* TODO: these are generic *)
 Definition EncodeBool: val :=
   rec: "EncodeBool" "a" :=
-    (if: "a"
-    then SliceAppend byteT (NewSlice byteT #0) #(U8 1)
-    else SliceAppend byteT (NewSlice byteT #0) #(U8 0)).
+    (if: ![boolT] "a"
+    then return: (SliceAppend byteT (NewSlice byteT #0) #(U8 1))
+    else return: (SliceAppend byteT (NewSlice byteT #0) #(U8 0)));;
+    #().
 
 Definition DecodeBool: val :=
   rec: "DecodeBool" "x" :=
-    (SliceGet byteT "x" #0) = #(U8 1).
+    return: ((SliceGet byteT (![slice.T byteT] "x") #0) = #(U8 1)).
 
 Definition EncodeUint64: val :=
   rec: "EncodeUint64" "a" :=
-    marshal.WriteInt (NewSlice byteT #0) "a".
+    return: (marshal.WriteInt (NewSlice byteT #0) (![uint64T] "a")).
 
 Definition decodePutArgs: val :=
   rec: "decodePutArgs" "x" :=
-    let: "e" := ref_to (slice.T byteT) "x" in
-    let: "a" := struct.alloc putArgs (zero_val (struct.t putArgs)) in
-    let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "e") in
-    struct.storeF putArgs "opId" "a" "0_ret";;
-    "e" <-[slice.T byteT] "1_ret";;
-    let: ("keyLen", "e2") := marshal.ReadInt (![slice.T byteT] "e") in
-    let: ("keyBytes", "valBytes") := marshal.ReadBytes "e2" "keyLen" in
-    struct.storeF putArgs "key" "a" (StringFromBytes "keyBytes");;
-    struct.storeF putArgs "val" "a" (StringFromBytes "valBytes");;
-    "a".
+    let: "e" := ref_to (slice.T byteT) (![slice.T byteT] "x") in
+    let: "a" := ref_zero ptrT in
+    let: "$a0" := struct.alloc putArgs (zero_val (struct.t putArgs)) in
+    "a" <-[ptrT] "$a0";;
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "e") in
+    "e" <-[slice.T byteT] "$a1";;
+    struct.storeF putArgs "opId" (![ptrT] "a") "$a0";;
+    let: "e2" := ref_zero (slice.T byteT) in
+    let: "keyLen" := ref_zero uint64T in
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "e") in
+    "e2" <-[slice.T byteT] "$a1";;
+    "keyLen" <-[uint64T] "$a0";;
+    let: "valBytes" := ref_zero (slice.T byteT) in
+    let: "keyBytes" := ref_zero (slice.T byteT) in
+    let: ("$a0", "$a1") := marshal.ReadBytes (![slice.T byteT] "e2") (![uint64T] "keyLen") in
+    "valBytes" <-[slice.T byteT] "$a1";;
+    "keyBytes" <-[slice.T byteT] "$a0";;
+    let: "$a0" := StringFromBytes (![slice.T byteT] "keyBytes") in
+    struct.storeF putArgs "key" (![ptrT] "a") "$a0";;
+    let: "$a0" := StringFromBytes (![slice.T byteT] "valBytes") in
+    struct.storeF putArgs "val" (![ptrT] "a") "$a0";;
+    return: (![ptrT] "a").
 
 Definition decodeConditionalPutArgs: val :=
   rec: "decodeConditionalPutArgs" "x" :=
-    let: "e" := ref_to (slice.T byteT) "x" in
-    let: "a" := struct.alloc conditionalPutArgs (zero_val (struct.t conditionalPutArgs)) in
-    let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "e") in
-    struct.storeF conditionalPutArgs "opId" "a" "0_ret";;
-    "e" <-[slice.T byteT] "1_ret";;
-    let: ("keyLen", "e2") := marshal.ReadInt (![slice.T byteT] "e") in
-    let: ("keyBytes", "e3") := marshal.ReadBytes "e2" "keyLen" in
-    struct.storeF conditionalPutArgs "key" "a" (StringFromBytes "keyBytes");;
-    let: ("expectedValLen", "e4") := marshal.ReadInt "e3" in
-    let: ("expectedValBytes", "newValBytes") := marshal.ReadBytes "e4" "expectedValLen" in
-    struct.storeF conditionalPutArgs "expectedVal" "a" (StringFromBytes "expectedValBytes");;
-    struct.storeF conditionalPutArgs "newVal" "a" (StringFromBytes "newValBytes");;
-    "a".
+    let: "e" := ref_to (slice.T byteT) (![slice.T byteT] "x") in
+    let: "a" := ref_zero ptrT in
+    let: "$a0" := struct.alloc conditionalPutArgs (zero_val (struct.t conditionalPutArgs)) in
+    "a" <-[ptrT] "$a0";;
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "e") in
+    "e" <-[slice.T byteT] "$a1";;
+    struct.storeF conditionalPutArgs "opId" (![ptrT] "a") "$a0";;
+    let: "e2" := ref_zero (slice.T byteT) in
+    let: "keyLen" := ref_zero uint64T in
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "e") in
+    "e2" <-[slice.T byteT] "$a1";;
+    "keyLen" <-[uint64T] "$a0";;
+    let: "e3" := ref_zero (slice.T byteT) in
+    let: "keyBytes" := ref_zero (slice.T byteT) in
+    let: ("$a0", "$a1") := marshal.ReadBytes (![slice.T byteT] "e2") (![uint64T] "keyLen") in
+    "e3" <-[slice.T byteT] "$a1";;
+    "keyBytes" <-[slice.T byteT] "$a0";;
+    let: "$a0" := StringFromBytes (![slice.T byteT] "keyBytes") in
+    struct.storeF conditionalPutArgs "key" (![ptrT] "a") "$a0";;
+    let: "e4" := ref_zero (slice.T byteT) in
+    let: "expectedValLen" := ref_zero uint64T in
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "e3") in
+    "e4" <-[slice.T byteT] "$a1";;
+    "expectedValLen" <-[uint64T] "$a0";;
+    let: "newValBytes" := ref_zero (slice.T byteT) in
+    let: "expectedValBytes" := ref_zero (slice.T byteT) in
+    let: ("$a0", "$a1") := marshal.ReadBytes (![slice.T byteT] "e4") (![uint64T] "expectedValLen") in
+    "newValBytes" <-[slice.T byteT] "$a1";;
+    "expectedValBytes" <-[slice.T byteT] "$a0";;
+    let: "$a0" := StringFromBytes (![slice.T byteT] "expectedValBytes") in
+    struct.storeF conditionalPutArgs "expectedVal" (![ptrT] "a") "$a0";;
+    let: "$a0" := StringFromBytes (![slice.T byteT] "newValBytes") in
+    struct.storeF conditionalPutArgs "newVal" (![ptrT] "a") "$a0";;
+    return: (![ptrT] "a").
 
 Definition decodeGetArgs: val :=
   rec: "decodeGetArgs" "x" :=
-    let: "e" := ref_to (slice.T byteT) "x" in
+    let: "e" := ref_to (slice.T byteT) (![slice.T byteT] "x") in
     let: "keyBytes" := ref (zero_val (slice.T byteT)) in
-    let: "a" := struct.alloc getArgs (zero_val (struct.t getArgs)) in
-    let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "e") in
-    struct.storeF getArgs "opId" "a" "0_ret";;
-    "keyBytes" <-[slice.T byteT] "1_ret";;
-    struct.storeF getArgs "key" "a" (StringFromBytes (![slice.T byteT] "keyBytes"));;
-    "a".
+    let: "a" := ref_zero ptrT in
+    let: "$a0" := struct.alloc getArgs (zero_val (struct.t getArgs)) in
+    "a" <-[ptrT] "$a0";;
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "e") in
+    "keyBytes" <-[slice.T byteT] "$a1";;
+    struct.storeF getArgs "opId" (![ptrT] "a") "$a0";;
+    let: "$a0" := StringFromBytes (![slice.T byteT] "keyBytes") in
+    struct.storeF getArgs "key" (![ptrT] "a") "$a0";;
+    return: (![ptrT] "a").
 
 (* kvservice_rpc.gb.go *)
+
+Definition Error: ty := uint64T.
 
 (* kvservice_rpc_server.gb.go *)
 
@@ -305,89 +332,127 @@ Definition Server := struct.decl [
   "kvs" :: mapT stringT
 ].
 
-Definition Server__getFreshNum: val :=
-  rec: "Server__getFreshNum" "s" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "s");;
-    let: "n" := struct.loadF Server "nextFreshId" "s" in
-    struct.storeF Server "nextFreshId" "s" (std.SumAssumeNoOverflow (struct.loadF Server "nextFreshId" "s") #1);;
-    sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-    "n".
-
-Definition Server__put: val :=
-  rec: "Server__put" "s" "args" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "s");;
-    let: (<>, "ok") := MapGet (struct.loadF Server "lastReplies" "s") (struct.loadF putArgs "opId" "args") in
-    (if: "ok"
+Definition Server__get: val :=
+  rec: "Server__get" "s" "args" :=
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
+    let: "ok" := ref_zero boolT in
+    let: "ret" := ref_zero stringT in
+    let: ("$a0", "$a1") := Fst (MapGet (struct.loadF Server "lastReplies" (![ptrT] "s")) (struct.loadF getArgs "opId" (![ptrT] "args"))) in
+    "ok" <-[boolT] "$a1";;
+    "ret" <-[stringT] "$a0";;
+    (if: ![boolT] "ok"
     then
-      sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-      #()
-    else
-      MapInsert (struct.loadF Server "kvs" "s") (struct.loadF putArgs "key" "args") (struct.loadF putArgs "val" "args");;
-      MapInsert (struct.loadF Server "lastReplies" "s") (struct.loadF putArgs "opId" "args") #(str"");;
-      sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-      #()).
+      sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+      return: (![stringT] "ret")
+    else #());;
+    let: "ret2" := ref_zero stringT in
+    let: "$a0" := Fst (MapGet (struct.loadF Server "kvs" (![ptrT] "s")) (struct.loadF getArgs "key" (![ptrT] "args"))) in
+    "ret2" <-[stringT] "$a0";;
+    let: "$a0" := ![stringT] "ret2" in
+    MapInsert (struct.loadF Server "lastReplies" (![ptrT] "s")) (struct.loadF getArgs "opId" (![ptrT] "args")) "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+    return: (![stringT] "ret2").
 
 Definition Server__conditionalPut: val :=
   rec: "Server__conditionalPut" "s" "args" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "s");;
-    let: ("ret", "ok") := MapGet (struct.loadF Server "lastReplies" "s") (struct.loadF conditionalPutArgs "opId" "args") in
-    (if: "ok"
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
+    let: "ok" := ref_zero boolT in
+    let: "ret" := ref_zero stringT in
+    let: ("$a0", "$a1") := Fst (MapGet (struct.loadF Server "lastReplies" (![ptrT] "s")) (struct.loadF conditionalPutArgs "opId" (![ptrT] "args"))) in
+    "ok" <-[boolT] "$a1";;
+    "ret" <-[stringT] "$a0";;
+    (if: ![boolT] "ok"
     then
-      sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-      "ret"
-    else
-      let: "ret2" := ref_to stringT #(str"") in
-      (if: (Fst (MapGet (struct.loadF Server "kvs" "s") (struct.loadF conditionalPutArgs "key" "args"))) = (struct.loadF conditionalPutArgs "expectedVal" "args")
-      then
-        MapInsert (struct.loadF Server "kvs" "s") (struct.loadF conditionalPutArgs "key" "args") (struct.loadF conditionalPutArgs "newVal" "args");;
-        "ret2" <-[stringT] #(str"ok")
-      else #());;
-      MapInsert (struct.loadF Server "lastReplies" "s") (struct.loadF conditionalPutArgs "opId" "args") (![stringT] "ret2");;
-      sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-      ![stringT] "ret2").
+      sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+      return: (![stringT] "ret")
+    else #());;
+    let: "ret2" := ref_to stringT #(str"") in
+    (if: (Fst (MapGet (struct.loadF Server "kvs" (![ptrT] "s")) (struct.loadF conditionalPutArgs "key" (![ptrT] "args")))) = (struct.loadF conditionalPutArgs "expectedVal" (![ptrT] "args"))
+    then
+      let: "$a0" := struct.loadF conditionalPutArgs "newVal" (![ptrT] "args") in
+      MapInsert (struct.loadF Server "kvs" (![ptrT] "s")) (struct.loadF conditionalPutArgs "key" (![ptrT] "args")) "$a0";;
+      let: "$a0" := #(str"ok") in
+      "ret2" <-[stringT] "$a0";;
+      #()
+    else #());;
+    let: "$a0" := ![stringT] "ret2" in
+    MapInsert (struct.loadF Server "lastReplies" (![ptrT] "s")) (struct.loadF conditionalPutArgs "opId" (![ptrT] "args")) "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+    return: (![stringT] "ret2").
 
-Definition Server__get: val :=
-  rec: "Server__get" "s" "args" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "s");;
-    let: ("ret", "ok") := MapGet (struct.loadF Server "lastReplies" "s") (struct.loadF getArgs "opId" "args") in
-    (if: "ok"
+Definition Server__put: val :=
+  rec: "Server__put" "s" "args" :=
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
+    let: "ok" := ref_zero boolT in
+    let: <> := ref_zero stringT in
+    let: ("$a0", "$a1") := Fst (MapGet (struct.loadF Server "lastReplies" (![ptrT] "s")) (struct.loadF putArgs "opId" (![ptrT] "args"))) in
+    "ok" <-[boolT] "$a1";;
+    "$a0";;
+    (if: ![boolT] "ok"
     then
-      sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-      "ret"
-    else
-      let: "ret2" := Fst (MapGet (struct.loadF Server "kvs" "s") (struct.loadF getArgs "key" "args")) in
-      MapInsert (struct.loadF Server "lastReplies" "s") (struct.loadF getArgs "opId" "args") "ret2";;
-      sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-      "ret2").
+      sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+      return: (#())
+    else #());;
+    let: "$a0" := struct.loadF putArgs "val" (![ptrT] "args") in
+    MapInsert (struct.loadF Server "kvs" (![ptrT] "s")) (struct.loadF putArgs "key" (![ptrT] "args")) "$a0";;
+    let: "$a0" := #(str"") in
+    MapInsert (struct.loadF Server "lastReplies" (![ptrT] "s")) (struct.loadF putArgs "opId" (![ptrT] "args")) "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+    #().
+
+Definition Server__getFreshNum: val :=
+  rec: "Server__getFreshNum" "s" :=
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
+    let: "n" := ref_zero uint64T in
+    let: "$a0" := struct.loadF Server "nextFreshId" (![ptrT] "s") in
+    "n" <-[uint64T] "$a0";;
+    let: "$a0" := std.SumAssumeNoOverflow (struct.loadF Server "nextFreshId" (![ptrT] "s")) #1 in
+    struct.storeF Server "nextFreshId" (![ptrT] "s") "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+    return: (![uint64T] "n").
 
 Definition Server__Start: val :=
   rec: "Server__Start" "s" "me" :=
-    let: "handlers" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%ht #() in
-    MapInsert "handlers" rpcIdGetFreshNum (λ: "enc_args" "enc_reply",
-      "enc_reply" <-[slice.T byteT] (EncodeUint64 (Server__getFreshNum "s"));;
+    let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
+    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!h(MISSING)t #() in
+    "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
+    let: "$a0" := (λ: "enc_args" "enc_reply",
+      let: "$a0" := EncodeUint64 (Server__getFreshNum (![ptrT] "s")) in
+      (![ptrT] "enc_reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    MapInsert "handlers" rpcIdPut (λ: "enc_args" "enc_reply",
-      Server__put "s" (decodePutArgs "enc_args");;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") rpcIdGetFreshNum "$a0";;
+    let: "$a0" := (λ: "enc_args" "enc_reply",
+      Server__put (![ptrT] "s") (decodePutArgs (![slice.T byteT] "enc_args"));;
       #()
-      );;
-    MapInsert "handlers" rpcIdConditionalPut (λ: "enc_args" "enc_reply",
-      "enc_reply" <-[slice.T byteT] (StringToBytes (Server__conditionalPut "s" (decodeConditionalPutArgs "enc_args")));;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") rpcIdPut "$a0";;
+    let: "$a0" := (λ: "enc_args" "enc_reply",
+      let: "$a0" := StringToBytes (Server__conditionalPut (![ptrT] "s") (decodeConditionalPutArgs (![slice.T byteT] "enc_args"))) in
+      (![ptrT] "enc_reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    MapInsert "handlers" rpcIdGet (λ: "enc_args" "enc_reply",
-      "enc_reply" <-[slice.T byteT] (StringToBytes (Server__get "s" (decodeGetArgs "enc_args")));;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") rpcIdConditionalPut "$a0";;
+    let: "$a0" := (λ: "enc_args" "enc_reply",
+      let: "$a0" := StringToBytes (Server__get (![ptrT] "s") (decodeGetArgs (![slice.T byteT] "enc_args"))) in
+      (![ptrT] "enc_reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    urpc.Server__Serve (urpc.MakeServer "handlers") "me";;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") rpcIdGet "$a0";;
+    urpc.Server__Serve (urpc.MakeServer (![mapT (arrowT unitT unitT)] "handlers")) (![uint64T] "me");;
     #().
 
 (* server.go *)
 
 Definition MakeServer: val :=
   rec: "MakeServer" <> :=
-    let: "s" := struct.alloc Server (zero_val (struct.t Server)) in
-    struct.storeF Server "mu" "s" (struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)));;
-    struct.storeF Server "kvs" "s" (NewMap stringT stringT #());;
-    struct.storeF Server "lastReplies" "s" (NewMap uint64T stringT #());;
-    "s".
+    let: "s" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Server (zero_val (struct.t Server)) in
+    "s" <-[ptrT] "$a0";;
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    struct.storeF Server "mu" (![ptrT] "s") "$a0";;
+    let: "$a0" := NewMap stringT stringT #() in
+    struct.storeF Server "kvs" (![ptrT] "s") "$a0";;
+    let: "$a0" := NewMap uint64T stringT #() in
+    struct.storeF Server "lastReplies" (![ptrT] "s") "$a0";;
+    return: (![ptrT] "s").

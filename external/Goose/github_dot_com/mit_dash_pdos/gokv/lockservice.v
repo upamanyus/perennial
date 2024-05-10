@@ -12,20 +12,18 @@ Definition LockClerk := struct.decl [
 
 Definition LockClerk__Lock: val :=
   rec: "LockClerk__Lock" "ck" "key" :=
-    Skip;;
-    (for: (λ: <>, ((struct.loadF kv.Kv "ConditionalPut" (struct.loadF LockClerk "kv" "ck")) "key" #(str"") #(str"1")) ≠ #(str"ok")); (λ: <>, Skip) := λ: <>,
-      Continue);;
-    #().
+    (for: (λ: <>, ((struct.loadF kv.Kv "ConditionalPut" (struct.loadF LockClerk "kv" (![ptrT] "ck"))) (![stringT] "key") #(str"") #(str"1")) ≠ #(str"ok")); (λ: <>, Skip) := λ: <>,
+      #()).
 
 Definition LockClerk__Unlock: val :=
   rec: "LockClerk__Unlock" "ck" "key" :=
-    (struct.loadF kv.Kv "Put" (struct.loadF LockClerk "kv" "ck")) "key" #(str"");;
+    (struct.loadF kv.Kv "Put" (struct.loadF LockClerk "kv" (![ptrT] "ck"))) (![stringT] "key") #(str"");;
     #().
 
 Definition MakeLockClerk: val :=
   rec: "MakeLockClerk" "kv" :=
-    struct.new LockClerk [
-      "kv" ::= "kv"
-    ].
+    return: (struct.new LockClerk [
+       "kv" ::= ![ptrT] "kv"
+     ]).
 
 End code.

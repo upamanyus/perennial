@@ -13,37 +13,56 @@ Definition Tracker := struct.decl [
 
 Definition Tracker__lookupLocked: val :=
   rec: "Tracker__lookupLocked" "t" "k" :=
-    let: ("v", "ok") := MapGet (struct.loadF Tracker "m" "t") "k" in
-    ("v", "ok").
+    let: "ok" := ref_zero boolT in
+    let: "v" := ref_zero uint64T in
+    let: ("$a0", "$a1") := Fst (MapGet (struct.loadF Tracker "m" (![ptrT] "t")) (![uint64T] "k")) in
+    "ok" <-[boolT] "$a1";;
+    "v" <-[uint64T] "$a0";;
+    return: (![uint64T] "v", ![boolT] "ok").
 
 Definition Tracker__registerLocked: val :=
   rec: "Tracker__registerLocked" "t" "k" "v" :=
-    let: (<>, "ok") := Tracker__lookupLocked "t" "k" in
-    (if: "ok"
-    then #false
-    else
-      MapInsert (struct.loadF Tracker "m" "t") "k" "v";;
-      #true).
+    let: "ok" := ref_zero boolT in
+    let: <> := ref_zero uint64T in
+    let: ("$a0", "$a1") := Tracker__lookupLocked (![ptrT] "t") (![uint64T] "k") in
+    "ok" <-[boolT] "$a1";;
+    "$a0";;
+    (if: ![boolT] "ok"
+    then return: (#false)
+    else #());;
+    let: "$a0" := ![uint64T] "v" in
+    MapInsert (struct.loadF Tracker "m" (![ptrT] "t")) (![uint64T] "k") "$a0";;
+    return: (#true).
 
 Definition Tracker__Lookup: val :=
   rec: "Tracker__Lookup" "t" "k" :=
-    sync.Mutex__Lock (struct.loadF Tracker "mu" "t");;
-    let: ("v", "ok") := Tracker__lookupLocked "t" "k" in
-    sync.Mutex__Unlock (struct.loadF Tracker "mu" "t");;
-    ("v", "ok").
+    sync.Mutex__Lock (struct.loadF Tracker "mu" (![ptrT] "t"));;
+    let: "ok" := ref_zero boolT in
+    let: "v" := ref_zero uint64T in
+    let: ("$a0", "$a1") := Tracker__lookupLocked (![ptrT] "t") (![uint64T] "k") in
+    "ok" <-[boolT] "$a1";;
+    "v" <-[uint64T] "$a0";;
+    sync.Mutex__Unlock (struct.loadF Tracker "mu" (![ptrT] "t"));;
+    return: (![uint64T] "v", ![boolT] "ok").
 
 Definition Tracker__Register: val :=
   rec: "Tracker__Register" "t" "k" "v" :=
-    sync.Mutex__Lock (struct.loadF Tracker "mu" "t");;
-    let: "r" := Tracker__registerLocked "t" "k" "v" in
-    sync.Mutex__Unlock (struct.loadF Tracker "mu" "t");;
-    "r".
+    sync.Mutex__Lock (struct.loadF Tracker "mu" (![ptrT] "t"));;
+    let: "r" := ref_zero boolT in
+    let: "$a0" := Tracker__registerLocked (![ptrT] "t") (![uint64T] "k") (![uint64T] "v") in
+    "r" <-[boolT] "$a0";;
+    sync.Mutex__Unlock (struct.loadF Tracker "mu" (![ptrT] "t"));;
+    return: (![boolT] "r").
 
 Definition MakeTracker: val :=
   rec: "MakeTracker" <> :=
-    let: "t" := struct.alloc Tracker (zero_val (struct.t Tracker)) in
-    struct.storeF Tracker "mu" "t" (struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)));;
-    struct.storeF Tracker "m" "t" (NewMap uint64T uint64T #());;
-    "t".
+    let: "t" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Tracker (zero_val (struct.t Tracker)) in
+    "t" <-[ptrT] "$a0";;
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    struct.storeF Tracker "mu" (![ptrT] "t") "$a0";;
+    let: "$a0" := NewMap uint64T uint64T #() in
+    struct.storeF Tracker "m" (![ptrT] "t") "$a0";;
+    return: (![ptrT] "t").
 
 End code.

@@ -9,56 +9,98 @@ Local Coercion Var' s: expr := Var s.
 Definition EncodeMapU64ToU64: val :=
   rec: "EncodeMapU64ToU64" "kvs" :=
     let: "enc" := ref_to (slice.T byteT) (NewSlice byteT #0) in
-    "enc" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "enc") (MapLen "kvs"));;
-    MapIter "kvs" (λ: "k" "v",
-      "enc" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "enc") "k");;
-      "enc" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "enc") "v"));;
-    ![slice.T byteT] "enc".
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (MapLen (![mapT uint64T] "kvs")) in
+    "enc" <-[slice.T byteT] "$a0";;
+    MapIter (![mapT uint64T] "kvs") (λ: "k" "v",
+      let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (![uint64T] "k") in
+      "enc" <-[slice.T byteT] "$a0";;
+      let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (![uint64T] "v") in
+      "enc" <-[slice.T byteT] "$a0";;
+      #());;
+    return: (![slice.T byteT] "enc").
 
 Definition DecodeMapU64ToU64: val :=
   rec: "DecodeMapU64ToU64" "enc_in" :=
-    let: "enc" := ref_to (slice.T byteT) "enc_in" in
-    let: "kvs" := NewMap uint64T uint64T #() in
-    let: ("numEntries", "enc2") := marshal.ReadInt (![slice.T byteT] "enc") in
-    "enc" <-[slice.T byteT] "enc2";;
-    let: "i" := ref_to uint64T #0 in
-    (for: (λ: <>, (![uint64T] "i") < "numEntries"); (λ: <>, "i" <-[uint64T] ((![uint64T] "i") + #1)) := λ: <>,
+    let: "enc" := ref_to (slice.T byteT) (![slice.T byteT] "enc_in") in
+    let: "kvs" := ref_zero (mapT uint64T) in
+    let: "$a0" := NewMap uint64T uint64T #() in
+    "kvs" <-[mapT uint64T] "$a0";;
+    let: "enc2" := ref_zero (slice.T byteT) in
+    let: "numEntries" := ref_zero uint64T in
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc") in
+    "enc2" <-[slice.T byteT] "$a1";;
+    "numEntries" <-[uint64T] "$a0";;
+    let: "$a0" := ![slice.T byteT] "enc2" in
+    "enc" <-[slice.T byteT] "$a0";;
+    (let: "i" := ref_zero uint64T in
+    let: "$a0" := #0 in
+    "i" <-[uint64T] "$a0";;
+    (for: (λ: <>, (![uint64T] "i") < (![uint64T] "numEntries")); (λ: <>, "i" <-[uint64T] ((![uint64T] "i") + #1);;
+    #()) := λ: <>,
       let: "key" := ref (zero_val uint64T) in
       let: "val" := ref (zero_val uint64T) in
-      let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "enc") in
-      "key" <-[uint64T] "0_ret";;
-      "enc" <-[slice.T byteT] "1_ret";;
-      let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "enc") in
-      "val" <-[uint64T] "0_ret";;
-      "enc" <-[slice.T byteT] "1_ret";;
-      MapInsert "kvs" (![uint64T] "key") (![uint64T] "val");;
-      Continue);;
-    ("kvs", ![slice.T byteT] "enc").
+      let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc") in
+      "enc" <-[slice.T byteT] "$a1";;
+      "key" <-[uint64T] "$a0";;
+      let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc") in
+      "enc" <-[slice.T byteT] "$a1";;
+      "val" <-[uint64T] "$a0";;
+      let: "$a0" := ![uint64T] "val" in
+      MapInsert (![mapT uint64T] "kvs") (![uint64T] "key") "$a0";;
+      #())).
 
 Definition EncodeMapU64ToBytes: val :=
   rec: "EncodeMapU64ToBytes" "kvs" :=
     let: "enc" := ref_to (slice.T byteT) (NewSlice byteT #0) in
-    "enc" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "enc") (MapLen "kvs"));;
-    MapIter "kvs" (λ: "k" "v",
-      "enc" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "enc") "k");;
-      "enc" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "enc") (slice.len "v"));;
-      "enc" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "enc") "v"));;
-    ![slice.T byteT] "enc".
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (MapLen (![mapT (slice.T byteT)] "kvs")) in
+    "enc" <-[slice.T byteT] "$a0";;
+    MapIter (![mapT (slice.T byteT)] "kvs") (λ: "k" "v",
+      let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (![uint64T] "k") in
+      "enc" <-[slice.T byteT] "$a0";;
+      let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (slice.len (![slice.T byteT] "v")) in
+      "enc" <-[slice.T byteT] "$a0";;
+      let: "$a0" := marshal.WriteBytes (![slice.T byteT] "enc") (![slice.T byteT] "v") in
+      "enc" <-[slice.T byteT] "$a0";;
+      #());;
+    return: (![slice.T byteT] "enc").
 
 Definition DecodeMapU64ToBytes: val :=
   rec: "DecodeMapU64ToBytes" "enc_in" :=
-    let: "enc" := ref_to (slice.T byteT) "enc_in" in
-    let: "kvs" := NewMap uint64T (slice.T byteT) #() in
-    let: ("numEntries", "enc2") := marshal.ReadInt (![slice.T byteT] "enc") in
-    "enc" <-[slice.T byteT] "enc2";;
-    let: "i" := ref_to uint64T #0 in
-    (for: (λ: <>, (![uint64T] "i") < "numEntries"); (λ: <>, "i" <-[uint64T] ((![uint64T] "i") + #1)) := λ: <>,
-      let: ("key", "enc3") := marshal.ReadInt (![slice.T byteT] "enc") in
-      let: ("valLen", "enc4") := marshal.ReadInt "enc3" in
-      let: ("val", "enc5") := marshal.ReadBytesCopy "enc4" "valLen" in
-      "enc" <-[slice.T byteT] "enc5";;
-      MapInsert "kvs" "key" "val";;
-      Continue);;
-    ("kvs", ![slice.T byteT] "enc").
+    let: "enc" := ref_to (slice.T byteT) (![slice.T byteT] "enc_in") in
+    let: "kvs" := ref_zero (mapT (slice.T byteT)) in
+    let: "$a0" := NewMap uint64T (slice.T byteT) #() in
+    "kvs" <-[mapT (slice.T byteT)] "$a0";;
+    let: "enc2" := ref_zero (slice.T byteT) in
+    let: "numEntries" := ref_zero uint64T in
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc") in
+    "enc2" <-[slice.T byteT] "$a1";;
+    "numEntries" <-[uint64T] "$a0";;
+    let: "$a0" := ![slice.T byteT] "enc2" in
+    "enc" <-[slice.T byteT] "$a0";;
+    (let: "i" := ref_zero uint64T in
+    let: "$a0" := #0 in
+    "i" <-[uint64T] "$a0";;
+    (for: (λ: <>, (![uint64T] "i") < (![uint64T] "numEntries")); (λ: <>, "i" <-[uint64T] ((![uint64T] "i") + #1);;
+    #()) := λ: <>,
+      let: "enc3" := ref_zero (slice.T byteT) in
+      let: "key" := ref_zero uint64T in
+      let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc") in
+      "enc3" <-[slice.T byteT] "$a1";;
+      "key" <-[uint64T] "$a0";;
+      let: "enc4" := ref_zero (slice.T byteT) in
+      let: "valLen" := ref_zero uint64T in
+      let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc3") in
+      "enc4" <-[slice.T byteT] "$a1";;
+      "valLen" <-[uint64T] "$a0";;
+      let: "enc5" := ref_zero (slice.T byteT) in
+      let: "val" := ref_zero (slice.T byteT) in
+      let: ("$a0", "$a1") := marshal.ReadBytesCopy (![slice.T byteT] "enc4") (![uint64T] "valLen") in
+      "enc5" <-[slice.T byteT] "$a1";;
+      "val" <-[slice.T byteT] "$a0";;
+      let: "$a0" := ![slice.T byteT] "enc5" in
+      "enc" <-[slice.T byteT] "$a0";;
+      let: "$a0" := ![slice.T byteT] "val" in
+      MapInsert (![mapT (slice.T byteT)] "kvs") (![uint64T] "key") "$a0";;
+      #())).
 
 End code.

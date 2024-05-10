@@ -51,9 +51,108 @@ Definition test2 : val :=
      )
 .
 
+(* ty is needed for zero value, heap points-to, etc. *)
+Definition go_ty : Type := ty * (gmap string val).
+
+(*
+  func A() {
+    B()
+  }
+
+
+  func B() {
+    A()
+  }
+*)
+
+Definition MapGet : val :=
+  (rec: "mapGet" "m" "k" :=
+     match: "m" with
+       InjL "def" => Panic ""
+     | InjR "kvm" =>
+       let: "kv" := Fst "kvm" in
+       let: "m2" := Snd "kvm" in
+       if: "k" = (Fst "kv") then (Snd "kv")
+       else "mapGet" "m2" "k"
+     end).
+
+Definition MapInsert: val :=
+  λ: "m" "k" "v", InjR ("k", "v", "m").
+
+Definition MapEmpty: val := InjLV #().
+
+Notation "e1 @ e2" := (MapGet e1 e2)
+  (at level 100, e2 at level 200, format "e1 '@' e2") : expr_scope.
+
+(* Notation "func:" *)
+
+Definition bar: val :=
+  rec: "$pkg" "$ctx" :=
+    (MapInsert
+       (MapInsert
+          (MapInsert MapEmpty
+             #(str "A") (λ: <>, do (Var "$pkg")@"B" #())%E
+          )
+          #(str "B") (λ: <>,
+                  let: "$expr1" := !"$pkg"@#(str"globalVar") in
+                  (if: "$expr1" = #1 then
+                     go_return #37
+                   else do #()
+                  ) ;;;
+                  do "$pkg"@#(str"globalVar") <-[uint64T] ("$expr1" + #1) ;;;
+                  do "$pkg"@#(str"A") #()
+              )%E
+       )
+       #(str "globalVar") (ref_zero uint64T #())
+    )
+.
+
 From Perennial.program_proof Require Import grove_prelude.
 Section proof.
 Context `{!heapGS Σ}.
+
+Definition wp_A (A:val) : iProp Σ :=
+  WP (A #()) {{ v, ⌜ v = #37 ⌝%I }}.
+
+Definition wp_B (B:val) : iProp Σ :=
+  WP (B #()) {{ v, ⌜ v = #37 ⌝%I }}.
+
+Definition own_bar (pkg:val) : iProp Σ :=
+  ∃ (globalVar:loc) (v:u64),
+  "#HglobalVar" ∷ (□ WP pkg@#(str"globalVar") {{ v, ⌜ v = (#globalVar) ⌝ }}) ∗
+  "HglobalVar" ∷ globalVar ↦[uint64T] #v ∗
+
+  "#HA" ∷ (□ WP pkg@#(str"A") {{ wp_A }}) ∗
+  "#HB" ∷ (□ WP pkg@#(str"B") {{ wp_B }})
+.
+
+Lemma prove_is_bar :
+  ⊢ WP bar #() {{ own_bar }}
+.
+Proof.
+  iStartProof.
+  iLöb as "IH".
+  wp_rec.
+  wp_apply wp_ref_zero; [done|].
+  iIntros (?) "HglobalVar".
+  wp_pures.
+  wp_bind (MapInsert MapEmpty _ _).
+  wp_lam; wp_pures.
+  wp_lam; wp_pures.
+  wp_lam; wp_pures.
+  iModIntro.
+  iFrame.
+  iSplitL.
+  { iModIntro. wp_lam; wp_pures. iPureIntro. done. }
+  iSplitL.
+  {
+    iModIntro.
+    do 3 (wp_lam; wp_pures).
+    iModIntro.
+    unfold wp_A.
+    wp_rec.
+Abort.
+
 Lemma wp_test2:
   {{{ True }}}
     test2 #()
@@ -61,7 +160,6 @@ Lemma wp_test2:
 Proof.
   iIntros (?) "Hpre HΦ".
   wp_lam.
-  wp_pures.
   wp_apply wp_ref_zero.
   { done. }
   iIntros (x) "Hx".
@@ -135,6 +233,15 @@ Axiom wp_eval_exprs_unordered3 :
   (∀ v1 v2 v3, Φ1 v1 ∗ Φ2 v2 ∗ Φ3 v3 -∗ (Φ (v1, (v2, (v3, #()))))%V)) -∗
   WP (eval_exprs_unordered [e1 ; e2 ; e3]) {{ Φ }}
 .
+
+(*
+Axiom wp_eval_exprs_unordered3 :
+  ∀ e2 e3 Φ2 Φ3 (Φ:_ → iProp Σ),
+  WP e2 {{ Φ2 }} ∗
+  WP e3 {{ Φ3 }} ∗
+  (∀ v2 v3, Φ1 v1 ∗ Φ2 v2 ∗ Φ3 v3 -∗ (Φ (v1, (v2, (v3, #()))))%V)) -∗
+  WP (eval_exprs_unordered [v1 ; e2 ; e3]) {{ Φ }}
+. *)
 
 (*
 Axiom wp_sp_eval_exprs_unordered3 :

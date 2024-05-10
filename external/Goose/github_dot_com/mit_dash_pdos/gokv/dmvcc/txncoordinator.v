@@ -15,21 +15,25 @@ Definition Server := struct.decl [
 Definition Server__TryCommit: val :=
   rec: "Server__TryCommit" "s" "tid" "writes" :=
     let: "err" := ref_to uint64T #0 in
-    MapIter "writes" (λ: "key" <>,
+    MapIter (![mapT stringT] "writes") (λ: "key" <>,
       (if: (![uint64T] "err") = #0
-      then "err" <-[uint64T] (index.Clerk__AcquireTuple (struct.loadF Server "indexCk" "s") "key" "tid")
-      else #()));;
+      then
+        let: "$a0" := index.Clerk__AcquireTuple (struct.loadF Server "indexCk" (![ptrT] "s")) (![uint64T] "key") (![uint64T] "tid") in
+        "err" <-[uint64T] "$a0";;
+        #()
+      else #());;
+      #());;
     (if: (![uint64T] "err") ≠ #0
-    then #false
-    else
-      index.Clerk__UpdateAndRelease (struct.loadF Server "indexCk" "s") "tid" "writes";;
-      #true).
+    then return: (#false)
+    else #());;
+    index.Clerk__UpdateAndRelease (struct.loadF Server "indexCk" (![ptrT] "s")) (![uint64T] "tid") (![mapT stringT] "writes");;
+    return: (#true).
 
 Definition MakeServer: val :=
   rec: "MakeServer" "indexHost" :=
-    struct.new Server [
-      "indexCk" ::= index.MakeClerk "indexHost"
-    ].
+    return: (struct.new Server [
+       "indexCk" ::= index.MakeClerk (![ptrT] "indexHost")
+     ]).
 
 (* clerk.go *)
 
@@ -39,12 +43,12 @@ Definition Clerk := struct.decl [
 
 Definition Clerk__TryCommit: val :=
   rec: "Clerk__TryCommit" "ck" "tid" "writes" :=
-    Server__TryCommit (struct.loadF Clerk "s" "ck") "tid" "writes".
+    return: (Server__TryCommit (struct.loadF Clerk "s" (![ptrT] "ck")) (![uint64T] "tid") (![mapT stringT] "writes")).
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "host" :=
-    struct.new Clerk [
-      "s" ::= "host"
-    ].
+    return: (struct.new Clerk [
+       "s" ::= ![ptrT] "host"
+     ]).
 
 End code.

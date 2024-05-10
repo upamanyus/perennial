@@ -20,58 +20,86 @@ Definition Clerk := struct.decl [
   "cl" :: ptrT
 ].
 
-Definition Clerk__HeartbeatThread: val :=
-  rec: "Clerk__HeartbeatThread" "ck" "epoch" :=
-    let: "enc" := marshal.NewEnc #8 in
-    marshal.Enc__PutInt "enc" "epoch";;
-    let: "args" := marshal.Enc__Finish "enc" in
-    Skip;;
-    (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "reply_ptr" := ref (zero_val (slice.T byteT)) in
-      machine.Sleep (("TIMEOUT_MS" * "MILLION") `quot` #3);;
-      let: "err" := urpc.Client__Call (struct.loadF Clerk "cl" "ck") RPC_HB "args" "reply_ptr" #100 in
-      (if: ("err" ≠ #0) || ((slice.len (![slice.T byteT] "reply_ptr")) ≠ #0)
-      then Break
-      else Continue));;
-    #().
-
-Definition Clerk__AcquireEpoch: val :=
-  rec: "Clerk__AcquireEpoch" "ck" "newFrontend" :=
-    let: "enc" := marshal.NewEnc #8 in
-    marshal.Enc__PutInt "enc" "newFrontend";;
-    let: "reply_ptr" := ref (zero_val (slice.T byteT)) in
-    let: "err" := urpc.Client__Call (struct.loadF Clerk "cl" "ck") RPC_ACQUIRE_EPOCH (marshal.Enc__Finish "enc") "reply_ptr" #100 in
-    (if: "err" ≠ #0
-    then
-      (* log.Println("config: client failed to run RPC on config server") *)
-      machine.Exit #1
-    else #());;
-    let: "dec" := marshal.NewDec (![slice.T byteT] "reply_ptr") in
-    marshal.Dec__GetInt "dec".
-
-Definition Clerk__Get: val :=
-  rec: "Clerk__Get" "ck" :=
-    let: "reply_ptr" := ref (zero_val (slice.T byteT)) in
-    let: "err" := urpc.Client__Call (struct.loadF Clerk "cl" "ck") RPC_GET (NewSlice byteT #0) "reply_ptr" #100 in
-    (if: "err" ≠ #0
-    then
-      (* log.Println("config: client failed to run RPC on config server") *)
-      machine.Exit #1
-    else #());;
-    let: "dec" := marshal.NewDec (![slice.T byteT] "reply_ptr") in
-    marshal.Dec__GetInt "dec".
-
-Definition MakeClerk: val :=
-  rec: "MakeClerk" "host" :=
-    let: "ck" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
-    struct.storeF Clerk "cl" "ck" (urpc.MakeClient "host");;
-    "ck".
-
-(* server.go *)
+(* TIMEOUT_MS from server.go *)
 
 Definition TIMEOUT_MS : expr := #1000.
 
 Definition MILLION : expr := #1000000.
+
+Definition Clerk__HeartbeatThread: val :=
+  rec: "Clerk__HeartbeatThread" "ck" "epoch" :=
+    let: "enc" := ref_zero (struct.t marshal.Enc) in
+    let: "$a0" := marshal.NewEnc #8 in
+    "enc" <-[struct.t marshal.Enc] "$a0";;
+    marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (![uint64T] "epoch");;
+    let: "args" := ref_zero (slice.T byteT) in
+    let: "$a0" := marshal.Enc__Finish (![struct.t marshal.Enc] "enc") in
+    "args" <-[slice.T byteT] "$a0";;
+    (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
+      let: "reply_ptr" := ref_zero ptrT in
+      let: "$a0" := ref (zero_val (slice.T byteT)) in
+      "reply_ptr" <-[ptrT] "$a0";;
+      machine.Sleep ((TIMEOUT_MS * MILLION) `quot` #3);;
+      let: "err" := ref_zero uint64T in
+      let: "$a0" := urpc.Client__Call (struct.loadF Clerk "cl" (![ptrT] "ck")) RPC_HB (![slice.T byteT] "args") (![ptrT] "reply_ptr") #100 in
+      "err" <-[uint64T] "$a0";;
+      (if: ((![uint64T] "err") ≠ #0) || ((slice.len (![slice.T byteT] (![ptrT] "reply_ptr"))) ≠ #0)
+      then Break
+      else #());;
+      #()).
+
+Definition Clerk__AcquireEpoch: val :=
+  rec: "Clerk__AcquireEpoch" "ck" "newFrontend" :=
+    let: "enc" := ref_zero (struct.t marshal.Enc) in
+    let: "$a0" := marshal.NewEnc #8 in
+    "enc" <-[struct.t marshal.Enc] "$a0";;
+    marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (![uint64T] "newFrontend");;
+    let: "reply_ptr" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply_ptr" <-[ptrT] "$a0";;
+    let: "err" := ref_zero uint64T in
+    let: "$a0" := urpc.Client__Call (struct.loadF Clerk "cl" (![ptrT] "ck")) RPC_ACQUIRE_EPOCH (marshal.Enc__Finish (![struct.t marshal.Enc] "enc")) (![ptrT] "reply_ptr") #100 in
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") ≠ #0
+    then
+      log.Println #(str"config: client failed to run RPC on config server");;
+      machine.Exit #1;;
+      #()
+    else #());;
+    let: "dec" := ref_zero (struct.t marshal.Dec) in
+    let: "$a0" := marshal.NewDec (![slice.T byteT] (![ptrT] "reply_ptr")) in
+    "dec" <-[struct.t marshal.Dec] "$a0";;
+    return: (marshal.Dec__GetInt (![struct.t marshal.Dec] "dec")).
+
+Definition Clerk__Get: val :=
+  rec: "Clerk__Get" "ck" :=
+    let: "reply_ptr" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply_ptr" <-[ptrT] "$a0";;
+    let: "err" := ref_zero uint64T in
+    let: "$a0" := urpc.Client__Call (struct.loadF Clerk "cl" (![ptrT] "ck")) RPC_GET (NewSlice byteT #0) (![ptrT] "reply_ptr") #100 in
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") ≠ #0
+    then
+      log.Println #(str"config: client failed to run RPC on config server");;
+      machine.Exit #1;;
+      #()
+    else #());;
+    let: "dec" := ref_zero (struct.t marshal.Dec) in
+    let: "$a0" := marshal.NewDec (![slice.T byteT] (![ptrT] "reply_ptr")) in
+    "dec" <-[struct.t marshal.Dec] "$a0";;
+    return: (marshal.Dec__GetInt (![struct.t marshal.Dec] "dec")).
+
+Definition MakeClerk: val :=
+  rec: "MakeClerk" "host" :=
+    let: "ck" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
+    "ck" <-[ptrT] "$a0";;
+    let: "$a0" := urpc.MakeClient (![uint64T] "host") in
+    struct.storeF Clerk "cl" (![ptrT] "ck") "$a0";;
+    return: (![ptrT] "ck").
+
+(* server.go *)
 
 Definition Server := struct.decl [
   "mu" :: ptrT;
@@ -85,106 +113,112 @@ Definition Server := struct.decl [
 
 Definition Server__AcquireEpoch: val :=
   rec: "Server__AcquireEpoch" "s" "newFrontend" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "s");;
-    Skip;;
-    (for: (λ: <>, struct.loadF Server "currHolderActive" "s"); (λ: <>, Skip) := λ: <>,
-      sync.Cond__Wait (struct.loadF Server "currHolderActive_cond" "s");;
-      Continue);;
-    struct.storeF Server "currHolderActive" "s" #true;;
-    struct.storeF Server "data" "s" "newFrontend";;
-    struct.storeF Server "currentEpoch" "s" ((struct.loadF Server "currentEpoch" "s") + #1);;
-    let: "now" := machine.TimeNow #() in
-    struct.storeF Server "heartbeatExpiration" "s" ("now" + (TIMEOUT_MS * MILLION));;
-    let: "ret" := struct.loadF Server "currentEpoch" "s" in
-    sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-    "ret".
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
+    (for: (λ: <>, struct.loadF Server "currHolderActive" (![ptrT] "s")); (λ: <>, Skip) := λ: <>,
+      sync.Cond__Wait (struct.loadF Server "currHolderActive_cond" (![ptrT] "s"));;
+      #()).
 
 Definition Server__HeartbeatListener: val :=
   rec: "Server__HeartbeatListener" "s" :=
     let: "epochToWaitFor" := ref_to uint64T #1 in
-    Skip;;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      sync.Mutex__Lock (struct.loadF Server "mu" "s");;
-      Skip;;
-      (for: (λ: <>, (struct.loadF Server "currentEpoch" "s") < (![uint64T] "epochToWaitFor")); (λ: <>, Skip) := λ: <>,
-        sync.Cond__Wait (struct.loadF Server "epoch_cond" "s");;
-        Continue);;
-      sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-      Skip;;
-      (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-        let: "now" := machine.TimeNow #() in
-        sync.Mutex__Lock (struct.loadF Server "mu" "s");;
-        (if: "now" < (struct.loadF Server "heartbeatExpiration" "s")
-        then
-          let: "delay" := (struct.loadF Server "heartbeatExpiration" "s") - "now" in
-          sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-          machine.Sleep "delay";;
-          Continue
-        else
-          struct.storeF Server "currHolderActive" "s" #false;;
-          sync.Cond__Signal (struct.loadF Server "currHolderActive_cond" "s");;
-          "epochToWaitFor" <-[uint64T] ((struct.loadF Server "currentEpoch" "s") + #1);;
-          sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-          Break));;
-      Continue);;
-    #().
+      sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
+      (for: (λ: <>, (struct.loadF Server "currentEpoch" (![ptrT] "s")) < (![uint64T] "epochToWaitFor")); (λ: <>, Skip) := λ: <>,
+        sync.Cond__Wait (struct.loadF Server "epoch_cond" (![ptrT] "s"));;
+        #())).
 
 (* returns true iff successful *)
 Definition Server__Heartbeat: val :=
   rec: "Server__Heartbeat" "s" "epoch" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "s");;
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "ret" := ref_to boolT #false in
-    (if: (struct.loadF Server "currentEpoch" "s") = "epoch"
+    (if: (struct.loadF Server "currentEpoch" (![ptrT] "s")) = (![uint64T] "epoch")
     then
-      let: "now" := machine.TimeNow #() in
-      struct.storeF Server "heartbeatExpiration" "s" ("now" + TIMEOUT_MS);;
-      "ret" <-[boolT] #true
+      let: "now" := ref_zero uint64T in
+      let: "$a0" := machine.TimeNow #() in
+      "now" <-[uint64T] "$a0";;
+      let: "$a0" := (![uint64T] "now") + TIMEOUT_MS in
+      struct.storeF Server "heartbeatExpiration" (![ptrT] "s") "$a0";;
+      let: "$a0" := #true in
+      "ret" <-[boolT] "$a0";;
+      #()
     else #());;
-    sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-    ![boolT] "ret".
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+    return: (![boolT] "ret").
 
 (* XXX: don't need to send fencing token here, because client won't need it *)
 Definition Server__Get: val :=
   rec: "Server__Get" "s" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "s");;
-    let: "ret" := struct.loadF Server "data" "s" in
-    sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-    "ret".
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
+    let: "ret" := ref_zero uint64T in
+    let: "$a0" := struct.loadF Server "data" (![ptrT] "s") in
+    "ret" <-[uint64T] "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+    return: (![uint64T] "ret").
 
 Definition StartServer: val :=
   rec: "StartServer" "me" :=
-    let: "s" := struct.alloc Server (zero_val (struct.t Server)) in
-    struct.storeF Server "mu" "s" (struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)));;
-    struct.storeF Server "data" "s" #0;;
-    struct.storeF Server "currentEpoch" "s" #0;;
-    struct.storeF Server "epoch_cond" "s" (sync.NewCond (struct.loadF Server "mu" "s"));;
-    struct.storeF Server "currHolderActive" "s" #false;;
-    struct.storeF Server "currHolderActive_cond" "s" (sync.NewCond (struct.loadF Server "mu" "s"));;
-    Fork (Server__HeartbeatListener "s");;
-    let: "handlers" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%ht #() in
-    MapInsert "handlers" RPC_ACQUIRE_EPOCH (λ: "args" "reply",
-      let: "dec" := marshal.NewDec "args" in
-      let: "enc" := marshal.NewEnc #8 in
-      marshal.Enc__PutInt "enc" (Server__AcquireEpoch "s" (marshal.Dec__GetInt "dec"));;
-      "reply" <-[slice.T byteT] (marshal.Enc__Finish "enc");;
+    let: "s" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Server (zero_val (struct.t Server)) in
+    "s" <-[ptrT] "$a0";;
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    struct.storeF Server "mu" (![ptrT] "s") "$a0";;
+    let: "$a0" := #0 in
+    struct.storeF Server "data" (![ptrT] "s") "$a0";;
+    let: "$a0" := #0 in
+    struct.storeF Server "currentEpoch" (![ptrT] "s") "$a0";;
+    let: "$a0" := sync.NewCond (struct.loadF Server "mu" (![ptrT] "s")) in
+    struct.storeF Server "epoch_cond" (![ptrT] "s") "$a0";;
+    let: "$a0" := #false in
+    struct.storeF Server "currHolderActive" (![ptrT] "s") "$a0";;
+    let: "$a0" := sync.NewCond (struct.loadF Server "mu" (![ptrT] "s")) in
+    struct.storeF Server "currHolderActive_cond" (![ptrT] "s") "$a0";;
+    Fork (Server__HeartbeatListener (![ptrT] "s");;
+          #());;
+    let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
+    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
+    let: "$a0" := (λ: "args" "reply",
+      let: "dec" := ref_zero (struct.t marshal.Dec) in
+      let: "$a0" := marshal.NewDec (![slice.T byteT] "args") in
+      "dec" <-[struct.t marshal.Dec] "$a0";;
+      let: "enc" := ref_zero (struct.t marshal.Enc) in
+      let: "$a0" := marshal.NewEnc #8 in
+      "enc" <-[struct.t marshal.Enc] "$a0";;
+      marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (Server__AcquireEpoch (![ptrT] "s") (marshal.Dec__GetInt (![struct.t marshal.Dec] "dec")));;
+      let: "$a0" := marshal.Enc__Finish (![struct.t marshal.Enc] "enc") in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    MapInsert "handlers" RPC_GET (λ: "args" "reply",
-      let: "enc" := marshal.NewEnc #8 in
-      marshal.Enc__PutInt "enc" (Server__Get "s");;
-      "reply" <-[slice.T byteT] (marshal.Enc__Finish "enc");;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") RPC_ACQUIRE_EPOCH "$a0";;
+    let: "$a0" := (λ: "args" "reply",
+      let: "enc" := ref_zero (struct.t marshal.Enc) in
+      let: "$a0" := marshal.NewEnc #8 in
+      "enc" <-[struct.t marshal.Enc] "$a0";;
+      marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (Server__Get (![ptrT] "s"));;
+      let: "$a0" := marshal.Enc__Finish (![struct.t marshal.Enc] "enc") in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    MapInsert "handlers" RPC_HB (λ: "args" "reply",
-      let: "dec" := marshal.NewDec "args" in
-      (if: Server__Heartbeat "s" (marshal.Dec__GetInt "dec")
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") RPC_GET "$a0";;
+    let: "$a0" := (λ: "args" "reply",
+      let: "dec" := ref_zero (struct.t marshal.Dec) in
+      let: "$a0" := marshal.NewDec (![slice.T byteT] "args") in
+      "dec" <-[struct.t marshal.Dec] "$a0";;
+      (if: Server__Heartbeat (![ptrT] "s") (marshal.Dec__GetInt (![struct.t marshal.Dec] "dec"))
       then
-        "reply" <-[slice.T byteT] (NewSlice byteT #0);;
+        let: "$a0" := NewSlice byteT #0 in
+        (![ptrT] "reply") <-[slice.T byteT] "$a0";;
         #()
       else
-        "reply" <-[slice.T byteT] (NewSlice byteT #1);;
-        #())
-      );;
-    let: "r" := urpc.MakeServer "handlers" in
-    urpc.Server__Serve "r" "me";;
+        let: "$a0" := NewSlice byteT #1 in
+        (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+        #());;
+      #()
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") RPC_HB "$a0";;
+    let: "r" := ref_zero ptrT in
+    let: "$a0" := urpc.MakeServer (![mapT (arrowT unitT unitT)] "handlers") in
+    "r" <-[ptrT] "$a0";;
+    urpc.Server__Serve (![ptrT] "r") (![uint64T] "me");;
     #().

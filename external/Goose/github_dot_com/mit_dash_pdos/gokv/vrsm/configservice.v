@@ -16,29 +16,32 @@ From Perennial.goose_lang Require Import ffi.grove_prelude.
 
 Definition EncodeConfig: val :=
   rec: "EncodeConfig" "config" :=
-    let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #0 (#8 + (#8 * (slice.len "config")))) in
-    "enc" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "enc") (slice.len "config"));;
-    ForSlice uint64T <> "h" "config"
-      ("enc" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "enc") "h"));;
-    ![slice.T byteT] "enc".
+    let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #0 (#8 + (#8 * (slice.len (![slice.T uint64T] "config"))))) in
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (slice.len (![slice.T uint64T] "config")) in
+    "enc" <-[slice.T byteT] "$a0";;
+    ForSlice uint64T <> "h" (![slice.T uint64T] "config")
+      (let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (![uint64T] "h") in
+      "enc" <-[slice.T byteT] "$a0";;
+      #());;
+    return: (![slice.T byteT] "enc").
 
 Definition DecodeConfig: val :=
   rec: "DecodeConfig" "enc_config" :=
-    let: "enc" := ref_to (slice.T byteT) "enc_config" in
+    let: "enc" := ref_to (slice.T byteT) (![slice.T byteT] "enc_config") in
     let: "configLen" := ref (zero_val uint64T) in
-    let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "enc") in
-    "configLen" <-[uint64T] "0_ret";;
-    "enc" <-[slice.T byteT] "1_ret";;
-    let: "config" := NewSlice uint64T (![uint64T] "configLen") in
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc") in
+    "enc" <-[slice.T byteT] "$a1";;
+    "configLen" <-[uint64T] "$a0";;
+    let: "config" := ref_zero (slice.T uint64T) in
+    let: "$a0" := NewSlice uint64T (![uint64T] "configLen") in
+    "config" <-[slice.T uint64T] "$a0";;
     let: "i" := ref_to uint64T #0 in
-    Skip;;
-    (for: (λ: <>, (![uint64T] "i") < (slice.len "config")); (λ: <>, Skip) := λ: <>,
-      let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "enc") in
-      SliceSet uint64T "config" (![uint64T] "i") "0_ret";;
-      "enc" <-[slice.T byteT] "1_ret";;
+    (for: (λ: <>, (![uint64T] "i") < (slice.len (![slice.T uint64T] "config"))); (λ: <>, Skip) := λ: <>,
+      let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc") in
+      "enc" <-[slice.T byteT] "$a1";;
+      SliceSet uint64T (![slice.T uint64T] "config") (![uint64T] "i") "$a0";;
       "i" <-[uint64T] ((![uint64T] "i") + #1);;
-      Continue);;
-    "config".
+      #()).
 
 (* client.go *)
 
@@ -59,118 +62,151 @@ Definition RPC_GETLEASE : expr := #3.
 Definition MakeClerk: val :=
   rec: "MakeClerk" "hosts" :=
     let: "cls" := ref_to (slice.T ptrT) (NewSlice ptrT #0) in
-    ForSlice uint64T <> "host" "hosts"
-      ("cls" <-[slice.T ptrT] (SliceAppend ptrT (![slice.T ptrT] "cls") (reconnectclient.MakeReconnectingClient "host")));;
-    struct.new Clerk [
-      "cls" ::= ![slice.T ptrT] "cls";
-      "mu" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex))
-    ].
+    ForSlice uint64T <> "host" (![slice.T uint64T] "hosts")
+      (let: "$a0" := SliceAppend ptrT (![slice.T ptrT] "cls") (reconnectclient.MakeReconnectingClient (![uint64T] "host")) in
+      "cls" <-[slice.T ptrT] "$a0";;
+      #());;
+    return: (struct.new Clerk [
+       "cls" ::= ![slice.T ptrT] "cls";
+       "mu" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex))
+     ]).
 
 Definition Clerk__ReserveEpochAndGetConfig: val :=
   rec: "Clerk__ReserveEpochAndGetConfig" "ck" :=
-    let: "reply" := ref (zero_val (slice.T byteT)) in
-    Skip;;
+    let: "reply" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply" <-[ptrT] "$a0";;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      sync.Mutex__Lock (struct.loadF Clerk "mu" "ck");;
-      let: "l" := struct.loadF Clerk "leader" "ck" in
-      sync.Mutex__Unlock (struct.loadF Clerk "mu" "ck");;
-      let: "err" := reconnectclient.ReconnectingClient__Call (SliceGet ptrT (struct.loadF Clerk "cls" "ck") "l") RPC_RESERVEEPOCH (NewSlice byteT #0) "reply" #100 in
-      (if: "err" ≠ #0
+      sync.Mutex__Lock (struct.loadF Clerk "mu" (![ptrT] "ck"));;
+      let: "l" := ref_zero uint64T in
+      let: "$a0" := struct.loadF Clerk "leader" (![ptrT] "ck") in
+      "l" <-[uint64T] "$a0";;
+      sync.Mutex__Unlock (struct.loadF Clerk "mu" (![ptrT] "ck"));;
+      let: "err" := ref_zero uint64T in
+      let: "$a0" := reconnectclient.ReconnectingClient__Call (SliceGet ptrT (struct.loadF Clerk "cls" (![ptrT] "ck")) (![uint64T] "l")) RPC_RESERVEEPOCH (NewSlice byteT #0) (![ptrT] "reply") #100 in
+      "err" <-[uint64T] "$a0";;
+      (if: (![uint64T] "err") ≠ #0
       then Continue
-      else
-        let: "err2" := ref (zero_val uint64T) in
-        let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "reply") in
-        "err2" <-[uint64T] "0_ret";;
-        "reply" <-[slice.T byteT] "1_ret";;
-        (if: (![uint64T] "err2") = e.NotLeader
+      else #());;
+      let: "err2" := ref (zero_val uint64T) in
+      let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] (![ptrT] "reply")) in
+      (![ptrT] "reply") <-[slice.T byteT] "$a1";;
+      "err2" <-[uint64T] "$a0";;
+      (if: (![uint64T] "err2") = e.NotLeader
+      then
+        sync.Mutex__Lock (struct.loadF Clerk "mu" (![ptrT] "ck"));;
+        (if: (![uint64T] "l") = (struct.loadF Clerk "leader" (![ptrT] "ck"))
         then
-          sync.Mutex__Lock (struct.loadF Clerk "mu" "ck");;
-          (if: "l" = (struct.loadF Clerk "leader" "ck")
-          then struct.storeF Clerk "leader" "ck" (((struct.loadF Clerk "leader" "ck") + #1) `rem` (slice.len (struct.loadF Clerk "cls" "ck")))
-          else #());;
-          sync.Mutex__Unlock (struct.loadF Clerk "mu" "ck");;
-          Continue
-        else
-          (if: (![uint64T] "err2") = e.None
-          then Break
-          else Continue))));;
-    let: "epoch" := ref (zero_val uint64T) in
-    let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "reply") in
-    "epoch" <-[uint64T] "0_ret";;
-    "reply" <-[slice.T byteT] "1_ret";;
-    let: "config" := DecodeConfig (![slice.T byteT] "reply") in
-    (![uint64T] "epoch", "config").
+          let: "$a0" := ((struct.loadF Clerk "leader" (![ptrT] "ck")) + #1) `rem` (slice.len (struct.loadF Clerk "cls" (![ptrT] "ck"))) in
+          struct.storeF Clerk "leader" (![ptrT] "ck") "$a0";;
+          #()
+        else #());;
+        sync.Mutex__Unlock (struct.loadF Clerk "mu" (![ptrT] "ck"));;
+        Continue
+      else #());;
+      (if: (![uint64T] "err2") = e.None
+      then Break
+      else #());;
+      #()).
 
 Definition Clerk__GetConfig: val :=
   rec: "Clerk__GetConfig" "ck" :=
-    let: "reply" := ref (zero_val (slice.T byteT)) in
-    Skip;;
+    let: "reply" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply" <-[ptrT] "$a0";;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: "i" := (machine.RandomUint64 #()) `rem` (slice.len (struct.loadF Clerk "cls" "ck")) in
-      let: "err" := reconnectclient.ReconnectingClient__Call (SliceGet ptrT (struct.loadF Clerk "cls" "ck") "i") RPC_GETCONFIG (NewSlice byteT #0) "reply" #100 in
-      (if: "err" = #0
+      let: "i" := ref_zero uint64T in
+      let: "$a0" := (machine.RandomUint64 #()) `rem` (slice.len (struct.loadF Clerk "cls" (![ptrT] "ck"))) in
+      "i" <-[uint64T] "$a0";;
+      let: "err" := ref_zero uint64T in
+      let: "$a0" := reconnectclient.ReconnectingClient__Call (SliceGet ptrT (struct.loadF Clerk "cls" (![ptrT] "ck")) (![uint64T] "i")) RPC_GETCONFIG (NewSlice byteT #0) (![ptrT] "reply") #100 in
+      "err" <-[uint64T] "$a0";;
+      (if: (![uint64T] "err") = #0
       then Break
-      else Continue));;
-    let: "config" := DecodeConfig (![slice.T byteT] "reply") in
-    "config".
+      else #());;
+      Continue).
 
 Definition Clerk__TryWriteConfig: val :=
   rec: "Clerk__TryWriteConfig" "ck" "epoch" "config" :=
-    let: "reply" := ref (zero_val (slice.T byteT)) in
-    let: "args" := ref_to (slice.T byteT) (NewSliceWithCap byteT #0 (#8 + (#8 * (slice.len "config")))) in
-    "args" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "args") "epoch");;
-    "args" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "args") (EncodeConfig "config"));;
-    Skip;;
+    let: "reply" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply" <-[ptrT] "$a0";;
+    let: "args" := ref_to (slice.T byteT) (NewSliceWithCap byteT #0 (#8 + (#8 * (slice.len (![slice.T uint64T] "config"))))) in
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "args") (![uint64T] "epoch") in
+    "args" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "args") (EncodeConfig (![slice.T uint64T] "config")) in
+    "args" <-[slice.T byteT] "$a0";;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      sync.Mutex__Lock (struct.loadF Clerk "mu" "ck");;
-      let: "l" := struct.loadF Clerk "leader" "ck" in
-      sync.Mutex__Unlock (struct.loadF Clerk "mu" "ck");;
-      let: "err" := reconnectclient.ReconnectingClient__Call (SliceGet ptrT (struct.loadF Clerk "cls" "ck") "l") RPC_TRYWRITECONFIG (![slice.T byteT] "args") "reply" #2000 in
-      (if: "err" ≠ #0
+      sync.Mutex__Lock (struct.loadF Clerk "mu" (![ptrT] "ck"));;
+      let: "l" := ref_zero uint64T in
+      let: "$a0" := struct.loadF Clerk "leader" (![ptrT] "ck") in
+      "l" <-[uint64T] "$a0";;
+      sync.Mutex__Unlock (struct.loadF Clerk "mu" (![ptrT] "ck"));;
+      let: "err" := ref_zero uint64T in
+      let: "$a0" := reconnectclient.ReconnectingClient__Call (SliceGet ptrT (struct.loadF Clerk "cls" (![ptrT] "ck")) (![uint64T] "l")) RPC_TRYWRITECONFIG (![slice.T byteT] "args") (![ptrT] "reply") #2000 in
+      "err" <-[uint64T] "$a0";;
+      (if: (![uint64T] "err") ≠ #0
       then Continue
-      else
-        let: ("err2", <>) := marshal.ReadInt (![slice.T byteT] "reply") in
-        (if: "err2" = e.NotLeader
+      else #());;
+      let: <> := ref_zero (slice.T byteT) in
+      let: "err2" := ref_zero uint64T in
+      let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] (![ptrT] "reply")) in
+      "$a1";;
+      "err2" <-[uint64T] "$a0";;
+      (if: (![uint64T] "err2") = e.NotLeader
+      then
+        sync.Mutex__Lock (struct.loadF Clerk "mu" (![ptrT] "ck"));;
+        (if: (![uint64T] "l") = (struct.loadF Clerk "leader" (![ptrT] "ck"))
         then
-          sync.Mutex__Lock (struct.loadF Clerk "mu" "ck");;
-          (if: "l" = (struct.loadF Clerk "leader" "ck")
-          then struct.storeF Clerk "leader" "ck" (((struct.loadF Clerk "leader" "ck") + #1) `rem` (slice.len (struct.loadF Clerk "cls" "ck")))
-          else #());;
-          sync.Mutex__Unlock (struct.loadF Clerk "mu" "ck");;
-          Continue
-        else Break)));;
-    let: ("err", <>) := marshal.ReadInt (![slice.T byteT] "reply") in
-    "err".
+          let: "$a0" := ((struct.loadF Clerk "leader" (![ptrT] "ck")) + #1) `rem` (slice.len (struct.loadF Clerk "cls" (![ptrT] "ck"))) in
+          struct.storeF Clerk "leader" (![ptrT] "ck") "$a0";;
+          #()
+        else #());;
+        sync.Mutex__Unlock (struct.loadF Clerk "mu" (![ptrT] "ck"));;
+        Continue
+      else Break);;
+      #()).
 
 (* returns e.None if the lease was granted for the given epoch, and a conservative
    guess on when the lease expires. *)
 Definition Clerk__GetLease: val :=
   rec: "Clerk__GetLease" "ck" "epoch" :=
-    let: "reply" := ref (zero_val (slice.T byteT)) in
+    let: "reply" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply" <-[ptrT] "$a0";;
     let: "args" := ref_to (slice.T byteT) (NewSliceWithCap byteT #0 #8) in
-    "args" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "args") "epoch");;
-    Skip;;
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "args") (![uint64T] "epoch") in
+    "args" <-[slice.T byteT] "$a0";;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      sync.Mutex__Lock (struct.loadF Clerk "mu" "ck");;
-      let: "l" := struct.loadF Clerk "leader" "ck" in
-      sync.Mutex__Unlock (struct.loadF Clerk "mu" "ck");;
-      let: "err" := reconnectclient.ReconnectingClient__Call (SliceGet ptrT (struct.loadF Clerk "cls" "ck") "l") RPC_GETLEASE (![slice.T byteT] "args") "reply" #100 in
-      (if: "err" ≠ #0
+      sync.Mutex__Lock (struct.loadF Clerk "mu" (![ptrT] "ck"));;
+      let: "l" := ref_zero uint64T in
+      let: "$a0" := struct.loadF Clerk "leader" (![ptrT] "ck") in
+      "l" <-[uint64T] "$a0";;
+      sync.Mutex__Unlock (struct.loadF Clerk "mu" (![ptrT] "ck"));;
+      let: "err" := ref_zero uint64T in
+      let: "$a0" := reconnectclient.ReconnectingClient__Call (SliceGet ptrT (struct.loadF Clerk "cls" (![ptrT] "ck")) (![uint64T] "l")) RPC_GETLEASE (![slice.T byteT] "args") (![ptrT] "reply") #100 in
+      "err" <-[uint64T] "$a0";;
+      (if: (![uint64T] "err") ≠ #0
       then Continue
-      else
-        let: ("err2", <>) := marshal.ReadInt (![slice.T byteT] "reply") in
-        (if: "err2" = e.NotLeader
+      else #());;
+      let: <> := ref_zero (slice.T byteT) in
+      let: "err2" := ref_zero uint64T in
+      let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] (![ptrT] "reply")) in
+      "$a1";;
+      "err2" <-[uint64T] "$a0";;
+      (if: (![uint64T] "err2") = e.NotLeader
+      then
+        sync.Mutex__Lock (struct.loadF Clerk "mu" (![ptrT] "ck"));;
+        (if: (![uint64T] "l") = (struct.loadF Clerk "leader" (![ptrT] "ck"))
         then
-          sync.Mutex__Lock (struct.loadF Clerk "mu" "ck");;
-          (if: "l" = (struct.loadF Clerk "leader" "ck")
-          then struct.storeF Clerk "leader" "ck" (((struct.loadF Clerk "leader" "ck") + #1) `rem` (slice.len (struct.loadF Clerk "cls" "ck")))
-          else #());;
-          sync.Mutex__Unlock (struct.loadF Clerk "mu" "ck");;
-          Continue
-        else Break)));;
-    let: ("err2", "enc") := marshal.ReadInt (![slice.T byteT] "reply") in
-    let: ("leaseExpiration", <>) := marshal.ReadInt "enc" in
-    ("err2", "leaseExpiration").
+          let: "$a0" := ((struct.loadF Clerk "leader" (![ptrT] "ck")) + #1) `rem` (slice.len (struct.loadF Clerk "cls" (![ptrT] "ck"))) in
+          struct.storeF Clerk "leader" (![ptrT] "ck") "$a0";;
+          #()
+        else #());;
+        sync.Mutex__Unlock (struct.loadF Clerk "mu" (![ptrT] "ck"));;
+        Continue
+      else Break);;
+      #()).
 
 (* server.go *)
 
@@ -188,35 +224,49 @@ Definition state := struct.decl [
 Definition encodeState: val :=
   rec: "encodeState" "st" :=
     let: "e" := ref (zero_val (slice.T byteT)) in
-    "e" <-[slice.T byteT] (marshal.WriteInt slice.nil (struct.loadF state "epoch" "st"));;
-    "e" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "e") (struct.loadF state "reservedEpoch" "st"));;
-    "e" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "e") (struct.loadF state "leaseExpiration" "st"));;
-    (if: struct.loadF state "wantLeaseToExpire" "st"
-    then "e" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "e") #1)
-    else "e" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "e") #0));;
-    "e" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "e") (EncodeConfig (struct.loadF state "config" "st")));;
-    ![slice.T byteT] "e".
+    let: "$a0" := marshal.WriteInt slice.nil (struct.loadF state "epoch" (![ptrT] "st")) in
+    "e" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (struct.loadF state "reservedEpoch" (![ptrT] "st")) in
+    "e" <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (struct.loadF state "leaseExpiration" (![ptrT] "st")) in
+    "e" <-[slice.T byteT] "$a0";;
+    (if: struct.loadF state "wantLeaseToExpire" (![ptrT] "st")
+    then
+      let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") #1 in
+      "e" <-[slice.T byteT] "$a0";;
+      #()
+    else
+      let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") #0 in
+      "e" <-[slice.T byteT] "$a0";;
+      #());;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] "e") (EncodeConfig (struct.loadF state "config" (![ptrT] "st"))) in
+    "e" <-[slice.T byteT] "$a0";;
+    return: (![slice.T byteT] "e").
 
 Definition decodeState: val :=
   rec: "decodeState" "e" :=
-    let: "st" := struct.alloc state (zero_val (struct.t state)) in
-    let: "e2" := ref_to (slice.T byteT) "e" in
-    let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "e2") in
-    struct.storeF state "epoch" "st" "0_ret";;
-    "e2" <-[slice.T byteT] "1_ret";;
-    let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "e2") in
-    struct.storeF state "reservedEpoch" "st" "0_ret";;
-    "e2" <-[slice.T byteT] "1_ret";;
-    let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "e2") in
-    struct.storeF state "leaseExpiration" "st" "0_ret";;
-    "e2" <-[slice.T byteT] "1_ret";;
+    let: "st" := ref_zero ptrT in
+    let: "$a0" := struct.alloc state (zero_val (struct.t state)) in
+    "st" <-[ptrT] "$a0";;
+    let: "e2" := ref_to (slice.T byteT) (![slice.T byteT] "e") in
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "e2") in
+    "e2" <-[slice.T byteT] "$a1";;
+    struct.storeF state "epoch" (![ptrT] "st") "$a0";;
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "e2") in
+    "e2" <-[slice.T byteT] "$a1";;
+    struct.storeF state "reservedEpoch" (![ptrT] "st") "$a0";;
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "e2") in
+    "e2" <-[slice.T byteT] "$a1";;
+    struct.storeF state "leaseExpiration" (![ptrT] "st") "$a0";;
     let: "wantExp" := ref (zero_val uint64T) in
-    let: ("0_ret", "1_ret") := marshal.ReadInt (![slice.T byteT] "e2") in
-    "wantExp" <-[uint64T] "0_ret";;
-    "e2" <-[slice.T byteT] "1_ret";;
-    struct.storeF state "wantLeaseToExpire" "st" ((![uint64T] "wantExp") = #1);;
-    struct.storeF state "config" "st" (DecodeConfig (![slice.T byteT] "e2"));;
-    "st".
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "e2") in
+    "e2" <-[slice.T byteT] "$a1";;
+    "wantExp" <-[uint64T] "$a0";;
+    let: "$a0" := (![uint64T] "wantExp") = #1 in
+    struct.storeF state "wantLeaseToExpire" (![ptrT] "st") "$a0";;
+    let: "$a0" := DecodeConfig (![slice.T byteT] "e2") in
+    struct.storeF state "config" (![ptrT] "st") "$a0";;
+    return: (![ptrT] "st").
 
 Definition Server := struct.decl [
   "s" :: ptrT
@@ -224,143 +274,241 @@ Definition Server := struct.decl [
 
 Definition Server__tryAcquire: val :=
   rec: "Server__tryAcquire" "s" :=
-    let: (("err", "e"), "relF") := paxos.Server__TryAcquire (struct.loadF Server "s" "s") in
-    (if: "err" ≠ #0
+    let: "relF" := ref_zero (arrowT unitT unitT) in
+    let: "e" := ref_zero ptrT in
+    let: "err" := ref_zero paxos.Error in
+    let: (("$a0", "$a1"), "$a2") := paxos.Server__TryAcquire (struct.loadF Server "s" (![ptrT] "s")) in
+    "relF" <-[(arrowT unitT unitT)] "$a2";;
+    "e" <-[ptrT] "$a1";;
+    "err" <-[paxos.Error] "$a0";;
+    (if: (![paxos.Error] "err") ≠ #0
     then
       let: "p" := ref (zero_val ptrT) in
-      (#false, ![ptrT] "p", slice.nil)
-    else
-      let: "st" := decodeState (![slice.T byteT] "e") in
-      let: "releaseFn" := (λ: <>,
-        "e" <-[slice.T byteT] (encodeState "st");;
-        ("relF" #()) = #0
-        ) in
-      (#true, "st", "releaseFn")).
+      return: (#false, ![ptrT] "p", slice.nil)
+    else #());;
+    let: "st" := ref_zero ptrT in
+    let: "$a0" := decodeState (![slice.T byteT] (![ptrT] "e")) in
+    "st" <-[ptrT] "$a0";;
+    let: "releaseFn" := ref_zero (arrowT unitT unitT) in
+    let: "$a0" := (λ: <>,
+      let: "$a0" := encodeState (![ptrT] "st") in
+      (![ptrT] "e") <-[slice.T byteT] "$a0";;
+      return: (((![(arrowT unitT unitT)] "relF") #()) = #0)
+      ) in
+    "releaseFn" <-[(arrowT unitT unitT)] "$a0";;
+    return: (#true, ![ptrT] "st", ![(arrowT unitT unitT)] "releaseFn").
 
 Definition Server__ReserveEpochAndGetConfig: val :=
   rec: "Server__ReserveEpochAndGetConfig" "s" "args" "reply" :=
-    "reply" <-[slice.T byteT] (marshal.WriteInt slice.nil e.NotLeader);;
-    let: (("ok", "st"), "tryReleaseFn") := Server__tryAcquire "s" in
-    (if: (~ "ok")
-    then #()
-    else
-      struct.storeF state "reservedEpoch" "st" (std.SumAssumeNoOverflow (struct.loadF state "reservedEpoch" "st") #1);;
-      let: "config" := struct.loadF state "config" "st" in
-      let: "reservedEpoch" := struct.loadF state "reservedEpoch" "st" in
-      (if: (~ ("tryReleaseFn" #()))
-      then #()
-      else
-        "reply" <-[slice.T byteT] (NewSliceWithCap byteT #0 ((#8 + #8) + (#8 * (slice.len "config"))));;
-        "reply" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "reply") e.None);;
-        "reply" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "reply") "reservedEpoch");;
-        "reply" <-[slice.T byteT] (marshal.WriteBytes (![slice.T byteT] "reply") (EncodeConfig "config"));;
-        #())).
+    let: "$a0" := marshal.WriteInt slice.nil e.NotLeader in
+    (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+    let: "tryReleaseFn" := ref_zero (arrowT unitT unitT) in
+    let: "st" := ref_zero ptrT in
+    let: "ok" := ref_zero boolT in
+    let: (("$a0", "$a1"), "$a2") := Server__tryAcquire (![ptrT] "s") in
+    "tryReleaseFn" <-[(arrowT unitT unitT)] "$a2";;
+    "st" <-[ptrT] "$a1";;
+    "ok" <-[boolT] "$a0";;
+    (if: (~ (![boolT] "ok"))
+    then return: (#())
+    else #());;
+    let: "$a0" := std.SumAssumeNoOverflow (struct.loadF state "reservedEpoch" (![ptrT] "st")) #1 in
+    struct.storeF state "reservedEpoch" (![ptrT] "st") "$a0";;
+    let: "config" := ref_zero (slice.T uint64T) in
+    let: "$a0" := struct.loadF state "config" (![ptrT] "st") in
+    "config" <-[slice.T uint64T] "$a0";;
+    let: "reservedEpoch" := ref_zero uint64T in
+    let: "$a0" := struct.loadF state "reservedEpoch" (![ptrT] "st") in
+    "reservedEpoch" <-[uint64T] "$a0";;
+    (if: (~ ((![(arrowT unitT unitT)] "tryReleaseFn") #()))
+    then return: (#())
+    else #());;
+    let: "$a0" := NewSliceWithCap byteT #0 ((#8 + #8) + (#8 * (slice.len (![slice.T uint64T] "config")))) in
+    (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] (![ptrT] "reply")) e.None in
+    (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] (![ptrT] "reply")) (![uint64T] "reservedEpoch") in
+    (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteBytes (![slice.T byteT] (![ptrT] "reply")) (EncodeConfig (![slice.T uint64T] "config")) in
+    (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+    #().
 
 Definition Server__GetConfig: val :=
   rec: "Server__GetConfig" "s" "args" "reply" :=
-    let: "st" := decodeState (paxos.Server__WeakRead (struct.loadF Server "s" "s")) in
-    "reply" <-[slice.T byteT] (EncodeConfig (struct.loadF state "config" "st"));;
+    let: "st" := ref_zero ptrT in
+    let: "$a0" := decodeState (paxos.Server__WeakRead (struct.loadF Server "s" (![ptrT] "s"))) in
+    "st" <-[ptrT] "$a0";;
+    let: "$a0" := EncodeConfig (struct.loadF state "config" (![ptrT] "st")) in
+    (![ptrT] "reply") <-[slice.T byteT] "$a0";;
     #().
 
 Definition Server__TryWriteConfig: val :=
   rec: "Server__TryWriteConfig" "s" "args" "reply" :=
-    "reply" <-[slice.T byteT] (marshal.WriteInt slice.nil e.NotLeader);;
-    let: ("epoch", "enc") := marshal.ReadInt "args" in
-    let: "config" := DecodeConfig "enc" in
-    Skip;;
+    let: "$a0" := marshal.WriteInt slice.nil e.NotLeader in
+    (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+    let: "enc" := ref_zero (slice.T byteT) in
+    let: "epoch" := ref_zero uint64T in
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "args") in
+    "enc" <-[slice.T byteT] "$a1";;
+    "epoch" <-[uint64T] "$a0";;
+    let: "config" := ref_zero (slice.T uint64T) in
+    let: "$a0" := DecodeConfig (![slice.T byteT] "enc") in
+    "config" <-[slice.T uint64T] "$a0";;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
-      let: (("ok", "st"), "tryReleaseFn") := Server__tryAcquire "s" in
-      (if: (~ "ok")
+      let: "tryReleaseFn" := ref_zero (arrowT unitT unitT) in
+      let: "st" := ref_zero ptrT in
+      let: "ok" := ref_zero boolT in
+      let: (("$a0", "$a1"), "$a2") := Server__tryAcquire (![ptrT] "s") in
+      "tryReleaseFn" <-[(arrowT unitT unitT)] "$a2";;
+      "st" <-[ptrT] "$a1";;
+      "ok" <-[boolT] "$a0";;
+      (if: (~ (![boolT] "ok"))
       then Break
+      else #());;
+      (if: (![uint64T] "epoch") < (struct.loadF state "reservedEpoch" (![ptrT] "st"))
+      then
+        (if: (~ ((![(arrowT unitT unitT)] "tryReleaseFn") #()))
+        then Break
+        else #());;
+        let: "$a0" := marshal.WriteInt slice.nil e.Stale in
+        (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+        log.Printf #(str"Stale: %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING) < %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "epoch") (struct.loadF state "reservedEpoch" (![ptrT] "st"));;
+        Break
       else
-        (if: "epoch" < (struct.loadF state "reservedEpoch" "st")
+        (if: (![uint64T] "epoch") > (struct.loadF state "epoch" (![ptrT] "st"))
         then
-          (if: (~ ("tryReleaseFn" #()))
-          then Break
-          else
-            "reply" <-[slice.T byteT] (marshal.WriteInt slice.nil e.Stale);;
-            (* log.Printf("Stale: %d < %d", epoch, st.reservedEpoch) *)
-            Break)
-        else
-          (if: "epoch" > (struct.loadF state "epoch" "st")
+          let: <> := ref_zero uint64T in
+          let: "l" := ref_zero uint64T in
+          let: ("$a0", "$a1") := grove__ffi.GetTimeRange #() in
+          "$a1";;
+          "l" <-[uint64T] "$a0";;
+          (if: (![uint64T] "l") ≥ (struct.loadF state "leaseExpiration" (![ptrT] "st"))
           then
-            let: ("l", <>) := grove__ffi.GetTimeRange #() in
-            (if: "l" ≥ (struct.loadF state "leaseExpiration" "st")
-            then
-              struct.storeF state "wantLeaseToExpire" "st" #false;;
-              struct.storeF state "epoch" "st" "epoch";;
-              struct.storeF state "config" "st" "config";;
-              (if: (~ ("tryReleaseFn" #()))
-              then Break
-              else
-                (* log.Println("New config is:", st.config) *)
-                "reply" <-[slice.T byteT] (marshal.WriteInt slice.nil e.None);;
-                Break)
-            else
-              struct.storeF state "wantLeaseToExpire" "st" #true;;
-              let: "timeToSleep" := (struct.loadF state "leaseExpiration" "st") - "l" in
-              (if: (~ ("tryReleaseFn" #()))
-              then Break
-              else
-                machine.Sleep "timeToSleep";;
-                Continue))
-          else
-            struct.storeF state "config" "st" "config";;
-            (if: (~ ("tryReleaseFn" #()))
+            let: "$a0" := #false in
+            struct.storeF state "wantLeaseToExpire" (![ptrT] "st") "$a0";;
+            let: "$a0" := ![uint64T] "epoch" in
+            struct.storeF state "epoch" (![ptrT] "st") "$a0";;
+            let: "$a0" := ![slice.T uint64T] "config" in
+            struct.storeF state "config" (![ptrT] "st") "$a0";;
+            (if: (~ ((![(arrowT unitT unitT)] "tryReleaseFn") #()))
             then Break
-            else
-              "reply" <-[slice.T byteT] (marshal.WriteInt slice.nil e.None);;
-              Break)))));;
-    #().
+            else #());;
+            log.Println #(str"New config is:") (struct.loadF state "config" (![ptrT] "st"));;
+            let: "$a0" := marshal.WriteInt slice.nil e.None in
+            (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+            Break
+          else
+            let: "$a0" := #true in
+            struct.storeF state "wantLeaseToExpire" (![ptrT] "st") "$a0";;
+            let: "timeToSleep" := ref_zero uint64T in
+            let: "$a0" := (struct.loadF state "leaseExpiration" (![ptrT] "st")) - (![uint64T] "l") in
+            "timeToSleep" <-[uint64T] "$a0";;
+            (if: (~ ((![(arrowT unitT unitT)] "tryReleaseFn") #()))
+            then Break
+            else #());;
+            machine.Sleep (![uint64T] "timeToSleep");;
+            Continue);;
+          #()
+        else
+          let: "$a0" := ![slice.T uint64T] "config" in
+          struct.storeF state "config" (![ptrT] "st") "$a0";;
+          (if: (~ ((![(arrowT unitT unitT)] "tryReleaseFn") #()))
+          then Break
+          else #());;
+          let: "$a0" := marshal.WriteInt slice.nil e.None in
+          (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+          Break);;
+        #());;
+      #()).
 
 Definition Server__GetLease: val :=
   rec: "Server__GetLease" "s" "args" "reply" :=
-    "reply" <-[slice.T byteT] (marshal.WriteInt slice.nil e.NotLeader);;
-    "reply" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "reply") #0);;
-    let: ("epoch", <>) := marshal.ReadInt "args" in
-    let: (("ok", "st"), "tryReleaseFn") := Server__tryAcquire "s" in
-    (if: (~ "ok")
-    then #()
-    else
-      (if: ((struct.loadF state "epoch" "st") ≠ "epoch") || (struct.loadF state "wantLeaseToExpire" "st")
-      then
-        (* log.Println("Rejected lease request", epoch, st.epoch, st.wantLeaseToExpire) *)
-        (if: (~ ("tryReleaseFn" #()))
-        then #()
-        else
-          "reply" <-[slice.T byteT] (marshal.WriteInt slice.nil e.Stale);;
-          "reply" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "reply") #0);;
-          #())
-      else
-        let: ("l", <>) := grove__ffi.GetTimeRange #() in
-        let: "newLeaseExpiration" := "l" + LeaseInterval in
-        (if: "newLeaseExpiration" > (struct.loadF state "leaseExpiration" "st")
-        then struct.storeF state "leaseExpiration" "st" "newLeaseExpiration"
-        else #());;
-        (if: (~ ("tryReleaseFn" #()))
-        then #()
-        else
-          "reply" <-[slice.T byteT] (marshal.WriteInt slice.nil e.None);;
-          "reply" <-[slice.T byteT] (marshal.WriteInt (![slice.T byteT] "reply") "newLeaseExpiration");;
-          #()))).
+    let: "$a0" := marshal.WriteInt slice.nil e.NotLeader in
+    (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] (![ptrT] "reply")) #0 in
+    (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+    let: <> := ref_zero (slice.T byteT) in
+    let: "epoch" := ref_zero uint64T in
+    let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "args") in
+    "$a1";;
+    "epoch" <-[uint64T] "$a0";;
+    let: "tryReleaseFn" := ref_zero (arrowT unitT unitT) in
+    let: "st" := ref_zero ptrT in
+    let: "ok" := ref_zero boolT in
+    let: (("$a0", "$a1"), "$a2") := Server__tryAcquire (![ptrT] "s") in
+    "tryReleaseFn" <-[(arrowT unitT unitT)] "$a2";;
+    "st" <-[ptrT] "$a1";;
+    "ok" <-[boolT] "$a0";;
+    (if: (~ (![boolT] "ok"))
+    then return: (#())
+    else #());;
+    (if: ((struct.loadF state "epoch" (![ptrT] "st")) ≠ (![uint64T] "epoch")) || (struct.loadF state "wantLeaseToExpire" (![ptrT] "st"))
+    then
+      log.Println #(str"Rejected lease request") (![uint64T] "epoch") (struct.loadF state "epoch" (![ptrT] "st")) (struct.loadF state "wantLeaseToExpire" (![ptrT] "st"));;
+      (if: (~ ((![(arrowT unitT unitT)] "tryReleaseFn") #()))
+      then return: (#())
+      else #());;
+      let: "$a0" := marshal.WriteInt slice.nil e.Stale in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+      let: "$a0" := marshal.WriteInt (![slice.T byteT] (![ptrT] "reply")) #0 in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+      return: (#())
+    else #());;
+    let: <> := ref_zero uint64T in
+    let: "l" := ref_zero uint64T in
+    let: ("$a0", "$a1") := grove__ffi.GetTimeRange #() in
+    "$a1";;
+    "l" <-[uint64T] "$a0";;
+    let: "newLeaseExpiration" := ref_zero uint64T in
+    let: "$a0" := (![uint64T] "l") + LeaseInterval in
+    "newLeaseExpiration" <-[uint64T] "$a0";;
+    (if: (![uint64T] "newLeaseExpiration") > (struct.loadF state "leaseExpiration" (![ptrT] "st"))
+    then
+      let: "$a0" := ![uint64T] "newLeaseExpiration" in
+      struct.storeF state "leaseExpiration" (![ptrT] "st") "$a0";;
+      #()
+    else #());;
+    (if: (~ ((![(arrowT unitT unitT)] "tryReleaseFn") #()))
+    then return: (#())
+    else #());;
+    let: "$a0" := marshal.WriteInt slice.nil e.None in
+    (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+    let: "$a0" := marshal.WriteInt (![slice.T byteT] (![ptrT] "reply")) (![uint64T] "newLeaseExpiration") in
+    (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+    #().
 
 Definition makeServer: val :=
   rec: "makeServer" "fname" "paxosMe" "hosts" "initconfig" :=
-    let: "s" := struct.alloc Server (zero_val (struct.t Server)) in
-    let: "initEnc" := encodeState (struct.new state [
-      "config" ::= "initconfig"
+    let: "s" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Server (zero_val (struct.t Server)) in
+    "s" <-[ptrT] "$a0";;
+    let: "initEnc" := ref_zero (slice.T byteT) in
+    let: "$a0" := encodeState (struct.new state [
+      "config" ::= ![slice.T uint64T] "initconfig"
     ]) in
-    struct.storeF Server "s" "s" (paxos.StartServer "fname" "initEnc" "paxosMe" "hosts");;
-    "s".
+    "initEnc" <-[slice.T byteT] "$a0";;
+    let: "$a0" := paxos.StartServer (![stringT] "fname") (![slice.T byteT] "initEnc") (![uint64T] "paxosMe") (![slice.T uint64T] "hosts") in
+    struct.storeF Server "s" (![ptrT] "s") "$a0";;
+    return: (![ptrT] "s").
 
 Definition StartServer: val :=
   rec: "StartServer" "fname" "me" "paxosMe" "hosts" "initconfig" :=
-    let: "s" := makeServer "fname" "paxosMe" "hosts" "initconfig" in
-    let: "handlers" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%ht #() in
-    MapInsert "handlers" RPC_RESERVEEPOCH (Server__ReserveEpochAndGetConfig "s");;
-    MapInsert "handlers" RPC_GETCONFIG (Server__GetConfig "s");;
-    MapInsert "handlers" RPC_TRYWRITECONFIG (Server__TryWriteConfig "s");;
-    MapInsert "handlers" RPC_GETLEASE (Server__GetLease "s");;
-    let: "rs" := urpc.MakeServer "handlers" in
-    urpc.Server__Serve "rs" "me";;
-    "s".
+    let: "s" := ref_zero ptrT in
+    let: "$a0" := makeServer (![stringT] "fname") (![uint64T] "paxosMe") (![slice.T uint64T] "hosts") (![slice.T uint64T] "initconfig") in
+    "s" <-[ptrT] "$a0";;
+    let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
+    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
+    let: "$a0" := Server__ReserveEpochAndGetConfig (![ptrT] "s") in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") RPC_RESERVEEPOCH "$a0";;
+    let: "$a0" := Server__GetConfig (![ptrT] "s") in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") RPC_GETCONFIG "$a0";;
+    let: "$a0" := Server__TryWriteConfig (![ptrT] "s") in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") RPC_TRYWRITECONFIG "$a0";;
+    let: "$a0" := Server__GetLease (![ptrT] "s") in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") RPC_GETLEASE "$a0";;
+    let: "rs" := ref_zero ptrT in
+    let: "$a0" := urpc.MakeServer (![mapT (arrowT unitT unitT)] "handlers") in
+    "rs" <-[ptrT] "$a0";;
+    urpc.Server__Serve (![ptrT] "rs") (![uint64T] "me");;
+    return: (![ptrT] "s").

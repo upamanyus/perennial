@@ -13,23 +13,21 @@ Definition Clerk := struct.decl [
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "host" :=
-    struct.new Clerk [
-      "cl" ::= urpc.MakeClient "host"
-    ].
+    return: (struct.new Clerk [
+       "cl" ::= urpc.MakeClient (![uint64T] "host")
+     ]).
 
 Definition Clerk__Prepare: val :=
   rec: "Clerk__Prepare" "ck" "pn" "reply" :=
     #().
 
-(* ValType from common.go *)
-
-Definition ValType: ty := uint64T.
-
 Definition Clerk__Propose: val :=
   rec: "Clerk__Propose" "ck" "Pn" "Val" :=
-    #false.
+    return: (#false).
 
 (* common.go *)
+
+Definition ValType: ty := uint64T.
 
 Definition PREPARE : expr := #1.
 
@@ -37,13 +35,12 @@ Definition PROPOSE : expr := #2.
 
 (* singleslot.go *)
 
-(* This isn't quite paxos *)
 Definition Replica := struct.decl [
   "mu" :: ptrT;
   "promisedPN" :: uint64T;
   "acceptedPN" :: uint64T;
-  "acceptedVal" :: ValType;
-  "committedVal" :: ValType;
+  "acceptedVal" :: uint64T;
+  "committedVal" :: uint64T;
   "peers" :: slice.T ptrT
 ].
 
@@ -55,89 +52,138 @@ Definition PrepareReply := struct.decl [
 
 Definition Replica__PrepareRPC: val :=
   rec: "Replica__PrepareRPC" "r" "pn" "reply" :=
-    sync.Mutex__Lock (struct.loadF Replica "mu" "r");;
-    (if: "pn" > (struct.loadF Replica "promisedPN" "r")
+    sync.Mutex__Lock (struct.loadF Replica "mu" (![ptrT] "r"));;
+    (if: (![uint64T] "pn") > (struct.loadF Replica "promisedPN" (![ptrT] "r"))
     then
-      struct.storeF Replica "promisedPN" "r" "pn";;
-      struct.storeF PrepareReply "Pn" "reply" (struct.loadF Replica "acceptedPN" "r");;
-      struct.storeF PrepareReply "Val" "reply" (struct.loadF Replica "acceptedVal" "r");;
-      struct.storeF PrepareReply "Success" "reply" #true
+      let: "$a0" := ![uint64T] "pn" in
+      struct.storeF Replica "promisedPN" (![ptrT] "r") "$a0";;
+      let: "$a0" := struct.loadF Replica "acceptedPN" (![ptrT] "r") in
+      struct.storeF PrepareReply "Pn" (![ptrT] "reply") "$a0";;
+      let: "$a0" := struct.loadF Replica "acceptedVal" (![ptrT] "r") in
+      struct.storeF PrepareReply "Val" (![ptrT] "reply") "$a0";;
+      let: "$a0" := #true in
+      struct.storeF PrepareReply "Success" (![ptrT] "reply") "$a0";;
+      #()
     else
-      struct.storeF PrepareReply "Success" "reply" #false;;
-      struct.storeF PrepareReply "Pn" "reply" (struct.loadF Replica "promisedPN" "r"));;
-    sync.Mutex__Unlock (struct.loadF Replica "mu" "r");;
+      let: "$a0" := #false in
+      struct.storeF PrepareReply "Success" (![ptrT] "reply") "$a0";;
+      let: "$a0" := struct.loadF Replica "promisedPN" (![ptrT] "r") in
+      struct.storeF PrepareReply "Pn" (![ptrT] "reply") "$a0";;
+      #());;
+    sync.Mutex__Unlock (struct.loadF Replica "mu" (![ptrT] "r"));;
     #().
 
 Definition ProposeArgs := struct.decl [
   "Pn" :: uint64T;
-  "Val" :: ValType
+  "Val" :: uint64T
 ].
 
 Definition Replica__ProposeRPC: val :=
   rec: "Replica__ProposeRPC" "r" "pn" "val" :=
-    sync.Mutex__Lock (struct.loadF Replica "mu" "r");;
-    (if: ("pn" ≥ (struct.loadF Replica "promisedPN" "r")) && ("pn" ≥ (struct.loadF Replica "acceptedPN" "r"))
+    sync.Mutex__Lock (struct.loadF Replica "mu" (![ptrT] "r"));;
+    (if: ((![uint64T] "pn") ≥ (struct.loadF Replica "promisedPN" (![ptrT] "r"))) && ((![uint64T] "pn") ≥ (struct.loadF Replica "acceptedPN" (![ptrT] "r")))
     then
-      struct.storeF Replica "acceptedVal" "r" "val";;
-      struct.storeF Replica "acceptedPN" "r" "pn";;
-      sync.Mutex__Unlock (struct.loadF Replica "mu" "r");;
-      #true
+      let: "$a0" := ![uint64T] "val" in
+      struct.storeF Replica "acceptedVal" (![ptrT] "r") "$a0";;
+      let: "$a0" := ![uint64T] "pn" in
+      struct.storeF Replica "acceptedPN" (![ptrT] "r") "$a0";;
+      sync.Mutex__Unlock (struct.loadF Replica "mu" (![ptrT] "r"));;
+      return: (#true)
     else
-      sync.Mutex__Unlock (struct.loadF Replica "mu" "r");;
-      #false).
+      sync.Mutex__Unlock (struct.loadF Replica "mu" (![ptrT] "r"));;
+      return: (#false));;
+    #().
 
 (* returns true iff there was an error *)
 Definition Replica__TryDecide: val :=
   rec: "Replica__TryDecide" "r" "v" "outv" :=
-    sync.Mutex__Lock (struct.loadF Replica "mu" "r");;
-    let: "pn" := (struct.loadF Replica "promisedPN" "r") + #1 in
-    sync.Mutex__Unlock (struct.loadF Replica "mu" "r");;
+    sync.Mutex__Lock (struct.loadF Replica "mu" (![ptrT] "r"));;
+    let: "pn" := ref_zero uint64T in
+    let: "$a0" := (struct.loadF Replica "promisedPN" (![ptrT] "r")) + #1 in
+    "pn" <-[uint64T] "$a0";;
+    sync.Mutex__Unlock (struct.loadF Replica "mu" (![ptrT] "r"));;
     let: "numPrepared" := ref (zero_val uint64T) in
-    "numPrepared" <-[uint64T] #0;;
+    let: "$a0" := #0 in
+    "numPrepared" <-[uint64T] "$a0";;
     let: "highestPn" := ref (zero_val uint64T) in
-    "highestPn" <-[uint64T] #0;;
+    let: "$a0" := #0 in
+    "highestPn" <-[uint64T] "$a0";;
     let: "highestVal" := ref (zero_val uint64T) in
-    "highestVal" <-[uint64T] "v";;
-    let: "mu" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
-    ForSlice ptrT <> "peer" (struct.loadF Replica "peers" "r")
-      (let: "local_peer" := "peer" in
-      Fork (let: "reply_ptr" := struct.alloc PrepareReply (zero_val (struct.t PrepareReply)) in
-            Clerk__Prepare "local_peer" "pn" "reply_ptr";;
-            (if: struct.loadF PrepareReply "Success" "reply_ptr"
+    let: "$a0" := ![uint64T] "v" in
+    "highestVal" <-[uint64T] "$a0";;
+    let: "mu" := ref_zero ptrT in
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    "mu" <-[ptrT] "$a0";;
+    ForSlice ptrT <> "peer" (struct.loadF Replica "peers" (![ptrT] "r"))
+      (let: "local_peer" := ref_zero ptrT in
+      let: "$a0" := ![ptrT] "peer" in
+      "local_peer" <-[ptrT] "$a0";;
+      Fork (let: "reply_ptr" := ref_zero ptrT in
+            let: "$a0" := struct.alloc PrepareReply (zero_val (struct.t PrepareReply)) in
+            "reply_ptr" <-[ptrT] "$a0";;
+            Clerk__Prepare (![ptrT] "local_peer") (![uint64T] "pn") (![ptrT] "reply_ptr");;
+            (if: struct.loadF PrepareReply "Success" (![ptrT] "reply_ptr")
             then
-              sync.Mutex__Lock "mu";;
-              "numPrepared" <-[uint64T] ((![uint64T] "numPrepared") + #1);;
-              (if: (struct.loadF PrepareReply "Pn" "reply_ptr") > (![uint64T] "highestPn")
+              sync.Mutex__Lock (![ptrT] "mu");;
+              let: "$a0" := (![uint64T] "numPrepared") + #1 in
+              "numPrepared" <-[uint64T] "$a0";;
+              (if: (struct.loadF PrepareReply "Pn" (![ptrT] "reply_ptr")) > (![uint64T] "highestPn")
               then
-                "highestVal" <-[uint64T] (struct.loadF PrepareReply "Val" "reply_ptr");;
-                "highestPn" <-[uint64T] (struct.loadF PrepareReply "Pn" "reply_ptr")
+                let: "$a0" := struct.loadF PrepareReply "Val" (![ptrT] "reply_ptr") in
+                "highestVal" <-[uint64T] "$a0";;
+                let: "$a0" := struct.loadF PrepareReply "Pn" (![ptrT] "reply_ptr") in
+                "highestPn" <-[uint64T] "$a0";;
+                #()
               else #());;
-              sync.Mutex__Unlock "mu"
-            else #())));;
-    sync.Mutex__Lock "mu";;
-    let: "n" := ![uint64T] "numPrepared" in
-    let: "proposeVal" := ![uint64T] "highestVal" in
-    sync.Mutex__Unlock "mu";;
-    (if: (#2 * "n") > (slice.len (struct.loadF Replica "peers" "r"))
+              sync.Mutex__Unlock (![ptrT] "mu");;
+              #()
+            else #());;
+            #());;
+      #());;
+    sync.Mutex__Lock (![ptrT] "mu");;
+    let: "n" := ref_zero uint64T in
+    let: "$a0" := ![uint64T] "numPrepared" in
+    "n" <-[uint64T] "$a0";;
+    let: "proposeVal" := ref_zero uint64T in
+    let: "$a0" := ![uint64T] "highestVal" in
+    "proposeVal" <-[uint64T] "$a0";;
+    sync.Mutex__Unlock (![ptrT] "mu");;
+    (if: (#2 * (![uint64T] "n")) > (slice.len (struct.loadF Replica "peers" (![ptrT] "r")))
     then
-      let: "mu2" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+      let: "mu2" := ref_zero ptrT in
+      let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+      "mu2" <-[ptrT] "$a0";;
       let: "numAccepted" := ref (zero_val uint64T) in
-      "numAccepted" <-[uint64T] #0;;
-      ForSlice ptrT <> "peer" (struct.loadF Replica "peers" "r")
-        (let: "local_peer" := "peer" in
-        Fork (let: "r" := Clerk__Propose "local_peer" "pn" "proposeVal" in
-              (if: "r"
+      let: "$a0" := #0 in
+      "numAccepted" <-[uint64T] "$a0";;
+      ForSlice ptrT <> "peer" (struct.loadF Replica "peers" (![ptrT] "r"))
+        (let: "local_peer" := ref_zero ptrT in
+        let: "$a0" := ![ptrT] "peer" in
+        "local_peer" <-[ptrT] "$a0";;
+        Fork (let: "r" := ref_zero boolT in
+              let: "$a0" := Clerk__Propose (![ptrT] "local_peer") (![uint64T] "pn") (![uint64T] "proposeVal") in
+              "r" <-[boolT] "$a0";;
+              (if: ![boolT] "r"
               then
-                sync.Mutex__Lock "mu2";;
-                "numAccepted" <-[uint64T] ((![uint64T] "numAccepted") + #1);;
-                sync.Mutex__Unlock "mu2"
-              else #())));;
-      sync.Mutex__Lock "mu2";;
-      let: "n" := ![uint64T] "numAccepted" in
-      sync.Mutex__Unlock "mu2";;
-      (if: (#2 * "n") > (slice.len (struct.loadF Replica "peers" "r"))
+                sync.Mutex__Lock (![ptrT] "mu2");;
+                let: "$a0" := (![uint64T] "numAccepted") + #1 in
+                "numAccepted" <-[uint64T] "$a0";;
+                sync.Mutex__Unlock (![ptrT] "mu2");;
+                #()
+              else #());;
+              #());;
+        #());;
+      sync.Mutex__Lock (![ptrT] "mu2");;
+      let: "n" := ref_zero uint64T in
+      let: "$a0" := ![uint64T] "numAccepted" in
+      "n" <-[uint64T] "$a0";;
+      sync.Mutex__Unlock (![ptrT] "mu2");;
+      (if: (#2 * (![uint64T] "n")) > (slice.len (struct.loadF Replica "peers" (![ptrT] "r")))
       then
-        "outv" <-[uint64T] "proposeVal";;
-        #false
-      else #true)
-    else #true).
+        let: "$a0" := ![uint64T] "proposeVal" in
+        (![ptrT] "outv") <-[uint64T] "$a0";;
+        return: (#false)
+      else return: (#true));;
+      #()
+    else return: (#true));;
+    #().

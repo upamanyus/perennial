@@ -13,79 +13,52 @@ From Perennial.goose_lang Require Import ffi.grove_prelude.
 
 Definition EnterNewConfig: val :=
   rec: "EnterNewConfig" "configHosts" "servers" :=
-    (if: (slice.len "servers") = #0
+    (if: (slice.len (![slice.T uint64T] "servers")) = #0
     then
-      (* log.Println("Tried creating empty config") *)
-      e.EmptyConfig
-    else
-      let: "configCk" := configservice.MakeClerk "configHosts" in
-      let: ("epoch", "oldServers") := configservice.Clerk__ReserveEpochAndGetConfig "configCk" in
-      (* log.Printf("Reserved %d", epoch) *)
-      let: "id" := ((machine.RandomUint64 #()) + #1) `rem` (slice.len "oldServers") in
-      let: "oldClerk" := replica.MakeClerk (SliceGet uint64T "oldServers" "id") in
-      let: "reply" := replica.Clerk__GetState "oldClerk" (struct.new replica.GetStateArgs [
-        "Epoch" ::= "epoch"
-      ]) in
-      (if: (struct.loadF replica.GetStateReply "Err" "reply") ≠ e.None
-      then
-        (* log.Printf("Error while getting state and sealing in epoch %d", epoch) *)
-        struct.loadF replica.GetStateReply "Err" "reply"
-      else
-        let: "clerks" := NewSlice ptrT (slice.len "servers") in
-        let: "i" := ref_to uint64T #0 in
-        Skip;;
-        (for: (λ: <>, (![uint64T] "i") < (slice.len "clerks")); (λ: <>, Skip) := λ: <>,
-          SliceSet ptrT "clerks" (![uint64T] "i") (replica.MakeClerk (SliceGet uint64T "servers" (![uint64T] "i")));;
-          "i" <-[uint64T] ((![uint64T] "i") + #1);;
-          Continue);;
-        let: "wg" := struct.alloc sync.WaitGroup (zero_val (struct.t sync.WaitGroup)) in
-        let: "errs" := NewSlice uint64T (slice.len "clerks") in
-        "i" <-[uint64T] #0;;
-        Skip;;
-        (for: (λ: <>, (![uint64T] "i") < (slice.len "clerks")); (λ: <>, Skip) := λ: <>,
-          sync.WaitGroup__Add "wg" #1;;
-          let: "clerk" := SliceGet ptrT "clerks" (![uint64T] "i") in
-          let: "locali" := ![uint64T] "i" in
-          Fork (SliceSet uint64T "errs" "locali" (replica.Clerk__SetState "clerk" (struct.new replica.SetStateArgs [
-                  "Epoch" ::= "epoch";
-                  "State" ::= struct.loadF replica.GetStateReply "State" "reply";
-                  "NextIndex" ::= struct.loadF replica.GetStateReply "NextIndex" "reply";
-                  "CommittedNextIndex" ::= struct.loadF replica.GetStateReply "CommittedNextIndex" "reply"
-                ]));;
-                sync.WaitGroup__Done "wg");;
-          "i" <-[uint64T] ((![uint64T] "i") + #1);;
-          Continue);;
-        sync.WaitGroup__Wait "wg";;
-        let: "err" := ref_to uint64T e.None in
-        "i" <-[uint64T] #0;;
-        Skip;;
-        (for: (λ: <>, (![uint64T] "i") < (slice.len "errs")); (λ: <>, Skip) := λ: <>,
-          let: "err2" := SliceGet uint64T "errs" (![uint64T] "i") in
-          (if: "err2" ≠ e.None
-          then "err" <-[uint64T] "err2"
-          else #());;
-          "i" <-[uint64T] ((![uint64T] "i") + #1);;
-          Continue);;
-        (if: (![uint64T] "err") ≠ e.None
-        then
-          (* log.Println("Error while setting state and entering new epoch") *)
-          ![uint64T] "err"
-        else
-          (if: (configservice.Clerk__TryWriteConfig "configCk" "epoch" "servers") ≠ e.None
-          then
-            (* log.Println("Error while writing to config service") *)
-            e.Stale
-          else
-            replica.Clerk__BecomePrimary (SliceGet ptrT "clerks" #0) (struct.new replica.BecomePrimaryArgs [
-              "Epoch" ::= "epoch";
-              "Replicas" ::= "servers"
-            ]);;
-            e.None)))).
+      log.Println #(str"Tried creating empty config");;
+      return: (e.EmptyConfig)
+    else #());;
+    let: "configCk" := ref_zero ptrT in
+    let: "$a0" := configservice.MakeClerk (![slice.T uint64T] "configHosts") in
+    "configCk" <-[ptrT] "$a0";;
+    let: "oldServers" := ref_zero (slice.T uint64T) in
+    let: "epoch" := ref_zero uint64T in
+    let: ("$a0", "$a1") := configservice.Clerk__ReserveEpochAndGetConfig (![ptrT] "configCk") in
+    "oldServers" <-[slice.T uint64T] "$a1";;
+    "epoch" <-[uint64T] "$a0";;
+    log.Printf #(str"Reserved %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "epoch");;
+    let: "id" := ref_zero uint64T in
+    let: "$a0" := ((machine.RandomUint64 #()) + #1) `rem` (slice.len (![slice.T uint64T] "oldServers")) in
+    "id" <-[uint64T] "$a0";;
+    let: "oldClerk" := ref_zero ptrT in
+    let: "$a0" := replica.MakeClerk (SliceGet uint64T (![slice.T uint64T] "oldServers") (![uint64T] "id")) in
+    "oldClerk" <-[ptrT] "$a0";;
+    let: "reply" := ref_zero ptrT in
+    let: "$a0" := replica.Clerk__GetState (![ptrT] "oldClerk") (struct.new replica.GetStateArgs [
+      "Epoch" ::= ![uint64T] "epoch"
+    ]) in
+    "reply" <-[ptrT] "$a0";;
+    (if: (struct.loadF replica.GetStateReply "Err" (![ptrT] "reply")) ≠ e.None
+    then
+      log.Printf #(str"Error while getting state and sealing in epoch %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "epoch");;
+      return: (struct.loadF replica.GetStateReply "Err" (![ptrT] "reply"))
+    else #());;
+    let: "clerks" := ref_zero (slice.T ptrT) in
+    let: "$a0" := NewSlice ptrT (slice.len (![slice.T uint64T] "servers")) in
+    "clerks" <-[slice.T ptrT] "$a0";;
+    let: "i" := ref_to uint64T #0 in
+    (for: (λ: <>, (![uint64T] "i") < (slice.len (![slice.T ptrT] "clerks"))); (λ: <>, Skip) := λ: <>,
+      let: "$a0" := replica.MakeClerk (SliceGet uint64T (![slice.T uint64T] "servers") (![uint64T] "i")) in
+      SliceSet ptrT (![slice.T ptrT] "clerks") (![uint64T] "i") "$a0";;
+      "i" <-[uint64T] ((![uint64T] "i") + #1);;
+      #()).
 
 (* init.go *)
 
 Definition InitializeSystem: val :=
   rec: "InitializeSystem" "configHosts" "servers" :=
-    let: "configCk" := configservice.MakeClerk "configHosts" in
-    configservice.Clerk__TryWriteConfig "configCk" #0 "servers";;
-    EnterNewConfig "configHosts" "servers".
+    let: "configCk" := ref_zero ptrT in
+    let: "$a0" := configservice.MakeClerk (![slice.T uint64T] "configHosts") in
+    "configCk" <-[ptrT] "$a0";;
+    configservice.Clerk__TryWriteConfig (![ptrT] "configCk") #0 (![slice.T uint64T] "servers");;
+    return: (EnterNewConfig (![slice.T uint64T] "configHosts") (![slice.T uint64T] "servers")).

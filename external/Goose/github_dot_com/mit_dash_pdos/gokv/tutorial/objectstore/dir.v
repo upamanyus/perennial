@@ -9,10 +9,6 @@ From Perennial.goose_lang Require Import ffi.grove_prelude.
 
 (* 0data.go *)
 
-(* WriteID from client.go *)
-
-Definition WriteID: ty := uint64T.
-
 Definition PreparedWrite := struct.decl [
   "Id" :: uint64T;
   "ChunkAddrs" :: slice.T uint64T
@@ -81,6 +77,8 @@ Definition ParsePreparedRead: val :=
 
 (* client.go *)
 
+Definition WriteID: ty := uint64T.
+
 Definition PrepareWriteId : expr := #1.
 
 Definition RecordChunkId : expr := #2.
@@ -95,40 +93,58 @@ Definition Clerk := struct.decl [
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "addr" :=
-    let: "client" := reconnectclient.MakeReconnectingClient "addr" in
-    struct.new Clerk [
-      "client" ::= "client"
-    ].
+    let: "client" := ref_zero ptrT in
+    let: "$a0" := reconnectclient.MakeReconnectingClient (![uint64T] "addr") in
+    "client" <-[ptrT] "$a0";;
+    return: (struct.new Clerk [
+       "client" ::= ![ptrT] "client"
+     ]).
 
 Definition Clerk__PrepareWrite: val :=
   rec: "Clerk__PrepareWrite" "ck" :=
-    let: "empty" := NewSlice byteT #0 in
-    let: "reply" := ref (zero_val (slice.T byteT)) in
-    reconnectclient.ReconnectingClient__Call (struct.loadF Clerk "client" "ck") PrepareWriteId "empty" "reply" #100;;
-    ParsePreparedWrite (![slice.T byteT] "reply").
+    let: "empty" := ref_zero (slice.T byteT) in
+    let: "$a0" := NewSlice byteT #0 in
+    "empty" <-[slice.T byteT] "$a0";;
+    let: "reply" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply" <-[ptrT] "$a0";;
+    reconnectclient.ReconnectingClient__Call (struct.loadF Clerk "client" (![ptrT] "ck")) PrepareWriteId (![slice.T byteT] "empty") (![ptrT] "reply") #100;;
+    return: (ParsePreparedWrite (![slice.T byteT] (![ptrT] "reply"))).
 
 (* From chunk *)
 Definition Clerk__RecordChunk: val :=
   rec: "Clerk__RecordChunk" "ck" "args" :=
-    let: "req" := MarshalRecordChunkArgs "args" in
-    let: "reply" := ref (zero_val (slice.T byteT)) in
-    reconnectclient.ReconnectingClient__Call (struct.loadF Clerk "client" "ck") RecordChunkId "req" "reply" #100;;
+    let: "req" := ref_zero (slice.T byteT) in
+    let: "$a0" := MarshalRecordChunkArgs (![struct.t RecordChunkArgs] "args") in
+    "req" <-[slice.T byteT] "$a0";;
+    let: "reply" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply" <-[ptrT] "$a0";;
+    reconnectclient.ReconnectingClient__Call (struct.loadF Clerk "client" (![ptrT] "ck")) RecordChunkId (![slice.T byteT] "req") (![ptrT] "reply") #100;;
     #().
 
 (* From chunk *)
 Definition Clerk__FinishWrite: val :=
   rec: "Clerk__FinishWrite" "ck" "args" :=
-    let: "req" := MarshalFinishWriteArgs "args" in
-    let: "reply" := ref (zero_val (slice.T byteT)) in
-    reconnectclient.ReconnectingClient__Call (struct.loadF Clerk "client" "ck") FinishWriteId "req" "reply" #100;;
+    let: "req" := ref_zero (slice.T byteT) in
+    let: "$a0" := MarshalFinishWriteArgs (![struct.t FinishWriteArgs] "args") in
+    "req" <-[slice.T byteT] "$a0";;
+    let: "reply" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply" <-[ptrT] "$a0";;
+    reconnectclient.ReconnectingClient__Call (struct.loadF Clerk "client" (![ptrT] "ck")) FinishWriteId (![slice.T byteT] "req") (![ptrT] "reply") #100;;
     #().
 
 Definition Clerk__PrepareRead: val :=
   rec: "Clerk__PrepareRead" "ck" "keyname" :=
-    let: "req" := StringToBytes "keyname" in
-    let: "reply" := ref (zero_val (slice.T byteT)) in
-    reconnectclient.ReconnectingClient__Call (struct.loadF Clerk "client" "ck") PrepareReadId "req" "reply" #100;;
-    ParsePreparedRead (![slice.T byteT] "reply").
+    let: "req" := ref_zero (slice.T byteT) in
+    let: "$a0" := StringToBytes (![stringT] "keyname") in
+    "req" <-[slice.T byteT] "$a0";;
+    let: "reply" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply" <-[ptrT] "$a0";;
+    reconnectclient.ReconnectingClient__Call (struct.loadF Clerk "client" (![ptrT] "ck")) PrepareReadId (![slice.T byteT] "req") (![ptrT] "reply") #100;;
+    return: (ParsePreparedRead (![slice.T byteT] (![ptrT] "reply"))).
 
 (* server.go *)
 
@@ -144,93 +160,126 @@ Definition Server := struct.decl [
   "m" :: ptrT;
   "ongoing" :: mapT (struct.t PartialValue);
   "data" :: mapT (struct.t Value);
-  "nextWriteId" :: WriteID
+  "nextWriteId" :: uint64T
 ].
 
 (* From client *)
 Definition Server__PrepareWrite: val :=
   rec: "Server__PrepareWrite" "s" :=
-    sync.Mutex__Lock (struct.loadF Server "m" "s");;
-    let: "id" := struct.loadF Server "nextWriteId" "s" in
-    struct.storeF Server "nextWriteId" "s" ((struct.loadF Server "nextWriteId" "s") + #1);;
-    MapInsert (struct.loadF Server "ongoing" "s") "id" (struct.mk PartialValue [
+    sync.Mutex__Lock (struct.loadF Server "m" (![ptrT] "s"));;
+    let: "id" := ref_zero uint64T in
+    let: "$a0" := struct.loadF Server "nextWriteId" (![ptrT] "s") in
+    "id" <-[uint64T] "$a0";;
+    struct.storeF Server "nextWriteId" (![ptrT] "s") ((struct.loadF Server "nextWriteId" (![ptrT] "s")) + #1);;
+    let: "$a0" := struct.mk PartialValue [
       "servers" ::= NewMap uint64T (struct.t ChunkHandle) #()
-    ]);;
-    sync.Mutex__Unlock (struct.loadF Server "m" "s");;
-    struct.mk PreparedWrite [
-      "Id" ::= "id";
-      "ChunkAddrs" ::= NewSlice uint64T #0
-    ].
+    ] in
+    MapInsert (struct.loadF Server "ongoing" (![ptrT] "s")) (![uint64T] "id") "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "m" (![ptrT] "s"));;
+    return: (struct.mk PreparedWrite [
+       "Id" ::= ![uint64T] "id";
+       "ChunkAddrs" ::= NewSlice uint64T #0
+     ]).
 
 (* From chunk *)
 Definition Server__RecordChunk: val :=
   rec: "Server__RecordChunk" "s" "args" :=
-    sync.Mutex__Lock (struct.loadF Server "m" "s");;
-    MapInsert (struct.get PartialValue "servers" (Fst (MapGet (struct.loadF Server "ongoing" "s") (struct.get RecordChunkArgs "WriteId" "args")))) (struct.get RecordChunkArgs "Index" "args") (struct.mk ChunkHandle [
-      "Addr" ::= struct.get RecordChunkArgs "Server" "args";
-      "ContentHash" ::= struct.get RecordChunkArgs "ContentHash" "args"
-    ]);;
-    sync.Mutex__Unlock (struct.loadF Server "m" "s");;
+    sync.Mutex__Lock (struct.loadF Server "m" (![ptrT] "s"));;
+    let: "$a0" := struct.mk ChunkHandle [
+      "Addr" ::= struct.get RecordChunkArgs "Server" (![struct.t RecordChunkArgs] "args");
+      "ContentHash" ::= struct.get RecordChunkArgs "ContentHash" (![struct.t RecordChunkArgs] "args")
+    ] in
+    MapInsert (struct.get PartialValue "servers" (Fst (MapGet (struct.loadF Server "ongoing" (![ptrT] "s")) (struct.get RecordChunkArgs "WriteId" (![struct.t RecordChunkArgs] "args"))))) (struct.get RecordChunkArgs "Index" (![struct.t RecordChunkArgs] "args")) "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "m" (![ptrT] "s"));;
     #().
 
 (* From chunk *)
 Definition Server__FinishWrite: val :=
   rec: "Server__FinishWrite" "s" "args" :=
-    sync.Mutex__Lock (struct.loadF Server "m" "s");;
-    let: "v" := struct.get PartialValue "servers" (Fst (MapGet (struct.loadF Server "ongoing" "s") (struct.get FinishWriteArgs "WriteId" "args"))) in
-    let: "numChunks" := MapLen "v" in
+    sync.Mutex__Lock (struct.loadF Server "m" (![ptrT] "s"));;
+    let: "v" := ref_zero (mapT (struct.t ChunkHandle)) in
+    let: "$a0" := struct.get PartialValue "servers" (Fst (MapGet (struct.loadF Server "ongoing" (![ptrT] "s")) (struct.get FinishWriteArgs "WriteId" (![struct.t FinishWriteArgs] "args")))) in
+    "v" <-[mapT (struct.t ChunkHandle)] "$a0";;
+    let: "numChunks" := ref_zero uint64T in
+    let: "$a0" := MapLen (![mapT (struct.t ChunkHandle)] "v") in
+    "numChunks" <-[uint64T] "$a0";;
     let: "servers" := ref_to (slice.T (struct.t ChunkHandle)) (NewSlice (struct.t ChunkHandle) #0) in
-    let: "i" := ref_to uint64T #0 in
-    (for: (λ: <>, (![uint64T] "i") < "numChunks"); (λ: <>, "i" <-[uint64T] ((![uint64T] "i") + #1)) := λ: <>,
-      "servers" <-[slice.T (struct.t ChunkHandle)] (SliceAppend (struct.t ChunkHandle) (![slice.T (struct.t ChunkHandle)] "servers") (Fst (MapGet "v" (![uint64T] "i"))));;
-      Continue);;
-    MapInsert (struct.loadF Server "data" "s") (struct.get FinishWriteArgs "Keyname" "args") (struct.mk Value [
-      "servers" ::= ![slice.T (struct.t ChunkHandle)] "servers"
-    ]);;
-    sync.Mutex__Unlock (struct.loadF Server "m" "s");;
-    #().
+    (let: "i" := ref_zero uint64T in
+    let: "$a0" := #0 in
+    "i" <-[uint64T] "$a0";;
+    (for: (λ: <>, (![uint64T] "i") < (![uint64T] "numChunks")); (λ: <>, "i" <-[uint64T] ((![uint64T] "i") + #1);;
+    #()) := λ: <>,
+      let: "$a0" := SliceAppend (struct.t ChunkHandle) (![slice.T (struct.t ChunkHandle)] "servers") (Fst (MapGet (![mapT (struct.t ChunkHandle)] "v") (![uint64T] "i"))) in
+      "servers" <-[slice.T (struct.t ChunkHandle)] "$a0";;
+      #())).
 
 Definition Server__PrepareRead: val :=
   rec: "Server__PrepareRead" "s" "keyname" :=
-    sync.Mutex__Lock (struct.loadF Server "m" "s");;
-    let: "servers" := struct.get Value "servers" (Fst (MapGet (struct.loadF Server "data" "s") "keyname")) in
-    sync.Mutex__Unlock (struct.loadF Server "m" "s");;
-    struct.mk PreparedRead [
-      "Handles" ::= "servers"
-    ].
+    sync.Mutex__Lock (struct.loadF Server "m" (![ptrT] "s"));;
+    let: "servers" := ref_zero (slice.T (struct.t ChunkHandle)) in
+    let: "$a0" := struct.get Value "servers" (Fst (MapGet (struct.loadF Server "data" (![ptrT] "s")) (![stringT] "keyname"))) in
+    "servers" <-[slice.T (struct.t ChunkHandle)] "$a0";;
+    sync.Mutex__Unlock (struct.loadF Server "m" (![ptrT] "s"));;
+    return: (struct.mk PreparedRead [
+       "Handles" ::= ![slice.T (struct.t ChunkHandle)] "servers"
+     ]).
 
 Definition StartServer: val :=
   rec: "StartServer" "me" :=
-    let: "s" := struct.new Server [
+    let: "s" := ref_zero ptrT in
+    let: "$a0" := struct.new Server [
       "m" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));
-      "ongoing" ::= NewMap WriteID (struct.t PartialValue) #();
+      "ongoing" ::= NewMap uint64T (struct.t PartialValue) #();
       "data" ::= NewMap stringT (struct.t Value) #();
       "nextWriteId" ::= #1
     ] in
-    let: "handlers" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%ht #() in
-    MapInsert "handlers" PrepareWriteId (λ: "_req" "reply",
-      let: "ret" := Server__PrepareWrite "s" in
-      "reply" <-[slice.T byteT] (MarshalPreparedWrite "ret");;
+    "s" <-[ptrT] "$a0";;
+    let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
+    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
+    let: "$a0" := (λ: "_req" "reply",
+      let: "ret" := ref_zero (struct.t PreparedWrite) in
+      let: "$a0" := Server__PrepareWrite (![ptrT] "s") in
+      "ret" <-[struct.t PreparedWrite] "$a0";;
+      let: "$a0" := MarshalPreparedWrite (![struct.t PreparedWrite] "ret") in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    MapInsert "handlers" RecordChunkId (λ: "req" "reply",
-      let: "args" := ParseRecordChunkArgs "req" in
-      Server__RecordChunk "s" "args";;
-      "reply" <-[slice.T byteT] (NewSlice byteT #0);;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") PrepareWriteId "$a0";;
+    let: "$a0" := (λ: "req" "reply",
+      let: "args" := ref_zero (struct.t RecordChunkArgs) in
+      let: "$a0" := ParseRecordChunkArgs (![slice.T byteT] "req") in
+      "args" <-[struct.t RecordChunkArgs] "$a0";;
+      Server__RecordChunk (![ptrT] "s") (![struct.t RecordChunkArgs] "args");;
+      let: "$a0" := NewSlice byteT #0 in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    MapInsert "handlers" FinishWriteId (λ: "req" "reply",
-      let: "args" := ParseFinishWriteArgs "req" in
-      Server__FinishWrite "s" "args";;
-      "reply" <-[slice.T byteT] (NewSlice byteT #0);;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") RecordChunkId "$a0";;
+    let: "$a0" := (λ: "req" "reply",
+      let: "args" := ref_zero (struct.t FinishWriteArgs) in
+      let: "$a0" := ParseFinishWriteArgs (![slice.T byteT] "req") in
+      "args" <-[struct.t FinishWriteArgs] "$a0";;
+      Server__FinishWrite (![ptrT] "s") (![struct.t FinishWriteArgs] "args");;
+      let: "$a0" := NewSlice byteT #0 in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    MapInsert "handlers" PrepareReadId (λ: "req" "reply",
-      let: "args" := StringFromBytes "req" in
-      let: "ret" := Server__PrepareRead "s" "args" in
-      "reply" <-[slice.T byteT] (MarshalPreparedRead "ret");;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") FinishWriteId "$a0";;
+    let: "$a0" := (λ: "req" "reply",
+      let: "args" := ref_zero stringT in
+      let: "$a0" := StringFromBytes (![slice.T byteT] "req") in
+      "args" <-[stringT] "$a0";;
+      let: "ret" := ref_zero (struct.t PreparedRead) in
+      let: "$a0" := Server__PrepareRead (![ptrT] "s") (![stringT] "args") in
+      "ret" <-[struct.t PreparedRead] "$a0";;
+      let: "$a0" := MarshalPreparedRead (![struct.t PreparedRead] "ret") in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    let: "server" := urpc.MakeServer "handlers" in
-    urpc.Server__Serve "server" "me";;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") PrepareReadId "$a0";;
+    let: "server" := ref_zero ptrT in
+    let: "$a0" := urpc.MakeServer (![mapT (arrowT unitT unitT)] "handlers") in
+    "server" <-[ptrT] "$a0";;
+    urpc.Server__Serve (![ptrT] "server") (![uint64T] "me");;
     #().

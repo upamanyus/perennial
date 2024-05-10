@@ -16,41 +16,70 @@ Definition CtrServer := struct.decl [
 (* requires lock to be held *)
 Definition CtrServer__MakeDurable: val :=
   rec: "CtrServer__MakeDurable" "s" :=
-    let: "e" := marshal.NewEnc #8 in
-    marshal.Enc__PutInt "e" (struct.loadF CtrServer "val" "s");;
-    grove__ffi.FileWrite (struct.loadF CtrServer "filename" "s") (marshal.Enc__Finish "e");;
+    let: "e" := ref_zero (struct.t marshal.Enc) in
+    let: "$a0" := marshal.NewEnc #8 in
+    "e" <-[struct.t marshal.Enc] "$a0";;
+    marshal.Enc__PutInt (![struct.t marshal.Enc] "e") (struct.loadF CtrServer "val" (![ptrT] "s"));;
+    grove__ffi.FileWrite (struct.loadF CtrServer "filename" (![ptrT] "s")) (marshal.Enc__Finish (![struct.t marshal.Enc] "e"));;
     #().
 
 Definition CtrServer__FetchAndIncrement: val :=
   rec: "CtrServer__FetchAndIncrement" "s" :=
-    sync.Mutex__Lock (struct.loadF CtrServer "mu" "s");;
-    let: "ret" := struct.loadF CtrServer "val" "s" in
-    struct.storeF CtrServer "val" "s" ((struct.loadF CtrServer "val" "s") + #1);;
-    CtrServer__MakeDurable "s";;
-    sync.Mutex__Unlock (struct.loadF CtrServer "mu" "s");;
-    "ret".
+    sync.Mutex__Lock (struct.loadF CtrServer "mu" (![ptrT] "s"));;
+    let: "ret" := ref_zero uint64T in
+    let: "$a0" := struct.loadF CtrServer "val" (![ptrT] "s") in
+    "ret" <-[uint64T] "$a0";;
+    struct.storeF CtrServer "val" (![ptrT] "s") ((struct.loadF CtrServer "val" (![ptrT] "s")) + #1);;
+    CtrServer__MakeDurable (![ptrT] "s");;
+    sync.Mutex__Unlock (struct.loadF CtrServer "mu" (![ptrT] "s"));;
+    return: (![uint64T] "ret").
 
 (* the boot/main() function for the server *)
 Definition main: val :=
   rec: "main" <> :=
-    let: "me" := #53021371269120 in
-    let: "s" := struct.alloc CtrServer (zero_val (struct.t CtrServer)) in
-    struct.storeF CtrServer "mu" "s" (struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)));;
-    struct.storeF CtrServer "filename" "s" #(str"ctr");;
-    let: "a" := grove__ffi.FileRead (struct.loadF CtrServer "filename" "s") in
-    (if: (slice.len "a") = #0
-    then struct.storeF CtrServer "val" "s" #0
-    else
-      let: "d" := marshal.NewDec "a" in
-      struct.storeF CtrServer "val" "s" (marshal.Dec__GetInt "d"));;
-    let: "handlers" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%ht #() in
-    MapInsert "handlers" #0 (λ: "args" "reply",
-      let: "v" := CtrServer__FetchAndIncrement "s" in
-      let: "e" := marshal.NewEnc #8 in
-      marshal.Enc__PutInt "e" "v";;
-      "reply" <-[slice.T byteT] (marshal.Enc__Finish "e");;
+    let: "me" := ref_zero uint64T in
+    let: "$a0" := #53021371269120 in
+    "me" <-[uint64T] "$a0";;
+    let: "s" := ref_zero ptrT in
+    let: "$a0" := struct.alloc CtrServer (zero_val (struct.t CtrServer)) in
+    "s" <-[ptrT] "$a0";;
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    struct.storeF CtrServer "mu" (![ptrT] "s") "$a0";;
+    let: "$a0" := #(str"ctr") in
+    struct.storeF CtrServer "filename" (![ptrT] "s") "$a0";;
+    let: "a" := ref_zero (slice.T byteT) in
+    let: "$a0" := grove__ffi.FileRead (struct.loadF CtrServer "filename" (![ptrT] "s")) in
+    "a" <-[slice.T byteT] "$a0";;
+    (if: (slice.len (![slice.T byteT] "a")) = #0
+    then
+      let: "$a0" := #0 in
+      struct.storeF CtrServer "val" (![ptrT] "s") "$a0";;
       #()
-      );;
-    let: "rs" := urpc.MakeServer "handlers" in
-    urpc.Server__Serve "rs" "me";;
+    else
+      let: "d" := ref_zero (struct.t marshal.Dec) in
+      let: "$a0" := marshal.NewDec (![slice.T byteT] "a") in
+      "d" <-[struct.t marshal.Dec] "$a0";;
+      let: "$a0" := marshal.Dec__GetInt (![struct.t marshal.Dec] "d") in
+      struct.storeF CtrServer "val" (![ptrT] "s") "$a0";;
+      #());;
+    let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
+    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
+    let: "$a0" := (λ: "args" "reply",
+      let: "v" := ref_zero uint64T in
+      let: "$a0" := CtrServer__FetchAndIncrement (![ptrT] "s") in
+      "v" <-[uint64T] "$a0";;
+      let: "e" := ref_zero (struct.t marshal.Enc) in
+      let: "$a0" := marshal.NewEnc #8 in
+      "e" <-[struct.t marshal.Enc] "$a0";;
+      marshal.Enc__PutInt (![struct.t marshal.Enc] "e") (![uint64T] "v");;
+      let: "$a0" := marshal.Enc__Finish (![struct.t marshal.Enc] "e") in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
+      #()
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") #0 "$a0";;
+    let: "rs" := ref_zero ptrT in
+    let: "$a0" := urpc.MakeServer (![mapT (arrowT unitT unitT)] "handlers") in
+    "rs" <-[ptrT] "$a0";;
+    urpc.Server__Serve (![ptrT] "rs") (![uint64T] "me");;
     #().

@@ -16,50 +16,70 @@ Definition ReconnectingClient := struct.decl [
 
 Definition MakeReconnectingClient: val :=
   rec: "MakeReconnectingClient" "addr" :=
-    let: "r" := struct.alloc ReconnectingClient (zero_val (struct.t ReconnectingClient)) in
-    struct.storeF ReconnectingClient "mu" "r" (struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)));;
-    struct.storeF ReconnectingClient "valid" "r" #false;;
-    struct.storeF ReconnectingClient "addr" "r" "addr";;
-    "r".
+    let: "r" := ref_zero ptrT in
+    let: "$a0" := struct.alloc ReconnectingClient (zero_val (struct.t ReconnectingClient)) in
+    "r" <-[ptrT] "$a0";;
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    struct.storeF ReconnectingClient "mu" (![ptrT] "r") "$a0";;
+    let: "$a0" := #false in
+    struct.storeF ReconnectingClient "valid" (![ptrT] "r") "$a0";;
+    let: "$a0" := ![uint64T] "addr" in
+    struct.storeF ReconnectingClient "addr" (![ptrT] "r") "$a0";;
+    return: (![ptrT] "r").
 
 Definition ReconnectingClient__getClient: val :=
   rec: "ReconnectingClient__getClient" "cl" :=
-    sync.Mutex__Lock (struct.loadF ReconnectingClient "mu" "cl");;
-    (if: struct.loadF ReconnectingClient "valid" "cl"
+    sync.Mutex__Lock (struct.loadF ReconnectingClient "mu" (![ptrT] "cl"));;
+    (if: struct.loadF ReconnectingClient "valid" (![ptrT] "cl")
     then
-      let: "ret" := struct.loadF ReconnectingClient "urpcCl" "cl" in
-      sync.Mutex__Unlock (struct.loadF ReconnectingClient "mu" "cl");;
-      (#0, "ret")
-    else
-      sync.Mutex__Unlock (struct.loadF ReconnectingClient "mu" "cl");;
-      let: "newRpcCl" := ref (zero_val ptrT) in
-      let: "err" := ref (zero_val uint64T) in
-      let: ("0_ret", "1_ret") := urpc.TryMakeClient (struct.loadF ReconnectingClient "addr" "cl") in
-      "err" <-[uint64T] "0_ret";;
-      "newRpcCl" <-[ptrT] "1_ret";;
-      (if: (![uint64T] "err") ≠ #0
-      then machine.Sleep #10000000
-      else #());;
-      sync.Mutex__Lock (struct.loadF ReconnectingClient "mu" "cl");;
-      (if: (![uint64T] "err") = #0
-      then
-        struct.storeF ReconnectingClient "urpcCl" "cl" (![ptrT] "newRpcCl");;
-        struct.storeF ReconnectingClient "valid" "cl" #true
-      else #());;
-      sync.Mutex__Unlock (struct.loadF ReconnectingClient "mu" "cl");;
-      (![uint64T] "err", ![ptrT] "newRpcCl")).
+      let: "ret" := ref_zero ptrT in
+      let: "$a0" := struct.loadF ReconnectingClient "urpcCl" (![ptrT] "cl") in
+      "ret" <-[ptrT] "$a0";;
+      sync.Mutex__Unlock (struct.loadF ReconnectingClient "mu" (![ptrT] "cl"));;
+      return: (#0, ![ptrT] "ret")
+    else #());;
+    sync.Mutex__Unlock (struct.loadF ReconnectingClient "mu" (![ptrT] "cl"));;
+    let: "newRpcCl" := ref (zero_val ptrT) in
+    let: "err" := ref (zero_val uint64T) in
+    let: ("$a0", "$a1") := urpc.TryMakeClient (struct.loadF ReconnectingClient "addr" (![ptrT] "cl")) in
+    "newRpcCl" <-[ptrT] "$a1";;
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") ≠ #0
+    then
+      machine.Sleep #10000000;;
+      #()
+    else #());;
+    sync.Mutex__Lock (struct.loadF ReconnectingClient "mu" (![ptrT] "cl"));;
+    (if: (![uint64T] "err") = #0
+    then
+      let: "$a0" := ![ptrT] "newRpcCl" in
+      struct.storeF ReconnectingClient "urpcCl" (![ptrT] "cl") "$a0";;
+      let: "$a0" := #true in
+      struct.storeF ReconnectingClient "valid" (![ptrT] "cl") "$a0";;
+      #()
+    else #());;
+    sync.Mutex__Unlock (struct.loadF ReconnectingClient "mu" (![ptrT] "cl"));;
+    return: (![uint64T] "err", ![ptrT] "newRpcCl").
 
 Definition ReconnectingClient__Call: val :=
   rec: "ReconnectingClient__Call" "cl" "rpcid" "args" "reply" "timeout_ms" :=
-    let: ("err1", "urpcCl") := ReconnectingClient__getClient "cl" in
-    (if: "err1" ≠ #0
-    then "err1"
-    else
-      let: "err" := urpc.Client__Call "urpcCl" "rpcid" "args" "reply" "timeout_ms" in
-      (if: "err" = urpc.ErrDisconnect
-      then
-        sync.Mutex__Lock (struct.loadF ReconnectingClient "mu" "cl");;
-        struct.storeF ReconnectingClient "valid" "cl" #false;;
-        sync.Mutex__Unlock (struct.loadF ReconnectingClient "mu" "cl")
-      else #());;
-      "err").
+    let: "urpcCl" := ref_zero ptrT in
+    let: "err1" := ref_zero uint64T in
+    let: ("$a0", "$a1") := ReconnectingClient__getClient (![ptrT] "cl") in
+    "urpcCl" <-[ptrT] "$a1";;
+    "err1" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err1") ≠ #0
+    then return: (![uint64T] "err1")
+    else #());;
+    let: "err" := ref_zero uint64T in
+    let: "$a0" := urpc.Client__Call (![ptrT] "urpcCl") (![uint64T] "rpcid") (![slice.T byteT] "args") (![ptrT] "reply") (![uint64T] "timeout_ms") in
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") = urpc.ErrDisconnect
+    then
+      sync.Mutex__Lock (struct.loadF ReconnectingClient "mu" (![ptrT] "cl"));;
+      let: "$a0" := #false in
+      struct.storeF ReconnectingClient "valid" (![ptrT] "cl") "$a0";;
+      sync.Mutex__Unlock (struct.loadF ReconnectingClient "mu" (![ptrT] "cl"));;
+      #()
+    else #());;
+    return: (![uint64T] "err").

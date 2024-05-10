@@ -20,22 +20,34 @@ Definition Clerk := struct.decl [
 
 Definition Clerk__FetchAndIncrement: val :=
   rec: "Clerk__FetchAndIncrement" "ck" "key" "ret" :=
-    let: "reply_ptr" := ref (zero_val (slice.T byteT)) in
-    let: "enc" := marshal.NewEnc #8 in
-    marshal.Enc__PutInt "enc" "key";;
-    let: "err" := urpc.Client__Call (struct.loadF Clerk "cl" "ck") RPC_FAI (marshal.Enc__Finish "enc") "reply_ptr" #100 in
-    (if: "err" ≠ #0
-    then "err"
-    else
-      let: "dec" := marshal.NewDec (![slice.T byteT] "reply_ptr") in
-      "ret" <-[uint64T] (marshal.Dec__GetInt "dec");;
-      #0).
+    let: "reply_ptr" := ref_zero ptrT in
+    let: "$a0" := ref (zero_val (slice.T byteT)) in
+    "reply_ptr" <-[ptrT] "$a0";;
+    let: "enc" := ref_zero (struct.t marshal.Enc) in
+    let: "$a0" := marshal.NewEnc #8 in
+    "enc" <-[struct.t marshal.Enc] "$a0";;
+    marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (![uint64T] "key");;
+    let: "err" := ref_zero uint64T in
+    let: "$a0" := urpc.Client__Call (struct.loadF Clerk "cl" (![ptrT] "ck")) RPC_FAI (marshal.Enc__Finish (![struct.t marshal.Enc] "enc")) (![ptrT] "reply_ptr") #100 in
+    "err" <-[uint64T] "$a0";;
+    (if: (![uint64T] "err") ≠ #0
+    then return: (![uint64T] "err")
+    else #());;
+    let: "dec" := ref_zero (struct.t marshal.Dec) in
+    let: "$a0" := marshal.NewDec (![slice.T byteT] (![ptrT] "reply_ptr")) in
+    "dec" <-[struct.t marshal.Dec] "$a0";;
+    let: "$a0" := marshal.Dec__GetInt (![struct.t marshal.Dec] "dec") in
+    (![ptrT] "ret") <-[uint64T] "$a0";;
+    return: (#0).
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "host" :=
-    let: "ck" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
-    struct.storeF Clerk "cl" "ck" (urpc.MakeClient "host");;
-    "ck".
+    let: "ck" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
+    "ck" <-[ptrT] "$a0";;
+    let: "$a0" := urpc.MakeClient (![uint64T] "host") in
+    struct.storeF Clerk "cl" (![ptrT] "ck") "$a0";;
+    return: (![ptrT] "ck").
 
 (* server.go *)
 
@@ -49,36 +61,58 @@ Definition Server := struct.decl [
 (* pre: key == 0 or key == 1 *)
 Definition Server__FetchAndIncrement: val :=
   rec: "Server__FetchAndIncrement" "s" "key" :=
-    sync.Mutex__Lock (struct.loadF Server "mu" "s");;
+    sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "ret" := ref (zero_val uint64T) in
-    (if: "key" = #0
+    (if: (![uint64T] "key") = #0
     then
-      "ret" <-[uint64T] (ctr.Clerk__Get (struct.loadF Server "ck1" "s") (struct.loadF Server "epoch" "s"));;
+      let: "$a0" := ctr.Clerk__Get (struct.loadF Server "ck1" (![ptrT] "s")) (struct.loadF Server "epoch" (![ptrT] "s")) in
+      "ret" <-[uint64T] "$a0";;
       std.SumAssumeNoOverflow (![uint64T] "ret") #1;;
-      ctr.Clerk__Put (struct.loadF Server "ck1" "s") ((![uint64T] "ret") + #1) (struct.loadF Server "epoch" "s")
+      ctr.Clerk__Put (struct.loadF Server "ck1" (![ptrT] "s")) ((![uint64T] "ret") + #1) (struct.loadF Server "epoch" (![ptrT] "s"));;
+      #()
     else
-      "ret" <-[uint64T] (ctr.Clerk__Get (struct.loadF Server "ck2" "s") (struct.loadF Server "epoch" "s"));;
+      let: "$a0" := ctr.Clerk__Get (struct.loadF Server "ck2" (![ptrT] "s")) (struct.loadF Server "epoch" (![ptrT] "s")) in
+      "ret" <-[uint64T] "$a0";;
       std.SumAssumeNoOverflow (![uint64T] "ret") #1;;
-      ctr.Clerk__Put (struct.loadF Server "ck2" "s") ((![uint64T] "ret") + #1) (struct.loadF Server "epoch" "s"));;
-    sync.Mutex__Unlock (struct.loadF Server "mu" "s");;
-    ![uint64T] "ret".
+      ctr.Clerk__Put (struct.loadF Server "ck2" (![ptrT] "s")) ((![uint64T] "ret") + #1) (struct.loadF Server "epoch" (![ptrT] "s"));;
+      #());;
+    sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
+    return: (![uint64T] "ret").
 
 Definition StartServer: val :=
   rec: "StartServer" "me" "configHost" "host1" "host2" :=
-    let: "s" := struct.alloc Server (zero_val (struct.t Server)) in
-    let: "configCk" := config.MakeClerk "configHost" in
-    struct.storeF Server "epoch" "s" (config.Clerk__AcquireEpoch "configCk" "me");;
-    struct.storeF Server "mu" "s" (struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)));;
-    struct.storeF Server "ck1" "s" (ctr.MakeClerk "host1");;
-    struct.storeF Server "ck2" "s" (ctr.MakeClerk "host2");;
-    let: "handlers" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%ht #() in
-    MapInsert "handlers" RPC_FAI (λ: "args" "reply",
-      let: "dec" := marshal.NewDec "args" in
-      let: "enc" := marshal.NewEnc #8 in
-      marshal.Enc__PutInt "enc" (Server__FetchAndIncrement "s" (marshal.Dec__GetInt "dec"));;
-      "reply" <-[slice.T byteT] (marshal.Enc__Finish "enc");;
+    let: "s" := ref_zero ptrT in
+    let: "$a0" := struct.alloc Server (zero_val (struct.t Server)) in
+    "s" <-[ptrT] "$a0";;
+    let: "configCk" := ref_zero ptrT in
+    let: "$a0" := config.MakeClerk (![uint64T] "configHost") in
+    "configCk" <-[ptrT] "$a0";;
+    let: "$a0" := config.Clerk__AcquireEpoch (![ptrT] "configCk") (![uint64T] "me") in
+    struct.storeF Server "epoch" (![ptrT] "s") "$a0";;
+    let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
+    struct.storeF Server "mu" (![ptrT] "s") "$a0";;
+    let: "$a0" := ctr.MakeClerk (![uint64T] "host1") in
+    struct.storeF Server "ck1" (![ptrT] "s") "$a0";;
+    let: "$a0" := ctr.MakeClerk (![uint64T] "host2") in
+    struct.storeF Server "ck2" (![ptrT] "s") "$a0";;
+    let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
+    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
+    let: "$a0" := (λ: "args" "reply",
+      let: "dec" := ref_zero (struct.t marshal.Dec) in
+      let: "$a0" := marshal.NewDec (![slice.T byteT] "args") in
+      "dec" <-[struct.t marshal.Dec] "$a0";;
+      let: "enc" := ref_zero (struct.t marshal.Enc) in
+      let: "$a0" := marshal.NewEnc #8 in
+      "enc" <-[struct.t marshal.Enc] "$a0";;
+      marshal.Enc__PutInt (![struct.t marshal.Enc] "enc") (Server__FetchAndIncrement (![ptrT] "s") (marshal.Dec__GetInt (![struct.t marshal.Dec] "dec")));;
+      let: "$a0" := marshal.Enc__Finish (![struct.t marshal.Enc] "enc") in
+      (![ptrT] "reply") <-[slice.T byteT] "$a0";;
       #()
-      );;
-    let: "r" := urpc.MakeServer "handlers" in
-    urpc.Server__Serve "r" "me";;
+      ) in
+    MapInsert (![mapT (arrowT unitT unitT)] "handlers") RPC_FAI "$a0";;
+    let: "r" := ref_zero ptrT in
+    let: "$a0" := urpc.MakeServer (![mapT (arrowT unitT unitT)] "handlers") in
+    "r" <-[ptrT] "$a0";;
+    urpc.Server__Serve (![ptrT] "r") (![uint64T] "me");;
     #().
