@@ -28,4 +28,6 @@ Definition TimeNow: val := time.impl.time.TimeNow.
 
 Definition RandomUint64: val := rand.impl.rand.RandomUint64.
 
+Definition NewProph : val := NewProph.
+Definition Linearize := Linearize.
 End code.

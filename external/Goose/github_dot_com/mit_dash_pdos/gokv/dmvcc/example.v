@@ -5,6 +5,7 @@ From Goose Require github_dot_com.mit_dash_pdos.gokv.dmvcc.txn.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.dmvcc.txncoordinator.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.dmvcc.txnmgr.
 From Goose Require github_dot_com.tchajed.goose.machine.
+From Goose Require log.
 
 Section code.
 Context `{ext_ty: ext_types}.

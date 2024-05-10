@@ -8,6 +8,7 @@ From Goose Require github_dot_com.mit_dash_pdos.gokv.vrsm.e.
 From Goose Require github_dot_com.mit_dash_pdos.gokv.vrsm.paxos.
 From Goose Require github_dot_com.tchajed.goose.machine.
 From Goose Require github_dot_com.tchajed.marshal.
+From Goose Require log.
 From Goose Require sync.
 
 From Perennial.goose_lang Require Import ffi.grove_prelude.
