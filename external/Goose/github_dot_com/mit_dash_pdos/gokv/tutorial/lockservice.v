@@ -180,7 +180,7 @@ Definition MakeServer: val :=
 Definition Server__Start: val :=
   rec: "Server__Start" "s" "me" :=
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
-    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!h(MISSING)t #() in
+    let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
     let: "$a0" := (λ: "enc_args" "enc_reply",
       let: "$a0" := EncodeUint64 (Server__getFreshNum (![ptrT] "s")) in

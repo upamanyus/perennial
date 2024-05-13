@@ -110,7 +110,7 @@ Definition StartServer: val :=
     ] in
     "s" <-[ptrT] "$a0";;
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
-    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
     let: "$a0" := (λ: "req" "reply",
       let: "args" := ref_zero (struct.t WriteChunkArgs) in

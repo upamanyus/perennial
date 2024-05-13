@@ -568,7 +568,7 @@ Definition StartServer: val :=
     let: "$a0" := makeServer (![stringT] "fname") (![slice.T byteT] "initstate") (![slice.T uint64T] "config") in
     "s" <-[ptrT] "$a0";;
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
-    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
     let: "$a0" := (λ: "raw_args" "raw_reply",
       let: "reply" := ref_zero ptrT in

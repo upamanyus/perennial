@@ -709,7 +709,7 @@ Definition KVShardServer__GetCIDRPC: val :=
 Definition KVShardServer__Start: val :=
   rec: "KVShardServer__Start" "mkv" "host" :=
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
-    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!h(MISSING)t #() in
+    let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
     let: "erpc" := ref_zero ptrT in
     let: "$a0" := struct.loadF KVShardServer "erpc" (![ptrT] "mkv") in
@@ -868,7 +868,7 @@ Definition MakeKVCoordServer: val :=
 Definition KVCoord__Start: val :=
   rec: "KVCoord__Start" "c" "host" :=
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
-    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!h(MISSING)t #() in
+    let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
     let: "$a0" := (λ: "rawReq" "rawRep",
       let: "s" := ref_zero uint64T in

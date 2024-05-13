@@ -96,7 +96,7 @@ Definition StartServer: val :=
     let: "$a0" := ctr.MakeClerk (![uint64T] "host2") in
     struct.storeF Server "ck2" (![ptrT] "s") "$a0";;
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
-    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
     let: "$a0" := (λ: "args" "reply",
       let: "dec" := ref_zero (struct.t marshal.Dec) in

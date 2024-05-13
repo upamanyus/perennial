@@ -777,7 +777,7 @@ Definition MakeServer: val :=
 Definition Server__Serve: val :=
   rec: "Server__Serve" "s" "me" :=
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
-    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!h(MISSING)t #() in
+    let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
     let: "$a0" := (λ: "args" "reply",
       let: "$a0" := e.EncodeError (Server__ApplyAsBackup (![ptrT] "s") (DecodeApplyAsBackupArgs (![slice.T byteT] "args"))) in

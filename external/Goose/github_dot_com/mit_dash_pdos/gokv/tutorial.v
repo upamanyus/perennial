@@ -184,7 +184,7 @@ Definition CoordinatorMain: val :=
     let: "$a0" := MakeCoordinator (![slice.T uint64T] "participants") in
     "coordinator" <-[ptrT] "$a0";;
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
-    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
     let: "$a0" := (λ: "_req" "reply",
       let: "decision" := ref_zero byteT in
@@ -214,7 +214,7 @@ Definition ParticipantMain: val :=
     let: "$a0" := MakeParticipant (![boolT] "pref") in
     "participant" <-[ptrT] "$a0";;
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
-    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
     let: "$a0" := (λ: "_req" "reply",
       let: "pref" := ref_zero boolT in

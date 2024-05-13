@@ -498,7 +498,7 @@ Definition StartServer: val :=
     let: "$a0" := makeServer (![stringT] "fname") (![uint64T] "paxosMe") (![slice.T uint64T] "hosts") (![slice.T uint64T] "initconfig") in
     "s" <-[ptrT] "$a0";;
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
-    let: "$a0" := NewMap uint64T ((slice.T byteT) -> ptrT -> unitT)%!!(MISSING)!(MISSING)!(MISSING)h(MISSING)t #() in
+    let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
     let: "$a0" := Server__ReserveEpochAndGetConfig (![ptrT] "s") in
     MapInsert (![mapT (arrowT unitT unitT)] "handlers") RPC_RESERVEEPOCH "$a0";;
