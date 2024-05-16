@@ -16,11 +16,11 @@ Definition do_execute : val :=
 .
 
 Definition exception_seq : val :=
-  λ: "s1",
-    if: ((Fst (Fst $ Var "s1")) = #(str "return")) then
-      do_return (Snd (Fst $ Var "s1"))
+  λ: "s1" "s2",
+    if: (Fst "s1") = #(str "return") then
+      do_return (Snd "s1")
     else
-      (Snd $ Var "s1") #()
+      "s2" #()
 .
 
 Definition exception_do : val :=
@@ -29,13 +29,17 @@ Definition exception_do : val :=
 
 End defn.
 
-Notation "e1 ;;; e2" := (exception_seq (e1%E, (Lam BAnon e2%E))%E)
-  (at level 100, e2 at level 200,
-      format "'[' '[hv' '[' e1 ']' ;;;  ']' '/' e2 ']'") : expr_scope.
+Global Notation "e1 ;;; e2" := (exception_seq e1%E (Lam BAnon e2%E)%E)
+  (at level 90, e2 at level 200,
+      format "'[' e1  ;;;  '//' e2 ']'") : expr_scope.
 
-Notation "do: e" := (do_return e%E)
-  (at level 90, e at level 200,
-      format "'do:' e") : expr_scope.
+Global Notation "e1 ;;; e2" := (exception_seq e1%E (Lam BAnon e2%E)%V)
+  (at level 90, e2 at level 200,
+      format "'[' e1  ;;;  '//' e2 ']'") : expr_scope.
 
-Notation "return: e" := (do_return e%E)
-  (at level 90, e at level 200, format "'return:' e") : expr_scope.
+Global Notation "do: e" := (do_execute e%E)
+  (at level 90, e at level 85,
+      format "do:  '[' e ']'") : expr_scope.
+
+Global Notation "return: e" := (do_return e%E)
+  (at level 90, e at level 85, format "return:  '[' e ']'") : expr_scope.

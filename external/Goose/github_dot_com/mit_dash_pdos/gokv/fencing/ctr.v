@@ -142,7 +142,7 @@ Definition Clerk__Get: val :=
       machine.Exit #1;;
       #()
     else #());;
-    ResolveProph (![ProphIdT] "valProph") (struct.loadF GetReply "val" (![ptrT] "r"));;
+    machine.prophId__ResolveU64 (![ProphIdT] "valProph") (struct.loadF GetReply "val" (![ptrT] "r"));;
     return: (struct.loadF GetReply "val" (![ptrT] "r")).
 
 Definition Clerk__Put: val :=

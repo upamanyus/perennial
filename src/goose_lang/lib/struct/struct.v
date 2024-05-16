@@ -307,7 +307,7 @@ Qed.
 
 Transparent structFieldRef.
 
-Lemma wp_struct_fieldRef {stk E} d f0 (l: loc) :
+Lemma wp_struct_fieldRef d f0 (l: loc) :
   match field_offset d f0 with
   | Some _ => True
   | None => False

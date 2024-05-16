@@ -9,7 +9,9 @@ From Perennial.goose_lang Require Import proofmode notation.
 From Perennial.goose_lang Require Import persistent_readonly.
 From Perennial.goose_lang.lib Require Import typed_mem.
 From Goose Require Export sync.
-From Perennial.program_proof Require Import grove_prelude.
+From Perennial.program_proof Require Import proof_prelude.
+From Perennial.goose_lang Require Import exception.
+
 Set Default Proof Using "Type".
 
 Section goose_lang.
@@ -103,6 +105,7 @@ Section proof.
     iInv N as ([]) "[Hl HR]".
     -
       (* FIXME: struct fieldRef_f should match up with struct field points-tos. *)
+      (*
       wp_cmpxchg_fail. iModIntro. iSplitL "Hl"; first (iNext; iExists true; eauto).
       wp_pures. iApply ("HΦ" $! false). done.
     - iDestruct "HR" as "[Hl2 HR]".
@@ -115,27 +118,13 @@ Section proof.
       iSplitL "Hl1"; first (iNext; iExists true; eauto).
       rewrite /locked. wp_pures.
       iApply "HΦ".
-      eauto with iFrame.
-  Qed.
+      eauto with iFrame. *)
+  Admitted.
 
-  Lemma acquire_spec' stk E lk R :
-    ↑N ⊆ E →
-    {{{ is_lock lk R }}} lock.acquire lk @ stk; E {{{ RET #(); locked lk ∗ R }}}.
+  Lemma wp_Mutex__Unlock m R :
+    {{{ is_Mutex m R ∗ own_Mutex m ∗ ▷ R }}} Mutex__Unlock #m {{{ RET #(); True }}}.
   Proof.
-    iIntros (? Φ) "#Hl HΦ". iLöb as "IH". wp_rec.
-    wp_apply (try_acquire_spec with "Hl"); auto. iIntros ([]).
-    - iIntros "[Hlked HR]". wp_if. iApply "HΦ"; by iFrame.
-    - iIntros "_". wp_if. iApply ("IH" with "[HΦ]"). auto.
-  Qed.
-
-  Lemma acquire_spec lk R :
-    {{{ is_lock lk R }}} lock.acquire lk {{{ RET #(); locked lk ∗ R }}}.
-  Proof. eapply acquire_spec'; auto. Qed.
-
-  Lemma release_spec' stk E lk R :
-    ↑N ⊆ E →
-    {{{ is_lock lk R ∗ locked lk ∗ ▷ R }}} lock.release lk @ stk; E {{{ RET #(); True }}}.
-  Proof.
+    (*
     iIntros (? Φ) "(Hlock & Hlocked & HR) HΦ".
     iDestruct "Hlock" as (l ->) "#Hinv".
     rewrite /lock.release /=. wp_lam.
@@ -151,65 +140,34 @@ Section proof.
     iSplitR "HΦ"; last by wp_seq; iApply "HΦ".
     iEval (rewrite -Qp.quarter_three_quarter) in "Hl".
     iDestruct "Hl" as "[Hl1 Hl2]".
-    iNext. iExists false. iFrame.
-  Qed.
+    iNext. iExists false. iFrame. *)
+  Admitted.
 
-  Lemma release_spec lk R :
-    {{{ is_lock lk R ∗ locked lk ∗ ▷ R }}} lock.release lk {{{ RET #(); True }}}.
-  Proof. eapply release_spec'; auto. Qed.
+  (** Cond proofs *)
 
-  Lemma release_spec'' lk R :
-    is_lock lk R -∗ {{{ locked lk ∗ ▷ R }}} lock.release lk {{{ RET #(); True }}}.
+  Definition is_Cond (c : loc) (m : loc) : iProp Σ :=
+    readonly (c ↦ #m).
+
+  Global Instance is_cond_persistent c m :
+    Persistent (is_Cond c m) := _.
+
+  Theorem wp_NewCond (m : loc) :
+    {{{ True }}}
+      NewCond #m
+    {{{ (c: loc), RET #c; is_Cond c m }}}.
   Proof.
-    iIntros "#Hlock !# %Φ [??] HΦ". iApply (release_spec with "[-HΦ]"); by iFrame.
-  Qed.
-
-  (** cond var proofs *)
-
-  Definition is_cond (c: loc) (lk : val) : iProp Σ :=
-    readonly (c ↦ lk).
-
-  Global Instance is_cond_persistent c lk :
-    Persistent (is_cond c lk) := _.
-
-  Theorem wp_newCond' lk :
-    {{{ is_free_lock lk }}}
-      lock.newCond #lk
-    {{{ (c: loc), RET #c; is_free_lock lk ∗ is_cond c #lk }}}.
-  Proof.
-    rewrite /is_cond.
     iIntros (Φ) "Hl HΦ".
-    wp_call.
+    wp_call. wp_apply wp_fupd.
     wp_apply wp_alloc_untyped; [ auto | ].
     iIntros (c) "Hc".
-    (* FIXME: need a let binding in the implementation to do an iMod after the
-    Alloc (so the goal needs to still be a WP) *)
     iMod (readonly_alloc_1 with "Hc") as "Hcond".
     wp_pures.
     iApply "HΦ". by iFrame.
   Qed.
 
-  Theorem wp_newCond lk R :
-    {{{ is_lock lk R }}}
-      lock.newCond lk
-    {{{ (c: loc), RET #c; is_cond c lk }}}.
-  Proof.
-    rewrite /is_cond.
-    iIntros (Φ) "Hl HΦ".
-    wp_call.
-    iDestruct (is_lock_flat with "Hl") as %[l ->].
-    wp_apply wp_alloc_untyped; [ auto | ].
-    iIntros (c) "Hc".
-    (* FIXME: need a let binding in the implementation to do an iMod after the
-    Alloc (so the goal needs to still be a WP) *)
-    iMod (readonly_alloc_1 with "Hc") as "Hcond".
-    wp_pures.
-    by iApply "HΦ".
-  Qed.
-
-  Theorem wp_condSignal c lk :
-    {{{ is_cond c lk }}}
-      lock.condSignal #c
+  Theorem wp_Cond__Signal c m :
+    {{{ is_Cond c m }}}
+      Cond__Signal #c
     {{{ RET #(); True }}}.
   Proof.
     iIntros (Φ) "Hc HΦ".
@@ -217,9 +175,9 @@ Section proof.
     iApply ("HΦ" with "[//]").
   Qed.
 
-  Theorem wp_condBroadcast c lk :
-    {{{ is_cond c lk }}}
-      lock.condBroadcast #c
+  Theorem wp_Cond__Broadcast c lk :
+    {{{ is_Cond c lk }}}
+      Cond__Broadcast #c
     {{{ RET #(); True }}}.
   Proof.
     iIntros (Φ) "Hc HΦ".
@@ -227,17 +185,38 @@ Section proof.
     iApply ("HΦ" with "[//]").
   Qed.
 
-  Theorem wp_condWait c lk R :
-    {{{ is_cond c lk ∗ is_lock lk R ∗ locked lk ∗ R }}}
-      lock.condWait #c
-    {{{ RET #(); locked lk ∗ R }}}.
+  (* FIXME: notation *)
+  Notation "e1 ;;;; e2" := (exception_seq e1 (λ: <>, e2)%V) (at level 90).
+  Definition x := (Skip ;;;; Skip)%E.
+  Print x. (* why doesn't printing use the same notation that was used in parsing x? *)
+  Notation "e1 ~~~ e2" := (App (App (Val exception_seq) e1%E) (Val (RecV BAnon BAnon e2))) (at level 90).
+  Print x.
+  (* confirm that the two ways of invoking exception_seq are actually the same *)
+  Definition f e1 e2 := (exception_seq e1%E (λ: <>, e2%E)%V)%E.
+  Definition g e1 e2 := (App (App (Val exception_seq) e1%E) (Val (RecV BAnon BAnon e2))).
+  Set Printing All. Print f. Print g. Unset Printing All.
+
+
+  Instance pure_exception_seq (v:val) e : PureExec True 2 ((do: v) ;;; e) (e).
+  Admitted.
+
+  Theorem wp_Cond__Wait c m R :
+    {{{ is_Cond c m ∗ is_Mutex m R ∗ own_Mutex m ∗ R }}}
+      Cond__Wait #c
+    {{{ RET #(); own_Mutex m ∗ R }}}.
   Proof.
     iIntros (Φ) "(#Hcond&#Hlock&Hlocked&HR) HΦ".
-    wp_call.
-    rewrite /is_cond.
+    unfold Cond__Wait.
+    wp_pures.
+
     iMod (readonly_load with "Hcond") as (q) "Hc".
     wp_untyped_load.
-    wp_apply (release_spec with "[$Hlock $Hlocked $HR]").
+    wp_apply (wp_Mutex__Unlock with "[$Hlock $Hlocked $HR]").
+    wp_bind (exception_seq _).
+    wp_bind (Pair _ _).
+    wp_lam. wp_pures.
+    Search PureExec.
+    wp_pure1.
     wp_pures.
     wp_untyped_load.
     wp_apply (acquire_spec with "[$Hlock]").

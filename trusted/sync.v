@@ -23,10 +23,10 @@ Definition Mutex__Unlock : val :=
   λ: "f" "m", CmpXchg (struct.fieldRef Mutex "state" "m") #true #false
 .
 
-Axiom NewCond: val.
-Axiom Cond__Wait: val.
-Axiom Cond__Broadcast: val.
-Axiom Cond__Signal: val.
+Definition NewCond : val := λ: "m", ref "m".
+Definition Cond__Wait : val := λ: "c", exception_do (do: Mutex__Unlock !"c" ;;; do: Mutex__Unlock !"c").
+Definition Cond__Broadcast : val := λ: "c", #().
+Definition Cond__Signal: val := λ: "c", #().
 Axiom WaitGroup__Add : val.
 Axiom WaitGroup__Done : val.
 Axiom WaitGroup__Wait : val.
