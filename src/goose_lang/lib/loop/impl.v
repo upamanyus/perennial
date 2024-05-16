@@ -9,6 +9,7 @@ Definition do_continue : val := λ: "v", (#(str "continue"), Var "v").
 Definition break_val : val := (#(str "break"), #()).
 Definition continue_val : val := (#(str "continue"), #()).
 Definition execute_val : val := (#(str "execute"), #()).
+Definition return_val (v:val) : val := (#(str "return"), v).
 
 Definition do_for: val :=
   λ: "cond" "body" "post",

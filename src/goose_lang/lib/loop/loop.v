@@ -13,11 +13,11 @@ Theorem wp_forBreak_cond P stk E (cond body: val) Φ :
   □ (P -∗
      WP cond #() @ stk ; E {{ v, ⌜ v = #true ⌝ ∗
                                  WP body #() @ stk ; E {{ bv,
-                                                            if decide (bv = continue_val) then P
-                                                            else if decide (bv = execute_val) then P
-                                                            else if decide (bv = break_val) then
-                                                                   WP do: #() @ stk ; E {{ Φ }}
-                                                            else WP (Val bv) @ stk ; E {{ Φ }} }} ∨
+                                              ⌜ bv = continue_val ⌝ ∗ P ∨
+                                              ⌜ bv = execute_val ⌝ ∗ P ∨
+                                              ⌜ bv = break_val ⌝ ∗ WP do: #() @ stk ; E {{ Φ }} ∨
+                                              ∃ v, ⌜ bv = return_val v ⌝ ∗ Φ bv
+                                                       }} ∨
                                  ⌜ v = #false ⌝ ∗ Φ #() }}) -∗
   WP (for: cond; (λ: <>, Skip)%V := body) @ stk ; E {{ Φ }}
 .
@@ -36,11 +36,11 @@ Proof.
   wp_bind (cond #()).
   wp_apply (wp_wand with "Hloop1").
   iIntros (c) "Hbody".
-  iDestruct "Hbody" as "[[% Hbody]|HΦ]".
-  - subst. wp_pures.
+  iDestruct "Hbody" as "[[% Hbody]|[% HΦ]]"; subst.
+  - wp_pures.
     wp_apply (wp_wand with "Hbody").
-    iIntros (bc) "HP". (*[[% HP] | [[% HP] | [[% HΦ] | HΦ]]]". *)
-    destruct decide.
+    iIntros (bc) "Hb". (*[[% HP] | [[% HP] | [[% HΦ] | HΦ]]]". *)
+    iDestruct "Hb" as "[[% HP]|Hb]".
     { (* body terminates with "continue" *)
       subst. wp_pures. (* FIXME: don't unfold [do:] here *)
       wp_lam; wp_pures; wp_lam; wp_pures.
@@ -53,7 +53,7 @@ Proof.
       wp_lam; wp_pures; wp_lam; wp_pures.
       done.
     }
-    destruct decide.
+    iDestruct "Hb" as "[[% HP]|Hb]".
     { (* body terminates with "execute" *)
       subst. wp_pures. (* FIXME: don't unfold [do:] here *)
       wp_lam; wp_pures; wp_lam; wp_pures.
@@ -66,7 +66,7 @@ Proof.
       wp_lam; wp_pures; wp_lam; wp_pures.
       done.
     }
-    destruct decide.
+    iDestruct "Hb" as "[[% HP]|Hb]".
     { (* body terminates with "break" *)
       subst. wp_pures.
       wp_apply (wp_wand with "HP").
@@ -75,23 +75,20 @@ Proof.
       wp_lam; wp_pures; wp_lam; wp_pures.
       done.
     }
+    iDestruct "Hb" as (?) "[% HΦ]".
     { (* body terminates with other error code *)
       wp_pures.
-      (* FIXME: Fst might not even work. *)
+      subst.
+      wp_pures.
+      wp_lam; wp_pures; wp_lam; wp_pures.
+      wp_lam; wp_pures; wp_lam; wp_pures.
+      wp_lam; wp_pures; wp_lam; wp_pures.
+      done.
     }
-
-    iDestruc
-    iIntros "!#" (Φ') "Hinv HΦ'".
-    iDestruct "Hinv" as "[[_ HP]|[% _]]"; last done.
-    iSpecialize ("Hloop" with "HP").
-    iApply (wp_wand with "[HΦ' Hloop]").
-    { iApply wp_frame_step_l'. iFrame. }
-    iIntros (v) "[HP [[-> Hpost]|[-> Hpost]]]".
-    + iApply "HP". iLeft. eauto.
-    + iApply "HP". iRight. eauto.
-  - iLeft. eauto.
-  - iNext. iIntros "[[% _]|[_ HΦ]]"; first done.
-    eauto.
+  -
+    wp_pures.
+    wp_lam; wp_pures; wp_lam; wp_pures.
+    done.
 Qed.
 
 Theorem wp_forBreak_cond (I: bool -> iProp Σ) stk E (cond body: val) :
