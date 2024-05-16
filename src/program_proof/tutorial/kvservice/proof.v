@@ -572,7 +572,7 @@ Definition own_Server (s:loc) : iProp Σ :=
 Definition is_Server (s:loc) : iProp Σ :=
   ∃ mu,
   "#Hmu" ∷ readonly (s ↦[Server :: "mu"] mu) ∗
-  "#HmuInv" ∷ is_lock nroot mu (own_Server s)
+  "#HmuInv" ∷ is_Mutex nroot mu (own_Server s)
 .
 
 (* FIXME: make use of explicit spec montonicity and get rid of Ψ+Φ. *)

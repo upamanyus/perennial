@@ -16,7 +16,7 @@ Record lock_names :=
 Definition lock_inv γ key R : iProp Σ :=
   ∃ b : bool, kvptsto_lock γ key (if b then "1" else "") ∗ if b then True else R.
 
-Definition is_lock N `{invGS Σ} γ key R :=
+Definition is_Mutex N `{invGS Σ} γ key R :=
   inv N (lock_inv γ key R).
 
 End lockservice_defns.
@@ -27,7 +27,7 @@ Context `{!heapGS Σ}.
 Context (N: namespace).
 
 Lemma lock_alloc `{invGS Σ} γ E key R :
-  kvptsto_lock γ key "" -∗ R ={E}=∗ is_lock N γ key R.
+  kvptsto_lock γ key "" -∗ R ={E}=∗ is_Mutex N γ key R.
 Proof.
   iIntros "Hkv HR".
   iMod (inv_alloc _ _ (lock_inv γ key R) with "[Hkv HR]").
@@ -69,7 +69,7 @@ Qed.
 
 Lemma wp_LockClerk__Lock ck key γ R :
   {{{
-       is_LockClerk ck γ ∗ is_lock N γ key R
+       is_LockClerk ck γ ∗ is_Mutex N γ key R
   }}}
     LockClerk__Lock #ck #(str key)
   {{{
@@ -89,7 +89,7 @@ Proof.
   iNamed "Hkv_is".
   wp_loadField.
   wp_apply ("HcputSpec" with "[//]").
-  rewrite /is_lock.
+  rewrite /is_Mutex.
   iInv "Hlock" as "Hlock_inner" "Hclo".
   iMod (lc_fupd_elim_later with "Hlc Hlock_inner") as "Hlock_inner".
   iDestruct "Hlock_inner" as (?) "(Hk&HR)".
@@ -116,7 +116,7 @@ Qed.
 
 Lemma wp_LockClerk__Unlock ck key γ R :
   {{{
-       is_LockClerk ck γ ∗ is_lock N γ key R ∗ R
+       is_LockClerk ck γ ∗ is_Mutex N γ key R ∗ R
   }}}
     LockClerk__Unlock #ck #(str key)
   {{{
@@ -132,7 +132,7 @@ Proof.
   iNamed "Hkv_is".
   wp_loadField.
   wp_apply ("HputSpec" with "[//]").
-  rewrite /is_lock.
+  rewrite /is_Mutex.
   iInv "Hlock" as "Hlock_inner" "Hclo".
   iMod (lc_fupd_elim_later with "Hlc Hlock_inner") as "Hlock_inner".
   iDestruct "Hlock_inner" as (?) "(Hk&_)".

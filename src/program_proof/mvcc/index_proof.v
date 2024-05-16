@@ -29,7 +29,7 @@ Hint Extern 1 (environments.envs_entails _ (own_index_bucket _ _ _)) => unfold o
 Definition is_index_bucket (bkt : loc) (hash : nat) (γ : mvcc_names) : iProp Σ :=
   ∃ (latch : loc),
     "#Hlatch" ∷ readonly (bkt ↦[IndexBucket :: "latch"] #latch) ∗
-    "#HlatchRP" ∷ is_lock mvccN #latch (own_index_bucket bkt hash γ) ∗
+    "#HlatchRP" ∷ is_Mutex mvccN #latch (own_index_bucket bkt hash γ) ∗
     "_" ∷ True.
 
 Definition is_index (idx : loc) (γ : mvcc_names) : iProp Σ :=

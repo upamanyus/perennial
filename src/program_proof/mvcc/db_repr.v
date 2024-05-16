@@ -26,7 +26,7 @@ Definition is_db (db : loc) γ : iProp Σ :=
   ∃ (latch : loc) (sites : Slice.t) (idx : loc)
     (sitesL : list loc) (p : proph_id),
     "#Hlatch" ∷ readonly (db ↦[DB :: "latch"] #latch) ∗
-    "#Hlock" ∷ is_lock mvccN #latch (own_db db) ∗
+    "#Hlock" ∷ is_Mutex mvccN #latch (own_db db) ∗
     "#Hidx" ∷ readonly (db ↦[DB :: "idx"] #idx) ∗
     "#HidxRI" ∷ is_index idx γ ∗
     "#Hsites" ∷ readonly (db ↦[DB :: "sites"] (to_val sites)) ∗

@@ -24,7 +24,7 @@ Definition own_txnsite (txnsite : loc) (sid : u64) γ : iProp Σ :=
 Definition is_txnsite (site : loc) (sid : u64) γ : iProp Σ :=
   ∃ (latch : loc) (proph : proph_id),
     "#Hlatch" ∷ readonly (site ↦[TxnSite :: "latch"] #latch) ∗
-    "#Hlock" ∷ is_lock mvccN #latch (own_txnsite site sid γ) ∗
+    "#Hlock" ∷ is_Mutex mvccN #latch (own_txnsite site sid γ) ∗
     "#Hinvtid" ∷ have_gentid γ ∗
     "#Hinvgc" ∷ mvcc_inv_gc γ ∗
     "#Hinvsst" ∷ mvcc_inv_sst γ proph ∗

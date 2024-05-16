@@ -148,7 +148,7 @@ Definition is_Server s γ : iProp Σ :=
   ∃ mu,
   "#Hmu" ∷ readonly (s ↦[Server :: "mu"] mu) ∗
   "#HleaseExpiration" ∷ readonly (s ↦[Server :: "leaseExpiration"] #LEASE_EXP) ∗
-  "#HmuInv" ∷ is_lock minleaseN mu (own_Server s γ)
+  "#HmuInv" ∷ is_Mutex minleaseN mu (own_Server s γ)
 .
 
 Lemma wp_Put s (v:u64) γ Φ :

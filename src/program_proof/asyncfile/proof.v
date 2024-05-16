@@ -129,8 +129,8 @@ Definition own_AsyncFile_internal f N γ P mu : iProp Σ :=
   "Hclosed" ∷ f ↦[AsyncFile :: "closed"] #closed ∗
   "HclosedCond" ∷ f ↦[AsyncFile :: "closedCond"] #closedCond ∗
 
-  "#HindexCond_is" ∷ is_cond indexCond mu ∗
-  "#HdurableIndexCond_is" ∷ is_cond durableIndexCond mu ∗
+  "#HindexCond_is" ∷ is_Cond indexCond mu ∗
+  "#HdurableIndexCond_is" ∷ is_Cond durableIndexCond mu ∗
 
   "Hghost" ∷ own_AsyncFile_ghost N γ P fname data idx durableIndex closeRequested closed ∗
   "%HnoClose" ∷  ⌜ closeRequested = false ⌝ (* TODO: don't want to prove close()
@@ -141,7 +141,7 @@ Definition own_AsyncFile_internal f N γ P mu : iProp Σ :=
 Definition is_AsyncFile (N:namespace) (f:loc) γ P : iProp Σ :=
   ∃ mu,
   "#Hmu" ∷ readonly (f ↦[AsyncFile :: "mu"] mu) ∗
-  "#HmuInv" ∷ is_lock N mu (own_AsyncFile_internal f N γ P mu)
+  "#HmuInv" ∷ is_Mutex N mu (own_AsyncFile_internal f N γ P mu)
 .
 
 Definition own_AsyncFile (N:namespace) (f:loc) γ (P: list u8 → iProp Σ) (data:list u8) : iProp Σ :=

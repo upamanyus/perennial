@@ -126,10 +126,10 @@ Definition init_lock_inv γlk kvptsto (accts:gset string) : iProp Σ :=
   (∃ γlog,
       let γ := (BankNames γlk kvptsto γlog) in
    bank_kvptsto γ init_flag "1" ∗ inv bankN (bank_inv γ accts) ∗
-    [∗ set] acc ∈ accts, is_lock lockN (lock_gn γ) acc (bankPs γ acc)).
+    [∗ set] acc ∈ accts, is_Mutex lockN (lock_gn γ) acc (bankPs γ acc)).
 
 Definition is_bank γlk kvptsto accs : iProp Σ :=
-  is_lock lockN γlk init_flag
+  is_Mutex lockN γlk init_flag
           (init_lock_inv γlk kvptsto accs).
 
 End bank_defs.
@@ -152,14 +152,14 @@ Definition own_bank_clerk (bank_ck:loc) (accts : gset string) : iProp Σ :=
   "Haccts" ∷ bank_ck ↦[BankClerk :: "accts"] (slice_val accts_s) ∗
   "Haccts_slice" ∷ own_slice_small accts_s stringT 1 accts_l ∗
 
-  "#Haccts_is_lock" ∷ [∗ list] acc ∈ accts_l, is_lock lockN (lock_gn γ) acc (bankPs γ acc)
+  "#Haccts_is_lock" ∷ [∗ list] acc ∈ accts_l, is_Mutex lockN (lock_gn γ) acc (bankPs γ acc)
 .
 
 Lemma acquire_two_spec (lck :loc) (ln1 ln2:string) γ:
 {{{
      is_LockClerk lockN lck γ.(bank_ls_names) ∗
-     is_lock lockN γ.(bank_ls_names) ln1 (bankPs γ ln1) ∗
-     is_lock lockN γ.(bank_ls_names) ln2 (bankPs γ ln2)
+     is_Mutex lockN γ.(bank_ls_names) ln1 (bankPs γ ln1) ∗
+     is_Mutex lockN γ.(bank_ls_names) ln2 (bankPs γ ln2)
 }}}
   acquire_two #lck #(str ln1) #(str ln2)
 {{{
@@ -183,8 +183,8 @@ Qed.
 Lemma release_two_spec (lck :loc) (ln1 ln2:string) γ:
 {{{
      is_LockClerk lockN lck γ.(bank_ls_names) ∗
-     is_lock lockN γ.(bank_ls_names) ln1 (bankPs γ ln1) ∗
-     is_lock lockN γ.(bank_ls_names) ln2 (bankPs γ ln2) ∗
+     is_Mutex lockN γ.(bank_ls_names) ln1 (bankPs γ ln1) ∗
+     is_Mutex lockN γ.(bank_ls_names) ln2 (bankPs γ ln2) ∗
      bankPs γ ln1 ∗
      bankPs γ ln2
 }}}
@@ -462,7 +462,7 @@ Proof.
       "Hsum" ∷ sum ↦[uint64T] #(map_total locked) ∗
       "%Hlocked_dom" ∷ ⌜Permutation (elements (dom locked)) done⌝ ∗
       "Hml" ∷ [∗ map] acc ↦ bal ∈ locked,
-        is_lock lockN γ.(bank_ls_names) acc (bankPs γ acc) ∗
+        is_Mutex lockN γ.(bank_ls_names) acc (bankPs γ acc) ∗
         (bank_kvptsto γ acc (bytes_to_string $ u64_le $ bal) ∗ acc [[log_gn γ]]↦ bal))%I
     with "[] [$Haccts_slice Hsum $Hlck $Hkck]").
   2: {
@@ -579,7 +579,7 @@ Proof.
       ∃ mtodo,
       "Hlck" ∷ bck ↦[BankClerk :: "lck"] #lck ∗
       "%Hdom" ∷ ⌜Permutation (elements (dom mtodo)) todo⌝ ∗
-      "Hml" ∷ [∗ map] k↦x ∈ mtodo, is_lock lockN γ.(bank_ls_names) k (bankPs γ k) ∗
+      "Hml" ∷ [∗ map] k↦x ∈ mtodo, is_Mutex lockN γ.(bank_ls_names) k (bankPs γ k) ∗
         (bank_kvptsto γ k (bytes_to_string $ u64_le x) ∗ k [[log_gn γ]]↦ x))%I
     with "[] [$Haccts_slice $Hlck Hml]").
   {
@@ -644,7 +644,7 @@ Lemma wp_MakeBankClerkSlice (lck kck : loc) γlk kvptsto E accts (accts_s : Slic
   {{{
        is_LockClerk lockN lck γlk ∗
        is_Kv kck kvptsto E ∗
-       is_lock lockN γlk init_flag
+       is_Mutex lockN γlk init_flag
          (init_lock_inv init_flag γlk kvptsto accts) ∗
        own_slice_small accts_s stringT 1 (acc0 :: accts_l) ∗
        ⌜Permutation (elements accts) (acc0 :: accts_l)⌝
@@ -804,7 +804,7 @@ Proof.
     unfold bal_total.
     iDestruct (big_sepM_sep with "[$Hdone $Haccs]") as "Haccs".
 
-    iMod (big_sepM_mono_fupd _ (λ k v, is_lock lockN γlk k (bankPs γ k)) _ True%I with "[] [$Haccs]") as "[_ #Haccs]".
+    iMod (big_sepM_mono_fupd _ (λ k v, is_Mutex lockN γlk k (bankPs γ k)) _ True%I with "[] [$Haccs]") as "[_ #Haccs]".
     { iModIntro.
       iIntros (k v) "%Hkv [_ H]".
       iDestruct "H" as "[H Hlog]".

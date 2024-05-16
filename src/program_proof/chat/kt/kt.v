@@ -71,7 +71,7 @@ Definition lockR_adtr l param log : iProp Σ :=
 
 Definition is_adtr l param log : iProp Σ :=
   ∃ lk,
-  "#HlkR" ∷ is_lock nroot #lk (lockR_adtr l param log) ∗
+  "#HlkR" ∷ is_Mutex nroot #lk (lockR_adtr l param log) ∗
   "#Hlk" ∷ readonly (l ↦[auditor :: "mu"] #lk).
 
 Lemma wp_auditor_new param sk :

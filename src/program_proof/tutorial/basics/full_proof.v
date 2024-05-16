@@ -20,7 +20,7 @@ Definition tracker_inv (t : loc) γ : iProp Σ :=
 Definition is_tracker (t : loc) γ : iProp Σ :=
   ∃ (muptr : loc),
     "Ht_mu" ∷ t ↦[Tracker :: "mu"] #muptr ∗
-    "#Ht_lock" ∷ is_lock nroot #muptr (tracker_inv t γ).
+    "#Ht_lock" ∷ is_Mutex nroot #muptr (tracker_inv t γ).
 
 Lemma wp_lookupLocked (t : loc) γ (m : gmap u64 u64) (k : u64) :
   {{{ tracker_state t γ m }}}

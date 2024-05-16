@@ -53,9 +53,9 @@ Definition own_tuple_read
 Definition is_tuple_locked tuple (key : u64) γ : iProp Σ :=
   ∃ (latch : loc) (rcond : loc),
     "#Hlatch" ∷ readonly (tuple ↦[Tuple :: "latch"] #latch) ∗
-    "#Hlock" ∷ is_lock mvccN #latch (own_tuple tuple key γ) ∗
+    "#Hlock" ∷ is_Mutex mvccN #latch (own_tuple tuple key γ) ∗
     "#Hrcond" ∷ readonly (tuple ↦[Tuple :: "rcond"] #rcond) ∗
-    "#HrcondC" ∷ is_cond rcond #latch ∗
+    "#HrcondC" ∷ is_Cond rcond #latch ∗
     "#Hinvgc" ∷ mvcc_inv_gc γ ∗
     "Hlocked" ∷ locked #latch.
 
@@ -81,9 +81,9 @@ Definition own_tuples_updated
 Definition is_tuple (tuple : loc) (key : u64) γ : iProp Σ :=
   ∃ (latch : loc) (rcond : loc) (p : proph_id),
     "#Hlatch" ∷ readonly (tuple ↦[Tuple :: "latch"] #latch) ∗
-    "#Hlock" ∷ is_lock mvccN #latch (own_tuple tuple key γ) ∗
+    "#Hlock" ∷ is_Mutex mvccN #latch (own_tuple tuple key γ) ∗
     "#Hrcond" ∷ readonly (tuple ↦[Tuple :: "rcond"] #rcond) ∗
-    "#HrcondC" ∷ is_cond rcond #latch ∗
+    "#HrcondC" ∷ is_Cond rcond #latch ∗
     "#Hinvgc" ∷ mvcc_inv_gc γ ∗
     "#Hinv"   ∷ mvcc_inv_sst γ p ∗
     "_" ∷ True.

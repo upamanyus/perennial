@@ -187,8 +187,8 @@ Definition aof_mu_invariant (aof_ptr:loc) mu γ fname P Pcrash : iProp Σ :=
   "Hclose" ∷ aof_close_resources aof_ptr γ P Pcrash fname ∗
   "HdurableCond" ∷ aof_ptr ↦[AppendOnlyFile :: "durableCond"] #durCond_ptr ∗
   "HoldDurableCond" ∷ aof_ptr ↦[AppendOnlyFile :: "oldDurableCond"] #oldDurCond_ptr ∗
-  "#HoldDurCond" ∷ is_cond oldDurCond_ptr mu ∗
-  "#HdurCond" ∷ is_cond durCond_ptr mu
+  "#HoldDurCond" ∷ is_Cond oldDurCond_ptr mu ∗
+  "#HdurCond" ∷ is_Cond durCond_ptr mu
 .
 
 Definition is_aof aof_ptr γ fname (P : (list u8) → iProp Σ) Pcrash : iProp Σ :=
@@ -196,9 +196,9 @@ Definition is_aof aof_ptr γ fname (P : (list u8) → iProp Σ) Pcrash : iProp �
   "#Hmu" ∷ readonly (aof_ptr ↦[AppendOnlyFile :: "mu"] mu_ptr) ∗
   "#HlengthCond" ∷ readonly (aof_ptr ↦[AppendOnlyFile :: "lengthCond"] #lenCond_ptr) ∗
   "#HclosedCond" ∷ readonly (aof_ptr ↦[AppendOnlyFile :: "closedCond"] #cloCond_ptr) ∗
-  "#HlenCond" ∷ is_cond lenCond_ptr mu_ptr ∗
-  "#HcloCond" ∷ is_cond cloCond_ptr mu_ptr ∗
-  "#Hmu_inv" ∷ is_lock aofNlk mu_ptr (aof_mu_invariant aof_ptr mu_ptr γ fname P Pcrash) ∗
+  "#HlenCond" ∷ is_Cond lenCond_ptr mu_ptr ∗
+  "#HcloCond" ∷ is_Cond cloCond_ptr mu_ptr ∗
+  "#Hmu_inv" ∷ is_Mutex aofNlk mu_ptr (aof_mu_invariant aof_ptr mu_ptr γ fname P Pcrash) ∗
   "#Haof_len_inv" ∷ inv aof_lenN (aof_len_invariant γ) ∗
   "#Hctx_inv" ∷ is_aof_ctx_inv γ P
 .
@@ -1272,7 +1272,7 @@ Proof.
       wp_store.
       iModIntro.
       iSplitR; first done.
-      iAssert (∃ (cond:loc), cond_ptr ↦[ptrT] #cond ∗ is_cond cond mu_ptr)%I with "[Hcond]" as "Hcond".
+      iAssert (∃ (cond:loc), cond_ptr ↦[ptrT] #cond ∗ is_Cond cond mu_ptr)%I with "[Hcond]" as "Hcond".
       { iExists _; iFrame "∗#". }
       iNamedAccu.
     }

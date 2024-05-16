@@ -63,7 +63,7 @@ Definition frontendN := nroot .@ "frontend".
 Definition is_Server s γ : iProp Σ :=
   ∃ mu,
   "Hmu" ∷ readonly (s ↦[frontend.Server :: "mu"] mu) ∗
-  "HmuInv" ∷ is_lock frontendN mu (∃ epoch, own_Server s γ epoch)
+  "HmuInv" ∷ is_Mutex frontendN mu (∃ epoch, own_Server s γ epoch)
 .
 
 Definition frontend_inv γ : iProp Σ :=

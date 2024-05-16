@@ -22,7 +22,7 @@ Definition is_KVClerk (p_ptr:loc) (γ:gname) : iProp Σ :=
   "#Hcoord" ∷ readonly (p_ptr ↦[KVClerk :: "coord"] #coord) ∗
   "#Hcm" ∷ readonly (p_ptr ↦[KVClerk :: "cm"] #cm) ∗
   "#Hiscoord" ∷ is_coord_server coord (Build_memkv_coord_names γcoord γ) ∗
-  "#Hinv" ∷ is_lock nroot mu (own_KVClerk p_ptr γ) ∗
+  "#Hinv" ∷ is_Mutex nroot mu (own_KVClerk p_ptr γ) ∗
   "#Hiscm" ∷ is_ConnMan cm
 .
 

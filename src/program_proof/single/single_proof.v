@@ -47,7 +47,7 @@ Definition mutexN := nroot.@ "mutex".
 Definition is_Replica (r:loc) pid γ : iProp Σ :=
   ∃ mu peers_sl (peers:list loc),
   "#Hmu" ∷ readonly (r ↦[Replica :: "mu"] mu) ∗
-  "#Hmu_inv" ∷ is_lock mutexN mu (own_Replica r pid γ) ∗
+  "#Hmu_inv" ∷ is_Mutex mutexN mu (own_Replica r pid γ) ∗
   "#Hpeers" ∷ readonly (r ↦[Replica :: "peers"] (slice_val peers_sl)) ∗
   (* XXX: what does refT (struct.t ... ) vs struct.ptrT ... *)
   "#HpeersSl" ∷ readonly (typed_slice.own_slice_small peers_sl (refT (struct.t Clerk)) 1%Qp peers)

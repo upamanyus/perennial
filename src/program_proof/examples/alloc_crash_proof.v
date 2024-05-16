@@ -192,7 +192,7 @@ Definition is_allocator (l: loc) (d: gset u64) γ : iProp Σ :=
   ∃ (lref mref: loc),
     "#m" ∷ readonly (l ↦[Allocator :: "m"] #lref) ∗
     "#free" ∷ readonly (l ↦[Allocator :: "free"] #mref) ∗
-    "#His_lock" ∷ is_lock Nlock #lref (allocator_linv γ mref) ∗
+    "#His_lock" ∷ is_Mutex Nlock #lref (allocator_linv γ mref) ∗
     "#Halloc_inv" ∷ ncinv Ninv (allocator_inv γ d)
 .
 

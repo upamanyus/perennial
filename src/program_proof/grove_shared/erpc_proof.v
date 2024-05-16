@@ -90,7 +90,7 @@ Definition is_erpc_server (γ : erpc_names) (s:loc) : iProp Σ :=
   ∃ mu,
   "#His_srv" ∷ is_eRPCServer γ ∗
   "#Hmu" ∷ readonly (s ↦[erpc.Server :: "mu"] mu) ∗
-  "#HmuInv" ∷ is_lock erpcN mu (own_erpc_server γ s)
+  "#HmuInv" ∷ is_Mutex erpcN mu (own_erpc_server γ s)
 .
 
 Definition own_erpc_client (γ : erpc_names) (c:loc) : iProp Σ :=

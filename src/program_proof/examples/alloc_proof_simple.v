@@ -30,7 +30,7 @@ Definition is_allocator (l: loc) P : iProp Σ :=
     "#Hjoin" ∷ □ (∀ σ1 σ2, P σ1 -∗ P σ2 -∗ post_expr ∅ (P (σ1 ∪ σ2))) ∗
     "#m" ∷ readonly (l ↦[Allocator :: "m"] #lref) ∗
     "#free" ∷ readonly (l ↦[Allocator :: "free"] #mref) ∗
-    "#His_lock" ∷ is_lock allocN #lref (∃ σ, "Hlockinv" ∷ allocator_linv P mref σ)
+    "#His_lock" ∷ is_Mutex allocN #lref (∃ σ, "Hlockinv" ∷ allocator_linv P mref σ)
 .
 
 Global Instance is_allocator_Persistent l P :

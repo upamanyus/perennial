@@ -161,7 +161,7 @@ Section proof.
   (*
   Global Instance rwlock_inv_ne l : NonExpansive (rwlock_inv l).
   Proof. solve_proper. Qed.
-  Global Instance is_lock_ne l : NonExpansive (is_lock l).
+  Global Instance is_lock_ne l : NonExpansive (is_Mutex l).
   Proof. solve_proper. Qed.
    *)
 

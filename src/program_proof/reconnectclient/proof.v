@@ -20,7 +20,7 @@ Definition is_ReconnectingClient ck (host:u64) : iProp Σ :=
   ∃ mu,
     "#Haddr" ∷ readonly (ck ↦[ReconnectingClient :: "addr"] #host) ∗
     "#Hmu" ∷ readonly (ck ↦[ReconnectingClient :: "mu"] mu) ∗
-    "#HmuInv" ∷ is_lock reconnectN mu (own_ReconnectingClient ck host)
+    "#HmuInv" ∷ is_Mutex reconnectN mu (own_ReconnectingClient ck host)
 .
 
 Lemma wp_getClient ck host :

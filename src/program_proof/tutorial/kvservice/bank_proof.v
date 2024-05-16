@@ -49,16 +49,16 @@ Definition own_bank_clerk γ (bank_ck:loc) : iProp Σ :=
   "Hacc1" ∷ bank_ck ↦[BankClerk :: "acc1"] #acc1 ∗
   "Hacc1" ∷ bank_ck ↦[BankClerk :: "acc2"] #acc2 ∗
 
-  "Hacc1_is_lock" ∷ is_lock lockN γ.(bank_ls_names) acc1 (bankPs γ acc1) ∗
-  "Hacc2_is_lock" ∷ is_lock lockN γ.(bank_ls_names) acc2 (bankPs γ acc2)
+  "Hacc1_is_lock" ∷ is_Mutex lockN γ.(bank_ls_names) acc1 (bankPs γ acc1) ∗
+  "Hacc2_is_lock" ∷ is_Mutex lockN γ.(bank_ls_names) acc2 (bankPs γ acc2)
 .
 
 
 Lemma acquire_two_spec (lck :loc) (ln1 ln2:u64) γ:
 {{{
      own_LockClerk lck γ.(bank_ls_names) ∗
-     is_lock lockN γ.(bank_ls_names) ln1 (bankPs γ acc1) ∗
-     is_lock lockN γ.(bank_ls_names) ln2 (bankPs γ acc2)
+     is_Mutex lockN γ.(bank_ls_names) ln1 (bankPs γ acc1) ∗
+     is_Mutex lockN γ.(bank_ls_names) ln2 (bankPs γ acc2)
 }}}
   acquire_two #lck #ln1 #ln2
 {{{
@@ -94,8 +94,8 @@ Qed.
 Lemma release_two_spec (lck :loc) (ln1 ln2:u64) γ:
 {{{
      own_LockClerk lck γ.(bank_ls_names) ∗
-     is_lock lockN γ.(bank_ls_names) ln1 (bankPs γ acc1) ∗
-     is_lock lockN γ.(bank_ls_names) ln2 (bankPs γ acc2) ∗
+     is_Mutex lockN γ.(bank_ls_names) ln1 (bankPs γ acc1) ∗
+     is_Mutex lockN γ.(bank_ls_names) ln2 (bankPs γ acc2) ∗
      bankPs γ acc1 ∗
      bankPs γ acc2
 }}}

@@ -104,7 +104,7 @@ Definition is_CacheKv (k:loc) γ : iProp Σ :=
   ∃ mu kvptsto_int (kv:loc),
   "#Hinv" ∷ is_cachekv_inv kvptsto_int γ ∗
   "#Hmu" ∷ readonly (k ↦[CacheKv :: "mu"] mu) ∗
-  "#HmuInv" ∷ is_lock nroot mu (own_CacheKv k γ) ∗
+  "#HmuInv" ∷ is_Mutex nroot mu (own_CacheKv k γ) ∗
   "#Hkv" ∷ readonly (k ↦[CacheKv :: "kv"] #kv) ∗
   "#Hkv_is" ∷ is_Kv kv kvptsto_int E ∗
   "%Hdisj" ∷ ⌜ ↑cachekvN ## E ⌝

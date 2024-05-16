@@ -1217,7 +1217,7 @@ Definition own_Clerk_inv (ck:loc) l : iProp Σ :=
 Definition is_Clerk (ck:loc) γ : iProp Σ :=
   ∃ mu cls_sl (cls:list loc),
   "#Hmu" ∷ readonly (ck ↦[Clerk :: "mu"] mu) ∗
-  "#HmuInv" ∷ is_lock N mu (own_Clerk_inv ck (length cls)) ∗
+  "#HmuInv" ∷ is_Mutex N mu (own_Clerk_inv ck (length cls)) ∗
   "#Hcls" ∷ readonly (ck ↦[Clerk :: "cls"] (slice_val cls_sl)) ∗
   "#Hcls_sl" ∷ readonly (own_slice_small cls_sl ptrT 1 cls) ∗
   "#Hrpc" ∷ ([∗ list] cl ∈ cls, ∃ srv, is_ReconnectingClient cl srv ∗ is_config_host srv γ) ∗

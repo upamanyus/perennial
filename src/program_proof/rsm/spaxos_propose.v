@@ -123,7 +123,7 @@ Definition own_paxos (paxos : loc) (nid : u64) γ : iProp Σ :=
 Definition is_paxos_node (paxos : loc) (nid : u64) (sc : nat) γ : iProp Σ :=
   ∃ (mu : loc),
     "#Hmu"   ∷ readonly (paxos ↦[Paxos :: "mu"] #mu) ∗
-    "#Hlock" ∷ is_lock spaxosN #mu (own_paxos paxos nid γ) ∗
+    "#Hlock" ∷ is_Mutex spaxosN #mu (own_paxos paxos nid γ) ∗
     "#Hnid" ∷ readonly (paxos ↦[Paxos :: "nid"] #nid) ∗
     "%Hnid" ∷ ⌜0 ≤ int.Z nid < max_nodes⌝ ∗
     "#Hinv" ∷ know_sapxos_inv sc γ.

@@ -40,7 +40,7 @@ Definition lockShard_addr gh (shardlock : loc) (addr : u64) (gheld : bool)
       "held" ∷ lockStatePtr ↦[lockState :: "held"] #gheld ∗
       "cond" ∷ lockStatePtr ↦[lockState :: "cond"] #cond ∗
       "waiters" ∷ lockStatePtr ↦[lockState :: "waiters"] #nwaiters ∗
-      "#Hcond" ∷ lock.is_cond cond #shardlock ∗
+      "#Hcond" ∷ lock.is_Cond cond #shardlock ∗
       "%Hcovered" ∷ ⌜ addr ∈ covered ⌝ ∗
       "Hwaiters" ∷ ( ⌜ gheld = true ⌝ ∨
         ( ⌜ gheld = false ⌝ ∗ addr ↪[gh] false ∗ P addr ) )
@@ -61,7 +61,7 @@ Definition is_lockShard (ls : loc) (ghostHeap : gname) (covered : gset u64) (P :
   ( ∃ (shardlock mptr : loc),
       "#Hls_mu" ∷ readonly (ls ↦[lockShard :: "mu"] #shardlock) ∗
       "#Hls_state" ∷ readonly (ls ↦[lockShard :: "state"] #mptr) ∗
-      "#Hlock" ∷ is_lock lockN #shardlock (is_lockShard_inner mptr shardlock ghostHeap covered P)
+      "#Hlock" ∷ is_Mutex lockN #shardlock (is_lockShard_inner mptr shardlock ghostHeap covered P)
   )%I.
 
 Global Instance is_lockShard_persistent ls gh (P : u64 -> iProp Σ) c : Persistent (is_lockShard ls gh c P).

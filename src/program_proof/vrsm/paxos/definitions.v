@@ -238,7 +238,7 @@ Definition own_Server (s:loc) γ γsrv : iProp Σ :=
 Definition is_Server (s:loc) γ γsrv : iProp Σ :=
   ∃ (mu:val) (clerks_sl:Slice.t) clerks,
   "#Hmu" ∷ readonly (s ↦[Server :: "mu"] mu) ∗
-  "#HmuInv" ∷ is_lock N mu (own_Server s γ γsrv) ∗
+  "#HmuInv" ∷ is_Mutex N mu (own_Server s γ γsrv) ∗
 
   "#Hclerks" ∷ readonly (s ↦[Server :: "clerks"] (slice_val clerks_sl)) ∗
 

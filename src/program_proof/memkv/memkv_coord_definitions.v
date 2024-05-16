@@ -74,7 +74,7 @@ Definition own_KVCoordServer (s : loc) γ : iProp Σ :=
 Definition is_KVCoordServer (s:loc) γ : iProp Σ :=
   ∃ mu,
   "#Hmu" ∷ readonly (s ↦[KVCoord :: "mu"] mu) ∗
-  "#HmuInv" ∷ is_lock memKVN mu (own_KVCoordServer s γ.(coord_kv_gn))
+  "#HmuInv" ∷ is_Mutex memKVN mu (own_KVCoordServer s γ.(coord_kv_gn))
 .
 
 End memkv_coord_definitions.

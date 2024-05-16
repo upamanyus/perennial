@@ -37,9 +37,9 @@ Definition queue_inv (q : loc) (queueSlice: Slice.t) (P : u64 -> iProp Σ): iPro
 Definition is_queue (q : loc) (P : u64 -> iProp Σ) : iProp Σ :=
   ∃ (lk : loc) (cond : loc) (queueSlice: Slice.t),  
     "#Hlock" ∷ readonly (q ↦[Queue :: "lock"] #lk) ∗
-    "#HlockC" ∷ is_lock nroot #lk (queue_inv q queueSlice P) ∗
+    "#HlockC" ∷ is_Mutex nroot #lk (queue_inv q queueSlice P) ∗
     "#Hrcond" ∷ readonly (q ↦[Queue :: "cond"] #cond) ∗
-    "#HrcondC" ∷ is_cond cond #lk.
+    "#HrcondC" ∷ is_Cond cond #lk.
 
 Theorem init : forall slice, valid_elems slice 0 0 = nil.
 Proof.

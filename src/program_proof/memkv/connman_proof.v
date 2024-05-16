@@ -18,13 +18,13 @@ Local Definition own_ConnMan (c_ptr:loc) (lock: val) : iProp Σ :=
     "Hcls_map" ∷ own_map rpcCls 1 rpcClsM ∗
     "Hmaking_map" ∷ own_map making 1 makingM ∗
     "#HownRpcCls" ∷ ([∗ map] host ↦ cl ∈ rpcClsM, is_uRPCClient cl host) ∗
-    "#HownMaking" ∷ ([∗ map] host ↦ c ∈ makingM, is_cond c lock)
+    "#HownMaking" ∷ ([∗ map] host ↦ c ∈ makingM, is_Cond c lock)
 .
 
 Definition is_ConnMan (c_ptr:loc) : iProp Σ :=
   ∃ mu,
   "#Hmu" ∷ readonly (c_ptr ↦[ConnMan :: "mu"] mu) ∗
-  "#Hinv" ∷ is_lock connmanN mu (own_ConnMan c_ptr mu)
+  "#Hinv" ∷ is_Mutex connmanN mu (own_ConnMan c_ptr mu)
 .
 
 Lemma wp_MakeConnMan :

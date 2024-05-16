@@ -460,10 +460,10 @@ Definition is_wal_mem (l: loc) γ : iProp Σ :=
      "condLogger" ∷ readonly (l ↦[Walog :: "condLogger"] #σₛ.(condLogger)) ∗
      "condInstall" ∷ readonly (l ↦[Walog :: "condInstall"] #σₛ.(condInstall)) ∗
      "condShut" ∷ readonly (l ↦[Walog :: "condShut"] #σₛ.(condShut))) ∗
-    "cond_logger" ∷ lock.is_cond σₛ.(condLogger) #σₛ.(memLock) ∗
-    "cond_install" ∷ lock.is_cond σₛ.(condInstall) #σₛ.(memLock) ∗
-    "cond_shut" ∷ lock.is_cond σₛ.(condShut) #σₛ.(memLock) ∗
-    "lk" ∷ is_lock N #σₛ.(memLock) (wal_linv σₛ.(wal_st) γ).
+    "cond_logger" ∷ lock.is_Cond σₛ.(condLogger) #σₛ.(memLock) ∗
+    "cond_install" ∷ lock.is_Cond σₛ.(condInstall) #σₛ.(memLock) ∗
+    "cond_shut" ∷ lock.is_Cond σₛ.(condShut) #σₛ.(memLock) ∗
+    "lk" ∷ is_Mutex N #σₛ.(memLock) (wal_linv σₛ.(wal_st) γ).
 
 Global Instance is_wal_mem_persistent l γ : Persistent (is_wal_mem l γ) := _.
 

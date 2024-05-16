@@ -202,7 +202,7 @@ Context `{!erpcG Σ}.
 Definition is_Server γ (s:loc) : iProp Σ :=
   ∃ mu (es:loc),
   "#Hmu" ∷ readonly (s ↦[Server :: "mu"] mu) ∗
-  "#HmuInv" ∷ is_lock unusedN mu (own_Server γ s) ∗
+  "#HmuInv" ∷ is_Mutex unusedN mu (own_Server γ s) ∗
   "#HunusedInv" ∷ unused_epoch_inv γ ∗
   "#He" ∷ readonly (s ↦[Server :: "e"] #es) ∗
   "#Hes" ∷ is_erpc_server γ.(erpc_gn) es

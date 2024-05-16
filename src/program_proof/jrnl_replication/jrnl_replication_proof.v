@@ -66,7 +66,7 @@ Section goose_lang.
     "#txn" ∷ readonly (l ↦[RepBlock :: "txn"] #txn_l) ∗
     "#m" ∷ readonly (l ↦[RepBlock :: "m"] #m_l) ∗
     (* TODO: make this a crash lock with cinv *)
-    "#His_lock" ∷ is_lock lockN #m_l (rb_linv l γ) ∗
+    "#His_lock" ∷ is_Mutex lockN #m_l (rb_linv l γ) ∗
     "#His_txn" ∷ invariant.is_txn txn_l γ.(jrnl_txn_names) dinit ∗
     "#Htxns" ∷ is_txn_system txnN γ.
 

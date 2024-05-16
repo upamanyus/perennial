@@ -525,7 +525,7 @@ Proof.
   {
     instantiate (1:=(∃ newOpAppliedConds,
                 "HopAppliedConds_map" ∷ own_map opAppliedConds_loc 1 newOpAppliedConds ∗
-                "#HopAppliedConds_conds" ∷ ([∗ map] cond0 ∈ newOpAppliedConds, is_cond cond0 mu) ∗
+                "#HopAppliedConds_conds" ∷ ([∗ map] cond0 ∈ newOpAppliedConds, is_Cond cond0 mu) ∗
                 "HopAppliedConds" ∷ s ↦[Server :: "opAppliedConds"] #opAppliedConds_loc ∗
                 "HnextIndex" ∷ s ↦[Server :: "nextIndex"] #(_)
             )%I).

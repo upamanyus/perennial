@@ -10,11 +10,11 @@ Definition lock_inv (γkv : gname) key R : iProp Σ :=
 
 Context (N: namespace).
 
-Definition is_lock `{invGS Σ} γkv key R :=
+Definition is_Mutex `{invGS Σ} γkv key R :=
   inv N (lock_inv γkv key R).
 
 Lemma lock_alloc `{invGS Σ} E γkv key R :
-  kvptsto γkv key [] -∗ R ={E}=∗ is_lock γkv key R.
+  kvptsto γkv key [] -∗ R ={E}=∗ is_Mutex γkv key R.
 Proof.
   iIntros "Hkv HR".
   iMod (inv_alloc _ _ (lock_inv γkv key R) with "[Hkv HR]").
@@ -54,7 +54,7 @@ Qed.
 
 Lemma wp_LockClerk__Lock ck γkv key R :
   {{{
-       own_LockClerk ck γkv ∗ is_lock γkv key R
+       own_LockClerk ck γkv ∗ is_Mutex γkv key R
   }}}
     LockClerk__Lock #ck #key
   {{{
@@ -82,7 +82,7 @@ Proof.
   iMod (readonly_alloc_1 with "Hsl1") as "#Hsl1".
   wp_apply (wp_KVClerk__ConditionalPut with "[$Hclerk]").
   { iFrame "#". }
-  rewrite /is_lock.
+  rewrite /is_Mutex.
   replace (⊤ ∖ ∅) with (⊤ : coPset) by set_solver+.
   iInv "Hlock" as "Hlock_inner" "Hclo".
   iDestruct "Hlock_inner" as (?) "(>Hk&HR)".
@@ -110,7 +110,7 @@ Qed.
 
 Lemma wp_LockClerk__Unlock ck γkv key R :
   {{{
-       own_LockClerk ck γkv ∗ is_lock γkv key R ∗ R
+       own_LockClerk ck γkv ∗ is_Mutex γkv key R ∗ R
   }}}
     LockClerk__Unlock #ck #key
   {{{
@@ -129,7 +129,7 @@ Proof.
   iMod (readonly_alloc_1 with "Hsl0") as "#Hsl0".
   wp_apply (wp_KVClerk__Put with "[$Hclerk]").
   { iFrame "#". }
-  rewrite /is_lock.
+  rewrite /is_Mutex.
   replace (⊤ ∖ ∅) with (⊤ : coPset) by set_solver+.
   iInv "Hlock" as "Hlock_inner" "Hclo".
   iDestruct "Hlock_inner" as (?) "(>Hk&_)".

@@ -684,9 +684,9 @@ Definition own_Server (s:loc) (st:server.t) γ γsrv mu : iProp Σ :=
   "Hstate" ∷ own_StateMachine st.(server.epoch) (get_rwops st.(server.ops_full_eph)) st.(server.sealed) (own_Server_ghost_f γ γsrv) ∗
 
   (* persistent physical state *)
-  "#HopAppliedConds_conds" ∷ ([∗ map] i ↦ cond ∈ opAppliedConds, is_cond cond mu) ∗
-  "#HcommittedNextIndex_is_cond" ∷ is_cond committedNextIndex_cond mu ∗
-  "#HisPrimary_is_cond" ∷ is_cond isPrimary_cond mu ∗
+  "#HopAppliedConds_conds" ∷ ([∗ map] i ↦ cond ∈ opAppliedConds, is_Cond cond mu) ∗
+  "#HcommittedNextIndex_is_cond" ∷ is_Cond committedNextIndex_cond mu ∗
+  "#HisPrimary_is_cond" ∷ is_Cond isPrimary_cond mu ∗
 
   (* witnesses for primary; the exclusive state is in own_Server_ghost *)
   "#Hprimary" ∷ (⌜st.(server.isPrimary) = false⌝ ∨ is_Primary γ γsrv st clerks_sl) ∗
@@ -756,7 +756,7 @@ Definition mu_inv (s:loc) γ γsrv mu: iProp Σ :=
 Definition is_Server (s:loc) γ γsrv : iProp Σ :=
   ∃ (mu:val) (confCk:loc) γconf,
   "#Hmu" ∷ readonly (s ↦[Server :: "mu"] mu) ∗
-  "#HmuInv" ∷ is_lock pbN mu (mu_inv s γ γsrv mu) ∗
+  "#HmuInv" ∷ is_Mutex pbN mu (mu_inv s γ γsrv mu) ∗
   "#His_repl_inv" ∷ is_repl_inv γ.(s_pb) ∗
   "#HconfCk" ∷ readonly (s ↦[Server :: "confCk"] #confCk) ∗
   "#Hconf_inv" ∷ is_conf_inv γ γconf ∗

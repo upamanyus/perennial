@@ -38,7 +38,7 @@ Definition is_alloc (max: u64) (l: loc) : iProp Σ :=
   ∃ (mu_l: loc),
     "%Hmax_nonzero" ∷ ⌜0 < int.Z max⌝ ∗
     "#mu" ∷ readonly (l ↦[Alloc :: "mu"] #mu_l) ∗
-    "#His_lock" ∷ is_lock N #mu_l (alloc_linv max l).
+    "#His_lock" ∷ is_Mutex N #mu_l (alloc_linv max l).
 
 Global Instance is_alloc_persistent max l : Persistent (is_alloc max l).
 Proof. apply _. Qed.

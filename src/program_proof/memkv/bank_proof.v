@@ -120,7 +120,7 @@ Definition init_lock_inv γlock γkv accts : iProp Σ :=
   (∃ γlog,
    let γ := {| bank_ls_names := γlock; bank_ks_names := γkv; bank_logBalGN := γlog |} in
    kvptsto γkv init_flag [U8 0] ∗ inv bankN (bank_inv γ accts) ∗
-    [∗ set] acc ∈ accts, is_lock lockN γlock acc (bankPs γ acc)).
+    [∗ set] acc ∈ accts, is_Mutex lockN γlock acc (bankPs γ acc)).
 
 End bank_defs.
 
@@ -141,15 +141,15 @@ Definition own_bank_clerk γ (bank_ck:loc) (accts : gset u64) : iProp Σ :=
   "Haccts" ∷ bank_ck ↦[BankClerk :: "accts"] (slice_val accts_s) ∗
   "Haccts_slice" ∷ own_slice_small accts_s uint64T 1 accts_l ∗
 
-  "#Haccts_is_lock" ∷ [∗ list] acc ∈ accts_l, is_lock lockN γ.(bank_ls_names) acc (bankPs γ acc)
+  "#Haccts_is_lock" ∷ [∗ list] acc ∈ accts_l, is_Mutex lockN γ.(bank_ls_names) acc (bankPs γ acc)
 .
 
 
 Lemma acquire_two_spec (lck :loc) (ln1 ln2:u64) γ:
 {{{
      own_LockClerk lck γ.(bank_ls_names) ∗
-     is_lock lockN γ.(bank_ls_names) ln1 (bankPs γ ln1) ∗
-     is_lock lockN γ.(bank_ls_names) ln2 (bankPs γ ln2)
+     is_Mutex lockN γ.(bank_ls_names) ln1 (bankPs γ ln1) ∗
+     is_Mutex lockN γ.(bank_ls_names) ln2 (bankPs γ ln2)
 }}}
   acquire_two #lck #ln1 #ln2
 {{{
@@ -185,8 +185,8 @@ Qed.
 Lemma release_two_spec (lck :loc) (ln1 ln2:u64) γ:
 {{{
      own_LockClerk lck γ.(bank_ls_names) ∗
-     is_lock lockN γ.(bank_ls_names) ln1 (bankPs γ ln1) ∗
-     is_lock lockN γ.(bank_ls_names) ln2 (bankPs γ ln2) ∗
+     is_Mutex lockN γ.(bank_ls_names) ln1 (bankPs γ ln1) ∗
+     is_Mutex lockN γ.(bank_ls_names) ln2 (bankPs γ ln2) ∗
      bankPs γ ln1 ∗
      bankPs γ ln2
 }}}
@@ -211,8 +211,8 @@ Lemma Bank__transfer_internal_spec (bck:loc) src dst (amount:u64) γ accts :
 {{{
      inv bankN (bank_inv γ accts) ∗
      own_bank_clerk γ bck accts ∗
-     is_lock lockN γ.(bank_ls_names) src (bankPs γ src) ∗
-     is_lock lockN γ.(bank_ls_names) dst (bankPs γ dst) ∗
+     is_Mutex lockN γ.(bank_ls_names) src (bankPs γ src) ∗
+     is_Mutex lockN γ.(bank_ls_names) dst (bankPs γ dst) ∗
      ⌜src ≠ dst⌝
 }}}
   BankClerk__transfer_internal #bck #src #dst #amount
@@ -407,7 +407,7 @@ Proof.
       "Hsum" ∷ sum ↦[uint64T] #(map_total locked) ∗
       "%Hlocked_dom" ∷ ⌜Permutation (elements (dom locked)) done⌝ ∗
       "Hml" ∷ [∗ map] acc ↦ bal ∈ locked,
-        is_lock lockN γ.(bank_ls_names) acc (bankPs γ acc) ∗
+        is_Mutex lockN γ.(bank_ls_names) acc (bankPs γ acc) ∗
         (∃ (vd : list u8), ⌜has_encoding_Uint64 vd bal⌝ ∗ kvptsto (kv_gn γ) acc vd ∗ acc [[log_gn γ]]↦ bal))%I
     with "[] [$Haccts_slice Hsum $Hlck $Hlck_own $Hkck $Hkck_own]").
   2: {
@@ -522,7 +522,7 @@ Proof.
       "Hlck" ∷ bck ↦[BankClerk :: "lck"] #lck ∗
       "Hlck_own" ∷ own_LockClerk lck γ.(bank_ls_names) ∗
       "%Hdom" ∷ ⌜Permutation (elements (dom mtodo)) todo⌝ ∗
-      "Hml" ∷ [∗ map] k↦x ∈ mtodo, is_lock lockN γ.(bank_ls_names) k (bankPs γ k) ∗
+      "Hml" ∷ [∗ map] k↦x ∈ mtodo, is_Mutex lockN γ.(bank_ls_names) k (bankPs γ k) ∗
         (∃ vd : list u8, ⌜has_encoding_Uint64 vd x⌝ ∗ kvptsto (kv_gn γ) k vd ∗ k [[log_gn γ]]↦ x))%I
     with "[] [$Haccts_slice $Hlck $Hlck_own Hml]").
   {
@@ -590,7 +590,7 @@ Lemma wp_MakeBankClerkSlice (lockhost kvhost : u64) cm γ1 γ2 cid accts (accts_
        is_coord_server lockhost γ1 ∗
        is_coord_server kvhost γ2 ∗
        is_ConnMan cm ∗
-       is_lock lockN (γ1.(coord_kv_gn)) init_flag
+       is_Mutex lockN (γ1.(coord_kv_gn)) init_flag
          (init_lock_inv init_flag γ1.(coord_kv_gn) γ2.(coord_kv_gn) accts) ∗
        own_slice_small accts_s uint64T 1 (acc0 :: accts_l) ∗
        ⌜Permutation (elements accts) (acc0 :: accts_l)⌝
@@ -763,7 +763,7 @@ Proof.
 
     iDestruct (big_sepM_sep with "[$Hdone $Haccs]") as "Haccs".
 
-    iMod (big_sepM_mono_fupd _ (λ k v, is_lock lockN γ1.(coord_kv_gn) k (bankPs γ k)) _ True%I with "[] [$Haccs]") as "[_ #Haccs]".
+    iMod (big_sepM_mono_fupd _ (λ k v, is_Mutex lockN γ1.(coord_kv_gn) k (bankPs γ k)) _ True%I with "[] [$Haccs]") as "[_ #Haccs]".
     { iModIntro.
       iIntros (k v) "%Hkv [_ H]".
       iDestruct "H" as "[H Hlog]".
@@ -831,7 +831,7 @@ Lemma wp_MakeBankClerk (lockhost kvhost : u64) cm γ1 γ2 cid (acc0 acc1 : u64) 
        is_coord_server lockhost γ1 ∗
        is_coord_server kvhost γ2 ∗
        is_ConnMan cm ∗
-       is_lock lockN (γ1.(coord_kv_gn)) init_flag
+       is_Mutex lockN (γ1.(coord_kv_gn)) init_flag
          (init_lock_inv init_flag γ1.(coord_kv_gn) γ2.(coord_kv_gn) {[acc0; acc1]}) ∗
        ⌜ acc0 ≠ acc1 ⌝
   }}}

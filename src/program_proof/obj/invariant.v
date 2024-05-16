@@ -139,7 +139,7 @@ Definition is_txn (l : loc) (γ : txn_names) dinit : iProp Σ :=
       "Histxn_wal" ∷ readonly (l ↦[obj.Log :: "log"] #walptr) ∗
       "Hiswal" ∷ is_wal (wal_heap_inv (txn_walnames γ)) walptr (wal_heap_walnames (txn_walnames γ)) dinit ∗
       "Histxna" ∷ ncinv invN (is_txn_always γ) ∗
-      "Histxn_lock" ∷ is_lock lockN #mu (is_txn_locked l (txn_walnames γ))
+      "Histxn_lock" ∷ is_Mutex lockN #mu (is_txn_locked l (txn_walnames γ))
   )%I.
 
 Global Instance is_txn_persistent l γ dinit : Persistent (is_txn l γ dinit) := _.

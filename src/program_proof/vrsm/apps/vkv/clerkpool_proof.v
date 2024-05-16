@@ -17,7 +17,7 @@ Definition own_ClerkPool c γkv : iProp Σ :=
 Definition is_ClerkPool c γkv : iProp Σ :=
   ∃ mu confHost_sl (confHosts:list u64),
   "#Hmu" ∷ readonly (c ↦[ClerkPool :: "mu"] mu) ∗
-  "#HmuInv" ∷ is_lock nroot mu (own_ClerkPool c γkv) ∗
+  "#HmuInv" ∷ is_Mutex nroot mu (own_ClerkPool c γkv) ∗
   "#HconfHosts" ∷ readonly (c ↦[ClerkPool :: "confHosts"] (slice_val confHost_sl)) ∗
   "#Hconf_sl" ∷ readonly (own_slice_small confHost_sl uint64T 1 confHosts) ∗
   "#Hhost" ∷ is_kv_config_hosts confHosts γkv

@@ -875,7 +875,7 @@ Context `{!kvserviceG Σ}.
 Definition is_Server (s:loc) γ : iProp Σ :=
   ∃ mu,
   "#Hmu" ∷ readonly (s ↦[Server :: "mu"] mu) ∗
-  "#HmuInv" ∷ is_lock nroot mu (server.own s γ)
+  "#HmuInv" ∷ is_Mutex nroot mu (server.own s γ)
 .
 
 Lemma ghost_getFreshNum γ st :

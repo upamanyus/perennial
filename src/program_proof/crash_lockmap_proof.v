@@ -43,7 +43,7 @@ Definition lockShard_addr gh (shardlock : loc) (addr : u64) (gheld : bool)
       "held" ∷ lockStatePtr ↦[lockState :: "held"] #gheld ∗
       "cond" ∷ lockStatePtr ↦[lockState :: "cond"] #cond ∗
       "waiters" ∷ lockStatePtr ↦[lockState :: "waiters"] #nwaiters ∗
-      "#Hcond" ∷ lock.is_cond cond #shardlock ∗
+      "#Hcond" ∷ lock.is_Cond cond #shardlock ∗
       "%Hcovered" ∷ ⌜ addr ∈ covered ⌝ ∗
       "Hwaiters" ∷ ( ⌜ gheld = true ⌝ ∨
         ( ⌜ gheld = false ⌝ ∗ addr ↪[gh] false ∗ crash_borrow (P addr) (Pc addr) ) )
@@ -67,7 +67,7 @@ Definition is_lockShard (ls : loc) (ghostHeap : gname) (covered : gset u64) (P P
       "#Hcovered_crash_wand" ∷ □ ([∗ set] a ∈ covered, (P a -∗ Pc a)) ∗
       "#Hls_mu" ∷ readonly (ls ↦[lockShard :: "mu"] #shardlock) ∗
       "#Hls_state" ∷ readonly (ls ↦[lockShard :: "state"] #mptr) ∗
-      "#Hlock" ∷ is_lock lockN #shardlock (is_lockShard_inner mptr shardlock ghostHeap covered P Pc)
+      "#Hlock" ∷ is_Mutex lockN #shardlock (is_lockShard_inner mptr shardlock ghostHeap covered P Pc)
   )%I.
 
 Definition is_free_lockShard (ls : loc) : iProp Σ :=

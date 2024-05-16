@@ -160,7 +160,7 @@ Definition Client_lock_inner Γ  (cl : loc) (lk : loc) mref : iProp Σ :=
                     "#state" ∷ readonly (cb ↦[Callback :: "state"] #(urpc_reg_done req)) ∗
                     "#cond" ∷ readonly (cb ↦[Callback :: "cond"] #cb_cond) ∗
                     "Hescrow" ∷ ptsto_mut (ccescrow_name Γ) seqno 1 tt ∗
-                    "#Hcond" ∷ is_cond cb_cond #lk ∗
+                    "#Hcond" ∷ is_Cond cb_cond #lk ∗
                     "Hrep_ptr" ∷ (urpc_reg_rep_ptr req) ↦[slice.T byteT] dummy ∗
                     "Hstate" ∷ (urpc_reg_done req) ↦[uint64T] #(LitInt $ if aborted then 2 else 0)) ∨
                  (* (2) Reply thread has received message, removed from pending,
@@ -180,7 +180,7 @@ Definition is_uRPCClient (cl : loc) (srv : chan) : iProp Σ :=
     "#conn" ∷ readonly (cl ↦[Client :: "conn"] connection_socket client srv) ∗
     "#pending" ∷ readonly (cl ↦[Client :: "pending"] #mref)) ∗
     "#Hchan" ∷ inv urpc_clientN (reply_chan_inner Γ client) ∗
-    "#Hlk" ∷ is_lock urpc_lockN #lk (Client_lock_inner Γ cl lk mref).
+    "#Hlk" ∷ is_Mutex urpc_lockN #lk (Client_lock_inner Γ cl lk mref).
 
 Definition Client_reply_own (cl : loc) : iProp Σ :=
   ∃ Γ (lk : loc) client srv (mref : loc),
@@ -188,7 +188,7 @@ Definition Client_reply_own (cl : loc) : iProp Σ :=
     "#conn" ∷ readonly (cl ↦[Client :: "conn"] connection_socket client srv) ∗
     "#pending" ∷ readonly (cl ↦[Client :: "pending"] #mref)) ∗
     "#Hchan" ∷ inv urpc_clientN (reply_chan_inner Γ client) ∗
-    "#Hlk" ∷ is_lock urpc_lockN #lk (Client_lock_inner Γ cl lk mref).
+    "#Hlk" ∷ is_Mutex urpc_lockN #lk (Client_lock_inner Γ cl lk mref).
 
 (* TODO: move this *)
 Global Instance own_map_AsMapsTo mref (hd:gmap u64 val * val) :
@@ -721,8 +721,8 @@ Definition call_errno (err : option call_err) : Z :=
 Definition own_uRPC_Callback (cl_ptr cb_ptr : loc) Post : iProp Σ :=
   ∃ n Γ γ rpcid reqData cb_cond (rep_ptr cb_state lk mref : loc),
   "#mu" ∷ readonly (cl_ptr ↦[Client :: "mu"] #lk) ∗
-  "#Hlk" ∷ is_lock urpc_lockN #lk (Client_lock_inner Γ cl_ptr lk mref) ∗
-  "#cond'" ∷ is_cond cb_cond #lk ∗
+  "#Hlk" ∷ is_Mutex urpc_lockN #lk (Client_lock_inner Γ cl_ptr lk mref) ∗
+  "#cond'" ∷ is_Cond cb_cond #lk ∗
   "#reply" ∷ readonly (cb_ptr ↦[Callback :: "reply"] #rep_ptr) ∗
   "#state" ∷ readonly (cb_ptr ↦[Callback :: "state"] #cb_state) ∗
   "#cond" ∷ readonly (cb_ptr ↦[Callback :: "cond"] #cb_cond) ∗

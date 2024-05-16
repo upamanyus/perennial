@@ -22,12 +22,12 @@ Theorem wp_Walog__waitForSpace l γ σₛ :
   {{{ "#HmemLock" ∷ readonly (l ↦[Walog :: "memLock"] #σₛ.(memLock)) ∗
       "#HcondLogger" ∷ readonly (l ↦[Walog :: "condLogger"] #σₛ.(condLogger)) ∗
       "#HcondInstall" ∷ readonly (l ↦[Walog :: "condInstall"] #σₛ.(condInstall)) ∗
-      "#His_cond1" ∷ is_cond σₛ.(condLogger) #σₛ.(memLock) ∗
-      "#His_cond2" ∷ is_cond σₛ.(condInstall) #σₛ.(memLock) ∗
+      "#His_cond1" ∷ is_Cond σₛ.(condLogger) #σₛ.(memLock) ∗
+      "#His_cond2" ∷ is_Cond σₛ.(condInstall) #σₛ.(memLock) ∗
       "#?" ∷ readonly (l ↦[Walog :: "st"] #σₛ.(wal_st)) ∗
       "Hlkinv" ∷ wal_linv σₛ.(wal_st) γ ∗
       "Hlocked" ∷ locked #σₛ.(memLock) ∗
-      "#His_lock" ∷ is_lock N #σₛ.(memLock) (wal_linv σₛ.(wal_st) γ)
+      "#His_lock" ∷ is_Mutex N #σₛ.(memLock) (wal_linv σₛ.(wal_st) γ)
   }}}
     Walog__waitForSpace #l
   {{{ σ, RET #();
@@ -235,10 +235,10 @@ Theorem wp_Walog__logAppend l circ_l γ dinit σₛ :
       "#HcondInstall" ∷ readonly (l ↦[Walog :: "condInstall"] #σₛ.(condInstall)) ∗
       "#d" ∷ readonly (l ↦[Walog :: "d"] σₛ.(wal_d)) ∗
       "#circ" ∷ readonly (l ↦[Walog :: "circ"] #σₛ.(circ)) ∗
-      "#His_cond1" ∷ is_cond σₛ.(condLogger) #σₛ.(memLock) ∗
-      "#His_cond2" ∷ is_cond σₛ.(condInstall) #σₛ.(memLock) ∗
+      "#His_cond1" ∷ is_Cond σₛ.(condLogger) #σₛ.(memLock) ∗
+      "#His_cond2" ∷ is_Cond σₛ.(condInstall) #σₛ.(memLock) ∗
       "#?" ∷ readonly (l ↦[Walog :: "st"] #σₛ.(wal_st)) ∗
-      "#His_lock" ∷ is_lock N #σₛ.(memLock) (wal_linv σₛ.(wal_st) γ) ∗
+      "#His_lock" ∷ is_Mutex N #σₛ.(memLock) (wal_linv σₛ.(wal_st) γ) ∗
       "#Hwal" ∷ is_wal P l γ dinit ∗
       "Hlkinv" ∷ wal_linv σₛ.(wal_st) γ ∗
       "Hlocked" ∷ locked #σₛ.(memLock) ∗

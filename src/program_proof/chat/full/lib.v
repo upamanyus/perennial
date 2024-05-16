@@ -27,7 +27,7 @@ Definition lockR_ChatCli γ (P : list msgT.t → iProp Σ) cp : iProp Σ :=
 Definition is_ChatCli γ P cp : iProp Σ :=
   ∃ (lk : loc),
   "#Hlk" ∷ readonly (cp ↦[ChatCli :: "lock"] #lk) ∗
-  "#Hlk_inv" ∷ is_lock nroot #lk (lockR_ChatCli γ P cp).
+  "#Hlk_inv" ∷ is_Mutex nroot #lk (lockR_ChatCli γ P cp).
 
 Lemma wp_init P :
   {{{

@@ -191,7 +191,7 @@ Definition is_KVShardServer (s:loc) γ : iProp Σ :=
   "#Hmu" ∷ readonly (s ↦[KVShardServer :: "mu"] mu) ∗
   "#Herpc" ∷ readonly (s ↦[KVShardServer :: "erpc"] #erpc) ∗
   "#Hcm" ∷ readonly (s ↦[KVShardServer :: "cm"] #cm) ∗
-  "#HmuInv" ∷ is_lock memKVN mu (own_KVShardServer s γ) ∗
+  "#HmuInv" ∷ is_Mutex memKVN mu (own_KVShardServer s γ) ∗
   "#HercInv" ∷ is_erpc_server γ.(erpc_gn) erpc ∗
   "#Hiscm" ∷ is_ConnMan cm
 .

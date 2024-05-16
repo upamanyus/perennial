@@ -768,8 +768,8 @@ Theorem wp_Walog__logInstall γ l dinit (diskEnd_txn_id_bound: nat) σₛ :
       "#Hwal" ∷ is_wal P l γ dinit ∗
       "Hlkinv" ∷ wal_linv σₛ.(wal_st) γ ∗
       "His_locked" ∷ locked #σₛ.(memLock) ∗
-      "#lk" ∷ is_lock N #σₛ.(memLock) (wal_linv σₛ.(wal_st) γ) ∗
-      "#cond_install" ∷ is_cond σₛ.(condInstall) #σₛ.(memLock) ∗
+      "#lk" ∷ is_Mutex N #σₛ.(memLock) (wal_linv σₛ.(wal_st) γ) ∗
+      "#cond_install" ∷ is_Cond σₛ.(condInstall) #σₛ.(memLock) ∗
       "Hinstaller" ∷ installer_inv γ
   }}}
     Walog__logInstall #l
