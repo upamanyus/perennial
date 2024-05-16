@@ -20,6 +20,9 @@ Definition Clerk := struct.decl [
 
 Definition Clerk__FetchAndIncrement: val :=
   rec: "Clerk__FetchAndIncrement" "ck" "key" "ret" :=
+    let: "ret" := ref_to ptrT "ret" in
+    let: "key" := ref_to uint64T "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "reply_ptr" := ref_zero ptrT in
     let: "$a0" := ref (zero_val (slice.T byteT)) in
     "reply_ptr" <-[ptrT] "$a0";;
@@ -42,6 +45,7 @@ Definition Clerk__FetchAndIncrement: val :=
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "host" :=
+    let: "host" := ref_to uint64T "host" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
     "ck" <-[ptrT] "$a0";;
@@ -61,6 +65,8 @@ Definition Server := struct.decl [
 (* pre: key == 0 or key == 1 *)
 Definition Server__FetchAndIncrement: val :=
   rec: "Server__FetchAndIncrement" "s" "key" :=
+    let: "key" := ref_to uint64T "key" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "ret" := ref (zero_val uint64T) in
     (if: (![uint64T] "key") = #0
@@ -81,6 +87,10 @@ Definition Server__FetchAndIncrement: val :=
 
 Definition StartServer: val :=
   rec: "StartServer" "me" "configHost" "host1" "host2" :=
+    let: "host2" := ref_to uint64T "host2" in
+    let: "host1" := ref_to uint64T "host1" in
+    let: "configHost" := ref_to uint64T "configHost" in
+    let: "me" := ref_to uint64T "me" in
     let: "s" := ref_zero ptrT in
     let: "$a0" := struct.alloc Server (zero_val (struct.t Server)) in
     "s" <-[ptrT] "$a0";;

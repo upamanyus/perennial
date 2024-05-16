@@ -22,6 +22,7 @@ Definition ParticipantServer := struct.decl [
 
 Definition ParticipantServer__GetPreference: val :=
   rec: "ParticipantServer__GetPreference" "s" :=
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF ParticipantServer "m" (![ptrT] "s"));;
     let: "pref" := ref_zero boolT in
     let: "$a0" := struct.loadF ParticipantServer "preference" (![ptrT] "s") in
@@ -31,6 +32,7 @@ Definition ParticipantServer__GetPreference: val :=
 
 Definition MakeParticipant: val :=
   rec: "MakeParticipant" "pref" :=
+    let: "pref" := ref_to boolT "pref" in
     return: (struct.new ParticipantServer [
        "m" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));
        "preference" ::= ![boolT] "pref"
@@ -59,6 +61,7 @@ Definition GetPreferenceId : expr := #0.
 
 Definition prefToByte: val :=
   rec: "prefToByte" "pref" :=
+    let: "pref" := ref_to boolT "pref" in
     (if: ![boolT] "pref"
     then return: (#(U8 1))
     else return: (#(U8 0)));;
@@ -66,10 +69,12 @@ Definition prefToByte: val :=
 
 Definition byteToPref: val :=
   rec: "byteToPref" "b" :=
+    let: "b" := ref_to byteT "b" in
     return: ((![byteT] "b") = #(U8 1)).
 
 Definition ParticipantClerk__GetPreference: val :=
   rec: "ParticipantClerk__GetPreference" "ck" :=
+    let: "ck" := ref_to ptrT "ck" in
     let: "req" := ref_zero (slice.T byteT) in
     let: "$a0" := NewSlice byteT #0 in
     "req" <-[slice.T byteT] "$a0";;
@@ -88,6 +93,7 @@ Definition ParticipantClerk__GetPreference: val :=
    assumes we have all preferences (ie, no Unknown) *)
 Definition CoordinatorServer__makeDecision: val :=
   rec: "CoordinatorServer__makeDecision" "s" :=
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF CoordinatorServer "m" (![ptrT] "s"));;
     ForSlice byteT <> "pref" (struct.loadF CoordinatorServer "preferences" (![ptrT] "s"))
       ((if: (![byteT] "pref") = Abort
@@ -108,6 +114,7 @@ Definition CoordinatorServer__makeDecision: val :=
 
 Definition prefToDecision: val :=
   rec: "prefToDecision" "pref" :=
+    let: "pref" := ref_to boolT "pref" in
     (if: ![boolT] "pref"
     then return: (Commit)
     else return: (Abort));;
@@ -115,6 +122,7 @@ Definition prefToDecision: val :=
 
 Definition CoordinatorServer__backgroundLoop: val :=
   rec: "CoordinatorServer__backgroundLoop" "s" :=
+    let: "s" := ref_to ptrT "s" in
     ForSlice ptrT "i" "h" (struct.loadF CoordinatorServer "participants" (![ptrT] "s"))
       (let: "pref" := ref_zero boolT in
       let: "$a0" := ParticipantClerk__GetPreference (![ptrT] "h") in
@@ -129,6 +137,7 @@ Definition CoordinatorServer__backgroundLoop: val :=
 
 Definition MakeCoordinator: val :=
   rec: "MakeCoordinator" "participants" :=
+    let: "participants" := ref_to (slice.T uint64T) "participants" in
     let: "decision" := ref_zero byteT in
     let: "$a0" := Unknown in
     "decision" <-[byteT] "$a0";;
@@ -159,6 +168,7 @@ Definition GetDecisionId : expr := #1.
 
 Definition CoordinatorClerk__GetDecision: val :=
   rec: "CoordinatorClerk__GetDecision" "ck" :=
+    let: "ck" := ref_to ptrT "ck" in
     let: "req" := ref_zero (slice.T byteT) in
     let: "$a0" := NewSlice byteT #0 in
     "req" <-[slice.T byteT] "$a0";;
@@ -171,6 +181,7 @@ Definition CoordinatorClerk__GetDecision: val :=
 
 Definition CoordinatorServer__GetDecision: val :=
   rec: "CoordinatorServer__GetDecision" "s" :=
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF CoordinatorServer "m" (![ptrT] "s"));;
     let: "decision" := ref_zero byteT in
     let: "$a0" := struct.loadF CoordinatorServer "decision" (![ptrT] "s") in
@@ -180,6 +191,8 @@ Definition CoordinatorServer__GetDecision: val :=
 
 Definition CoordinatorMain: val :=
   rec: "CoordinatorMain" "me" "participants" :=
+    let: "participants" := ref_to (slice.T uint64T) "participants" in
+    let: "me" := ref_to uint64T "me" in
     let: "coordinator" := ref_zero ptrT in
     let: "$a0" := MakeCoordinator (![slice.T uint64T] "participants") in
     "coordinator" <-[ptrT] "$a0";;
@@ -210,6 +223,8 @@ Definition CoordinatorMain: val :=
 
 Definition ParticipantMain: val :=
   rec: "ParticipantMain" "me" "pref" :=
+    let: "pref" := ref_to boolT "pref" in
+    let: "me" := ref_to uint64T "me" in
     let: "participant" := ref_zero ptrT in
     let: "$a0" := MakeParticipant (![boolT] "pref") in
     "participant" <-[ptrT] "$a0";;

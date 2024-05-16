@@ -37,6 +37,7 @@ Definition MakeServer: val :=
 
 Definition Server__New: val :=
   rec: "Server__New" "txnMgr" :=
+    let: "txnMgr" := ref_to ptrT "txnMgr" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "txnMgr"));;
     let: "tid" := ref_zero uint64T in
     let: "$a0" := struct.loadF Server "nextTid" (![ptrT] "txnMgr") in

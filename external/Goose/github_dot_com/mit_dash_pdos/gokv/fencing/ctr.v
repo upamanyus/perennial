@@ -23,6 +23,7 @@ Definition PutArgs := struct.decl [
 
 Definition EncPutArgs: val :=
   rec: "EncPutArgs" "args" :=
+    let: "args" := ref_to ptrT "args" in
     let: "enc" := ref_zero (struct.t marshal.Enc) in
     let: "$a0" := marshal.NewEnc #16 in
     "enc" <-[struct.t marshal.Enc] "$a0";;
@@ -32,6 +33,7 @@ Definition EncPutArgs: val :=
 
 Definition DecPutArgs: val :=
   rec: "DecPutArgs" "raw_args" :=
+    let: "raw_args" := ref_to (slice.T byteT) "raw_args" in
     let: "dec" := ref_zero (struct.t marshal.Dec) in
     let: "$a0" := marshal.NewDec (![slice.T byteT] "raw_args") in
     "dec" <-[struct.t marshal.Dec] "$a0";;
@@ -50,6 +52,7 @@ Definition GetArgs := struct.decl [
 
 Definition EncGetArgs: val :=
   rec: "EncGetArgs" "args" :=
+    let: "args" := ref_to ptrT "args" in
     let: "enc" := ref_zero (struct.t marshal.Enc) in
     let: "$a0" := marshal.NewEnc #8 in
     "enc" <-[struct.t marshal.Enc] "$a0";;
@@ -58,6 +61,7 @@ Definition EncGetArgs: val :=
 
 Definition DecGetArgs: val :=
   rec: "DecGetArgs" "raw_args" :=
+    let: "raw_args" := ref_to (slice.T byteT) "raw_args" in
     let: "dec" := ref_zero (struct.t marshal.Dec) in
     let: "$a0" := marshal.NewDec (![slice.T byteT] "raw_args") in
     "dec" <-[struct.t marshal.Dec] "$a0";;
@@ -75,6 +79,7 @@ Definition GetReply := struct.decl [
 
 Definition EncGetReply: val :=
   rec: "EncGetReply" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
     let: "enc" := ref_zero (struct.t marshal.Enc) in
     let: "$a0" := marshal.NewEnc #16 in
     "enc" <-[struct.t marshal.Enc] "$a0";;
@@ -84,6 +89,7 @@ Definition EncGetReply: val :=
 
 Definition DecGetReply: val :=
   rec: "DecGetReply" "raw_reply" :=
+    let: "raw_reply" := ref_to (slice.T byteT) "raw_reply" in
     let: "dec" := ref_zero (struct.t marshal.Dec) in
     let: "$a0" := marshal.NewDec (![slice.T byteT] "raw_reply") in
     "dec" <-[struct.t marshal.Dec] "$a0";;
@@ -111,6 +117,8 @@ Definition Clerk := struct.decl [
 
 Definition Clerk__Get: val :=
   rec: "Clerk__Get" "c" "epoch" :=
+    let: "epoch" := ref_to uint64T "epoch" in
+    let: "c" := ref_to ptrT "c" in
     let: "enc" := ref_zero (struct.t marshal.Enc) in
     let: "$a0" := marshal.NewEnc #8 in
     "enc" <-[struct.t marshal.Enc] "$a0";;
@@ -147,6 +155,9 @@ Definition Clerk__Get: val :=
 
 Definition Clerk__Put: val :=
   rec: "Clerk__Put" "c" "v" "epoch" :=
+    let: "epoch" := ref_to uint64T "epoch" in
+    let: "v" := ref_to uint64T "v" in
+    let: "c" := ref_to ptrT "c" in
     let: "args" := ref_zero ptrT in
     let: "$a0" := struct.new PutArgs [
       "v" ::= ![uint64T] "v";
@@ -184,6 +195,7 @@ Definition Clerk__Put: val :=
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "host" :=
+    let: "host" := ref_to uint64T "host" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
     "ck" <-[ptrT] "$a0";;
@@ -216,6 +228,8 @@ Definition Server := struct.decl [
 
 Definition Server__Put: val :=
   rec: "Server__Put" "s" "args" :=
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     (if: (struct.loadF PutArgs "epoch" (![ptrT] "args")) < (struct.loadF Server "lastEpoch" (![ptrT] "s"))
     then
@@ -231,6 +245,9 @@ Definition Server__Put: val :=
 
 Definition Server__Get: val :=
   rec: "Server__Get" "s" "epoch" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "epoch" := ref_to uint64T "epoch" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "$a0" := ENone in
     struct.storeF GetReply "err" (![ptrT] "reply") "$a0";;
@@ -251,6 +268,7 @@ Definition Server__Get: val :=
 
 Definition StartServer: val :=
   rec: "StartServer" "me" :=
+    let: "me" := ref_to uint64T "me" in
     let: "s" := ref_zero ptrT in
     let: "$a0" := struct.alloc Server (zero_val (struct.t Server)) in
     "s" <-[ptrT] "$a0";;

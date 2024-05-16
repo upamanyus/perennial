@@ -29,6 +29,8 @@ Definition MakeConnMan: val :=
 
 Definition ConnMan__getClient: val :=
   rec: "ConnMan__getClient" "c" "host" :=
+    let: "host" := ref_to uint64T "host" in
+    let: "c" := ref_to ptrT "c" in
     let: "ret" := ref (zero_val ptrT) in
     sync.Mutex__Lock (struct.loadF ConnMan "mu" (![ptrT] "c"));;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
@@ -70,6 +72,12 @@ Definition ConnMan__getClient: val :=
 (* This repeatedly retries the RPC after retryTimeout until it gets a response. *)
 Definition ConnMan__CallAtLeastOnce: val :=
   rec: "ConnMan__CallAtLeastOnce" "c" "host" "rpcid" "args" "reply" "retryTimeout" :=
+    let: "retryTimeout" := ref_to uint64T "retryTimeout" in
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to (slice.T byteT) "args" in
+    let: "rpcid" := ref_to uint64T "rpcid" in
+    let: "host" := ref_to uint64T "host" in
+    let: "c" := ref_to ptrT "c" in
     let: "cl" := ref (zero_val ptrT) in
     let: "$a0" := ConnMan__getClient (![ptrT] "c") (![uint64T] "host") in
     "cl" <-[ptrT] "$a0";;

@@ -16,6 +16,7 @@ Definition ReconnectingClient := struct.decl [
 
 Definition MakeReconnectingClient: val :=
   rec: "MakeReconnectingClient" "addr" :=
+    let: "addr" := ref_to uint64T "addr" in
     let: "r" := ref_zero ptrT in
     let: "$a0" := struct.alloc ReconnectingClient (zero_val (struct.t ReconnectingClient)) in
     "r" <-[ptrT] "$a0";;
@@ -29,6 +30,7 @@ Definition MakeReconnectingClient: val :=
 
 Definition ReconnectingClient__getClient: val :=
   rec: "ReconnectingClient__getClient" "cl" :=
+    let: "cl" := ref_to ptrT "cl" in
     sync.Mutex__Lock (struct.loadF ReconnectingClient "mu" (![ptrT] "cl"));;
     (if: struct.loadF ReconnectingClient "valid" (![ptrT] "cl")
     then
@@ -63,6 +65,11 @@ Definition ReconnectingClient__getClient: val :=
 
 Definition ReconnectingClient__Call: val :=
   rec: "ReconnectingClient__Call" "cl" "rpcid" "args" "reply" "timeout_ms" :=
+    let: "timeout_ms" := ref_to uint64T "timeout_ms" in
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to (slice.T byteT) "args" in
+    let: "rpcid" := ref_to uint64T "rpcid" in
+    let: "cl" := ref_to ptrT "cl" in
     let: "urpcCl" := ref_zero ptrT in
     let: "err1" := ref_zero uint64T in
     let: ("$a0", "$a1") := ReconnectingClient__getClient (![ptrT] "cl") in

@@ -29,6 +29,8 @@ Definition MILLION : expr := #1000000.
 
 Definition Clerk__HeartbeatThread: val :=
   rec: "Clerk__HeartbeatThread" "ck" "epoch" :=
+    let: "epoch" := ref_to uint64T "epoch" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "enc" := ref_zero (struct.t marshal.Enc) in
     let: "$a0" := marshal.NewEnc #8 in
     "enc" <-[struct.t marshal.Enc] "$a0";;
@@ -51,6 +53,8 @@ Definition Clerk__HeartbeatThread: val :=
 
 Definition Clerk__AcquireEpoch: val :=
   rec: "Clerk__AcquireEpoch" "ck" "newFrontend" :=
+    let: "newFrontend" := ref_to uint64T "newFrontend" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "enc" := ref_zero (struct.t marshal.Enc) in
     let: "$a0" := marshal.NewEnc #8 in
     "enc" <-[struct.t marshal.Enc] "$a0";;
@@ -74,6 +78,7 @@ Definition Clerk__AcquireEpoch: val :=
 
 Definition Clerk__Get: val :=
   rec: "Clerk__Get" "ck" :=
+    let: "ck" := ref_to ptrT "ck" in
     let: "reply_ptr" := ref_zero ptrT in
     let: "$a0" := ref (zero_val (slice.T byteT)) in
     "reply_ptr" <-[ptrT] "$a0";;
@@ -93,6 +98,7 @@ Definition Clerk__Get: val :=
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "host" :=
+    let: "host" := ref_to uint64T "host" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
     "ck" <-[ptrT] "$a0";;
@@ -114,6 +120,8 @@ Definition Server := struct.decl [
 
 Definition Server__AcquireEpoch: val :=
   rec: "Server__AcquireEpoch" "s" "newFrontend" :=
+    let: "newFrontend" := ref_to uint64T "newFrontend" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     (for: (λ: <>, struct.loadF Server "currHolderActive" (![ptrT] "s")); (λ: <>, Skip) := λ: <>,
       sync.Cond__Wait (struct.loadF Server "currHolderActive_cond" (![ptrT] "s"));;
@@ -121,6 +129,7 @@ Definition Server__AcquireEpoch: val :=
 
 Definition Server__HeartbeatListener: val :=
   rec: "Server__HeartbeatListener" "s" :=
+    let: "s" := ref_to ptrT "s" in
     let: "epochToWaitFor" := ref_to uint64T #1 in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
@@ -131,6 +140,8 @@ Definition Server__HeartbeatListener: val :=
 (* returns true iff successful *)
 Definition Server__Heartbeat: val :=
   rec: "Server__Heartbeat" "s" "epoch" :=
+    let: "epoch" := ref_to uint64T "epoch" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "ret" := ref_to boolT #false in
     (if: (struct.loadF Server "currentEpoch" (![ptrT] "s")) = (![uint64T] "epoch")
@@ -150,6 +161,7 @@ Definition Server__Heartbeat: val :=
 (* XXX: don't need to send fencing token here, because client won't need it *)
 Definition Server__Get: val :=
   rec: "Server__Get" "s" :=
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "ret" := ref_zero uint64T in
     let: "$a0" := struct.loadF Server "data" (![ptrT] "s") in
@@ -159,6 +171,7 @@ Definition Server__Get: val :=
 
 Definition StartServer: val :=
   rec: "StartServer" "me" :=
+    let: "me" := ref_to uint64T "me" in
     let: "s" := ref_zero ptrT in
     let: "$a0" := struct.alloc Server (zero_val (struct.t Server)) in
     "s" <-[ptrT] "$a0";;

@@ -16,11 +16,13 @@ Definition PreparedWrite := struct.decl [
 
 Definition ParsePreparedWrite: val :=
   rec: "ParsePreparedWrite" "data" :=
+    let: "data" := ref_to (slice.T byteT) "data" in
     Panic "TODO: marshaling";;
     #().
 
 Definition MarshalPreparedWrite: val :=
   rec: "MarshalPreparedWrite" "id" :=
+    let: "id" := ref_to (struct.t PreparedWrite) "id" in
     Panic "TODO: marshaling";;
     #().
 
@@ -33,11 +35,13 @@ Definition RecordChunkArgs := struct.decl [
 
 Definition MarshalRecordChunkArgs: val :=
   rec: "MarshalRecordChunkArgs" "args" :=
+    let: "args" := ref_to (struct.t RecordChunkArgs) "args" in
     Panic "TODO: marshaling";;
     #().
 
 Definition ParseRecordChunkArgs: val :=
   rec: "ParseRecordChunkArgs" "data" :=
+    let: "data" := ref_to (slice.T byteT) "data" in
     Panic "TODO: marshaling";;
     #().
 
@@ -48,11 +52,13 @@ Definition FinishWriteArgs := struct.decl [
 
 Definition MarshalFinishWriteArgs: val :=
   rec: "MarshalFinishWriteArgs" "args" :=
+    let: "args" := ref_to (struct.t FinishWriteArgs) "args" in
     Panic "TODO: marshaling";;
     #().
 
 Definition ParseFinishWriteArgs: val :=
   rec: "ParseFinishWriteArgs" "data" :=
+    let: "data" := ref_to (slice.T byteT) "data" in
     Panic "TODO: marshaling";;
     #().
 
@@ -67,11 +73,13 @@ Definition PreparedRead := struct.decl [
 
 Definition MarshalPreparedRead: val :=
   rec: "MarshalPreparedRead" "v" :=
+    let: "v" := ref_to (struct.t PreparedRead) "v" in
     Panic "TODO: marshaling";;
     #().
 
 Definition ParsePreparedRead: val :=
   rec: "ParsePreparedRead" "data" :=
+    let: "data" := ref_to (slice.T byteT) "data" in
     Panic "TODO: marshaling";;
     #().
 
@@ -93,6 +101,7 @@ Definition Clerk := struct.decl [
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "addr" :=
+    let: "addr" := ref_to uint64T "addr" in
     let: "client" := ref_zero ptrT in
     let: "$a0" := reconnectclient.MakeReconnectingClient (![uint64T] "addr") in
     "client" <-[ptrT] "$a0";;
@@ -102,6 +111,7 @@ Definition MakeClerk: val :=
 
 Definition Clerk__PrepareWrite: val :=
   rec: "Clerk__PrepareWrite" "ck" :=
+    let: "ck" := ref_to ptrT "ck" in
     let: "empty" := ref_zero (slice.T byteT) in
     let: "$a0" := NewSlice byteT #0 in
     "empty" <-[slice.T byteT] "$a0";;
@@ -114,6 +124,8 @@ Definition Clerk__PrepareWrite: val :=
 (* From chunk *)
 Definition Clerk__RecordChunk: val :=
   rec: "Clerk__RecordChunk" "ck" "args" :=
+    let: "args" := ref_to (struct.t RecordChunkArgs) "args" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "req" := ref_zero (slice.T byteT) in
     let: "$a0" := MarshalRecordChunkArgs (![struct.t RecordChunkArgs] "args") in
     "req" <-[slice.T byteT] "$a0";;
@@ -126,6 +138,8 @@ Definition Clerk__RecordChunk: val :=
 (* From chunk *)
 Definition Clerk__FinishWrite: val :=
   rec: "Clerk__FinishWrite" "ck" "args" :=
+    let: "args" := ref_to (struct.t FinishWriteArgs) "args" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "req" := ref_zero (slice.T byteT) in
     let: "$a0" := MarshalFinishWriteArgs (![struct.t FinishWriteArgs] "args") in
     "req" <-[slice.T byteT] "$a0";;
@@ -137,6 +151,8 @@ Definition Clerk__FinishWrite: val :=
 
 Definition Clerk__PrepareRead: val :=
   rec: "Clerk__PrepareRead" "ck" "keyname" :=
+    let: "keyname" := ref_to stringT "keyname" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "req" := ref_zero (slice.T byteT) in
     let: "$a0" := StringToBytes (![stringT] "keyname") in
     "req" <-[slice.T byteT] "$a0";;
@@ -166,6 +182,7 @@ Definition Server := struct.decl [
 (* From client *)
 Definition Server__PrepareWrite: val :=
   rec: "Server__PrepareWrite" "s" :=
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "m" (![ptrT] "s"));;
     let: "id" := ref_zero uint64T in
     let: "$a0" := struct.loadF Server "nextWriteId" (![ptrT] "s") in
@@ -184,6 +201,8 @@ Definition Server__PrepareWrite: val :=
 (* From chunk *)
 Definition Server__RecordChunk: val :=
   rec: "Server__RecordChunk" "s" "args" :=
+    let: "args" := ref_to (struct.t RecordChunkArgs) "args" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "m" (![ptrT] "s"));;
     let: "$a0" := struct.mk ChunkHandle [
       "Addr" ::= struct.get RecordChunkArgs "Server" (![struct.t RecordChunkArgs] "args");
@@ -196,6 +215,8 @@ Definition Server__RecordChunk: val :=
 (* From chunk *)
 Definition Server__FinishWrite: val :=
   rec: "Server__FinishWrite" "s" "args" :=
+    let: "args" := ref_to (struct.t FinishWriteArgs) "args" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "m" (![ptrT] "s"));;
     let: "v" := ref_zero (mapT (struct.t ChunkHandle)) in
     let: "$a0" := struct.get PartialValue "servers" (Fst (MapGet (struct.loadF Server "ongoing" (![ptrT] "s")) (struct.get FinishWriteArgs "WriteId" (![struct.t FinishWriteArgs] "args")))) in
@@ -215,6 +236,8 @@ Definition Server__FinishWrite: val :=
 
 Definition Server__PrepareRead: val :=
   rec: "Server__PrepareRead" "s" "keyname" :=
+    let: "keyname" := ref_to stringT "keyname" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "m" (![ptrT] "s"));;
     let: "servers" := ref_zero (slice.T (struct.t ChunkHandle)) in
     let: "$a0" := struct.get Value "servers" (Fst (MapGet (struct.loadF Server "data" (![ptrT] "s")) (![stringT] "keyname"))) in
@@ -226,6 +249,7 @@ Definition Server__PrepareRead: val :=
 
 Definition StartServer: val :=
   rec: "StartServer" "me" :=
+    let: "me" := ref_to uint64T "me" in
     let: "s" := ref_zero ptrT in
     let: "$a0" := struct.new Server [
       "m" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));

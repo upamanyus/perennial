@@ -22,6 +22,7 @@ Definition AppendOnlyFile := struct.decl [
 
 Definition CreateAppendOnlyFile: val :=
   rec: "CreateAppendOnlyFile" "fname" :=
+    let: "fname" := ref_to stringT "fname" in
     let: "a" := ref_zero ptrT in
     let: "$a0" := struct.alloc AppendOnlyFile (zero_val (struct.t AppendOnlyFile)) in
     "a" <-[ptrT] "$a0";;
@@ -83,6 +84,7 @@ Definition CreateAppendOnlyFile: val :=
 (* NOTE: cannot be called concurrently with Append() *)
 Definition AppendOnlyFile__Close: val :=
   rec: "AppendOnlyFile__Close" "a" :=
+    let: "a" := ref_to ptrT "a" in
     sync.Mutex__Lock (struct.loadF AppendOnlyFile "mu" (![ptrT] "a"));;
     let: "$a0" := #true in
     struct.storeF AppendOnlyFile "closeRequested" (![ptrT] "a") "$a0";;
@@ -94,6 +96,8 @@ Definition AppendOnlyFile__Close: val :=
 (* NOTE: cannot be called concurrently with Close() *)
 Definition AppendOnlyFile__Append: val :=
   rec: "AppendOnlyFile__Append" "a" "data" :=
+    let: "data" := ref_to (slice.T byteT) "data" in
+    let: "a" := ref_to ptrT "a" in
     sync.Mutex__Lock (struct.loadF AppendOnlyFile "mu" (![ptrT] "a"));;
     let: "$a0" := marshal.WriteBytes (struct.loadF AppendOnlyFile "membuf" (![ptrT] "a")) (![slice.T byteT] "data") in
     struct.storeF AppendOnlyFile "membuf" (![ptrT] "a") "$a0";;
@@ -108,6 +112,8 @@ Definition AppendOnlyFile__Append: val :=
 
 Definition AppendOnlyFile__WaitAppend: val :=
   rec: "AppendOnlyFile__WaitAppend" "a" "length" :=
+    let: "length" := ref_to uint64T "length" in
+    let: "a" := ref_to ptrT "a" in
     sync.Mutex__Lock (struct.loadF AppendOnlyFile "mu" (![ptrT] "a"));;
     let: "cond" := ref (zero_val ptrT) in
     (if: ((![uint64T] "length") + (slice.len (struct.loadF AppendOnlyFile "membuf" (![ptrT] "a")))) ≤ (struct.loadF AppendOnlyFile "length" (![ptrT] "a"))

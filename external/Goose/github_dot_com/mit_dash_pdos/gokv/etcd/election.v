@@ -27,16 +27,21 @@ Definition Op := struct.decl [
 
 Definition OpGet: val :=
   rec: "OpGet" "key" :=
+    let: "key" := ref_to stringT "key" in
     Panic "axiom";;
     #().
 
 Definition OpPutWithLease: val :=
   rec: "OpPutWithLease" "key" "val" "lease" :=
+    let: "lease" := ref_to stringT "lease" in
+    let: "val" := ref_to stringT "val" in
+    let: "key" := ref_to stringT "key" in
     Panic "axiom";;
     #().
 
 Definition OpDelete: val :=
   rec: "OpDelete" "key" :=
+    let: "key" := ref_to stringT "key" in
     Panic "axiom";;
     #().
 
@@ -47,16 +52,23 @@ Definition StartTxn: val :=
 
 Definition Txn__IfCreateRevisionEq: val :=
   rec: "Txn__IfCreateRevisionEq" "txn" "k" "ver" :=
+    let: "ver" := ref_to uint64T "ver" in
+    let: "k" := ref_to stringT "k" in
+    let: "txn" := ref_to ptrT "txn" in
     Panic "axiom";;
     #().
 
 Definition Txn__Then: val :=
   rec: "Txn__Then" "txn" "" :=
+    let: "" := ref_to ptrT "" in
+    let: "txn" := ref_to ptrT "txn" in
     Panic "axiom";;
     #().
 
 Definition Txn__Else: val :=
   rec: "Txn__Else" "txn" "" :=
+    let: "" := ref_to ptrT "" in
+    let: "txn" := ref_to ptrT "txn" in
     Panic "axiom";;
     #().
 
@@ -84,17 +96,21 @@ Definition TxnResponse := struct.decl [
 
 Definition Txn__Commit: val :=
   rec: "Txn__Commit" "txn" :=
+    let: "txn" := ref_to ptrT "txn" in
     Panic "axiom";;
     #().
 
 Definition waitDeletes: val :=
   rec: "waitDeletes" "pfx" "rev" :=
+    let: "rev" := ref_to uint64T "rev" in
+    let: "pfx" := ref_to stringT "pfx" in
     Panic "axiom";;
     #().
 
 (* Resign lets a leader start a new election. *)
 Definition Election__Resign: val :=
   rec: "Election__Resign" "e" :=
+    let: "e" := ref_to ptrT "e" in
     (if: (struct.loadF Election "leaderLease" (![ptrT] "e")) = #(str"")
     then return: (ErrNone)
     else #());;
@@ -112,6 +128,8 @@ Definition Election__Resign: val :=
 (* Proclaim lets the leader announce a new value without another election. *)
 Definition Election__Proclaim: val :=
   rec: "Election__Proclaim" "e" "val" :=
+    let: "val" := ref_to stringT "val" in
+    let: "e" := ref_to ptrT "e" in
     (if: (struct.loadF Election "leaderLease" (![ptrT] "e")) = #(str"")
     then return: (ErrElectionNotLeader)
     else #());;
@@ -136,6 +154,8 @@ Definition Election__Proclaim: val :=
 
 Definition Election__Campaign: val :=
   rec: "Election__Campaign" "e" "val" :=
+    let: "val" := ref_to stringT "val" in
+    let: "e" := ref_to ptrT "e" in
     let: "l" := ref_zero stringT in
     let: "$a0" := struct.loadF Election "lease" (![ptrT] "e") in
     "l" <-[stringT] "$a0";;

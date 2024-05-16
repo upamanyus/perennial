@@ -18,6 +18,9 @@ Definition BankClerk := struct.decl [
 
 Definition acquire_two: val :=
   rec: "acquire_two" "lck" "l1" "l2" :=
+    let: "l2" := ref_to uint64T "l2" in
+    let: "l1" := ref_to uint64T "l1" in
+    let: "lck" := ref_to ptrT "lck" in
     (if: (![uint64T] "l1") < (![uint64T] "l2")
     then
       lockservice.LockClerk__Lock (![ptrT] "lck") (![uint64T] "l1");;
@@ -31,6 +34,9 @@ Definition acquire_two: val :=
 
 Definition release_two: val :=
   rec: "release_two" "lck" "l1" "l2" :=
+    let: "l2" := ref_to uint64T "l2" in
+    let: "l1" := ref_to uint64T "l1" in
+    let: "lck" := ref_to ptrT "lck" in
     lockservice.LockClerk__Unlock (![ptrT] "lck") (![uint64T] "l1");;
     lockservice.LockClerk__Unlock (![ptrT] "lck") (![uint64T] "l2");;
     return: (#()).
@@ -39,6 +45,10 @@ Definition release_two: val :=
    If account balance in acc_from is at least amount, transfer amount to acc_to *)
 Definition BankClerk__transfer_internal: val :=
   rec: "BankClerk__transfer_internal" "bck" "acc_from" "acc_to" "amount" :=
+    let: "amount" := ref_to uint64T "amount" in
+    let: "acc_to" := ref_to uint64T "acc_to" in
+    let: "acc_from" := ref_to uint64T "acc_from" in
+    let: "bck" := ref_to ptrT "bck" in
     acquire_two (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![uint64T] "acc_from") (![uint64T] "acc_to");;
     let: "old_amount" := ref_zero uint64T in
     let: "$a0" := memkv.DecodeUint64 (memkv.SeqKVClerk__Get (struct.loadF BankClerk "kvck" (![ptrT] "bck")) (![uint64T] "acc_from")) in
@@ -54,6 +64,7 @@ Definition BankClerk__transfer_internal: val :=
 
 Definition BankClerk__SimpleTransfer: val :=
   rec: "BankClerk__SimpleTransfer" "bck" :=
+    let: "bck" := ref_to ptrT "bck" in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       let: "src" := ref_zero uint64T in
       let: "$a0" := machine.RandomUint64 #() in
@@ -73,6 +84,7 @@ Definition BankClerk__SimpleTransfer: val :=
 
 Definition BankClerk__get_total: val :=
   rec: "BankClerk__get_total" "bck" :=
+    let: "bck" := ref_to ptrT "bck" in
     let: "sum" := ref (zero_val uint64T) in
     ForSlice uint64T <> "acct" (struct.loadF BankClerk "accts" (![ptrT] "bck"))
       (lockservice.LockClerk__Lock (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![uint64T] "acct");;
@@ -86,6 +98,7 @@ Definition BankClerk__get_total: val :=
 
 Definition BankClerk__SimpleAudit: val :=
   rec: "BankClerk__SimpleAudit" "bck" :=
+    let: "bck" := ref_to ptrT "bck" in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       (if: (BankClerk__get_total (![ptrT] "bck")) ≠ BAL_TOTAL
       then
@@ -96,6 +109,12 @@ Definition BankClerk__SimpleAudit: val :=
 
 Definition MakeBankClerkSlice: val :=
   rec: "MakeBankClerkSlice" "lockhost" "kvhost" "cm" "init_flag" "accts" "cid" :=
+    let: "cid" := ref_to uint64T "cid" in
+    let: "accts" := ref_to (slice.T uint64T) "accts" in
+    let: "init_flag" := ref_to uint64T "init_flag" in
+    let: "cm" := ref_to ptrT "cm" in
+    let: "kvhost" := ref_to uint64T "kvhost" in
+    let: "lockhost" := ref_to uint64T "lockhost" in
     let: "bck" := ref_zero ptrT in
     let: "$a0" := struct.alloc BankClerk (zero_val (struct.t BankClerk)) in
     "bck" <-[ptrT] "$a0";;
@@ -120,6 +139,13 @@ Definition MakeBankClerkSlice: val :=
 
 Definition MakeBankClerk: val :=
   rec: "MakeBankClerk" "lockhost" "kvhost" "cm" "init_flag" "acc1" "acc2" "cid" :=
+    let: "cid" := ref_to uint64T "cid" in
+    let: "acc2" := ref_to uint64T "acc2" in
+    let: "acc1" := ref_to uint64T "acc1" in
+    let: "init_flag" := ref_to uint64T "init_flag" in
+    let: "cm" := ref_to ptrT "cm" in
+    let: "kvhost" := ref_to uint64T "kvhost" in
+    let: "lockhost" := ref_to uint64T "lockhost" in
     let: "accts" := ref (zero_val (slice.T uint64T)) in
     let: "$a0" := SliceAppend uint64T (![slice.T uint64T] "accts") (![uint64T] "acc1") in
     "accts" <-[slice.T uint64T] "$a0";;

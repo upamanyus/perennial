@@ -17,6 +17,7 @@ From Perennial.goose_lang Require Import ffi.grove_prelude.
 
 Definition EncodeConfig: val :=
   rec: "EncodeConfig" "config" :=
+    let: "config" := ref_to (slice.T uint64T) "config" in
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #0 (#8 + (#8 * (slice.len (![slice.T uint64T] "config"))))) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (slice.len (![slice.T uint64T] "config")) in
     "enc" <-[slice.T byteT] "$a0";;
@@ -28,6 +29,7 @@ Definition EncodeConfig: val :=
 
 Definition DecodeConfig: val :=
   rec: "DecodeConfig" "enc_config" :=
+    let: "enc_config" := ref_to (slice.T byteT) "enc_config" in
     let: "enc" := ref_to (slice.T byteT) (![slice.T byteT] "enc_config") in
     let: "configLen" := ref (zero_val uint64T) in
     let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc") in
@@ -62,6 +64,7 @@ Definition RPC_GETLEASE : expr := #3.
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "hosts" :=
+    let: "hosts" := ref_to (slice.T uint64T) "hosts" in
     let: "cls" := ref_to (slice.T ptrT) (NewSlice ptrT #0) in
     ForSlice uint64T <> "host" (![slice.T uint64T] "hosts")
       (let: "$a0" := SliceAppend ptrT (![slice.T ptrT] "cls") (reconnectclient.MakeReconnectingClient (![uint64T] "host")) in
@@ -74,6 +77,7 @@ Definition MakeClerk: val :=
 
 Definition Clerk__ReserveEpochAndGetConfig: val :=
   rec: "Clerk__ReserveEpochAndGetConfig" "ck" :=
+    let: "ck" := ref_to ptrT "ck" in
     let: "reply" := ref_zero ptrT in
     let: "$a0" := ref (zero_val (slice.T byteT)) in
     "reply" <-[ptrT] "$a0";;
@@ -112,6 +116,7 @@ Definition Clerk__ReserveEpochAndGetConfig: val :=
 
 Definition Clerk__GetConfig: val :=
   rec: "Clerk__GetConfig" "ck" :=
+    let: "ck" := ref_to ptrT "ck" in
     let: "reply" := ref_zero ptrT in
     let: "$a0" := ref (zero_val (slice.T byteT)) in
     "reply" <-[ptrT] "$a0";;
@@ -129,6 +134,9 @@ Definition Clerk__GetConfig: val :=
 
 Definition Clerk__TryWriteConfig: val :=
   rec: "Clerk__TryWriteConfig" "ck" "epoch" "config" :=
+    let: "config" := ref_to (slice.T uint64T) "config" in
+    let: "epoch" := ref_to uint64T "epoch" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "reply" := ref_zero ptrT in
     let: "$a0" := ref (zero_val (slice.T byteT)) in
     "reply" <-[ptrT] "$a0";;
@@ -172,6 +180,8 @@ Definition Clerk__TryWriteConfig: val :=
    guess on when the lease expires. *)
 Definition Clerk__GetLease: val :=
   rec: "Clerk__GetLease" "ck" "epoch" :=
+    let: "epoch" := ref_to uint64T "epoch" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "reply" := ref_zero ptrT in
     let: "$a0" := ref (zero_val (slice.T byteT)) in
     "reply" <-[ptrT] "$a0";;
@@ -224,6 +234,7 @@ Definition state := struct.decl [
 
 Definition encodeState: val :=
   rec: "encodeState" "st" :=
+    let: "st" := ref_to ptrT "st" in
     let: "e" := ref (zero_val (slice.T byteT)) in
     let: "$a0" := marshal.WriteInt slice.nil (struct.loadF state "epoch" (![ptrT] "st")) in
     "e" <-[slice.T byteT] "$a0";;
@@ -246,6 +257,7 @@ Definition encodeState: val :=
 
 Definition decodeState: val :=
   rec: "decodeState" "e" :=
+    let: "e" := ref_to (slice.T byteT) "e" in
     let: "st" := ref_zero ptrT in
     let: "$a0" := struct.alloc state (zero_val (struct.t state)) in
     "st" <-[ptrT] "$a0";;
@@ -275,6 +287,7 @@ Definition Server := struct.decl [
 
 Definition Server__tryAcquire: val :=
   rec: "Server__tryAcquire" "s" :=
+    let: "s" := ref_to ptrT "s" in
     let: "relF" := ref_zero (arrowT unitT unitT) in
     let: "e" := ref_zero ptrT in
     let: "err" := ref_zero paxos.Error in
@@ -301,6 +314,9 @@ Definition Server__tryAcquire: val :=
 
 Definition Server__ReserveEpochAndGetConfig: val :=
   rec: "Server__ReserveEpochAndGetConfig" "s" "args" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to (slice.T byteT) "args" in
+    let: "s" := ref_to ptrT "s" in
     let: "$a0" := marshal.WriteInt slice.nil e.NotLeader in
     (![ptrT] "reply") <-[slice.T byteT] "$a0";;
     let: "tryReleaseFn" := ref_zero (arrowT unitT unitT) in
@@ -336,6 +352,9 @@ Definition Server__ReserveEpochAndGetConfig: val :=
 
 Definition Server__GetConfig: val :=
   rec: "Server__GetConfig" "s" "args" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to (slice.T byteT) "args" in
+    let: "s" := ref_to ptrT "s" in
     let: "st" := ref_zero ptrT in
     let: "$a0" := decodeState (paxos.Server__WeakRead (struct.loadF Server "s" (![ptrT] "s"))) in
     "st" <-[ptrT] "$a0";;
@@ -345,6 +364,9 @@ Definition Server__GetConfig: val :=
 
 Definition Server__TryWriteConfig: val :=
   rec: "Server__TryWriteConfig" "s" "args" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to (slice.T byteT) "args" in
+    let: "s" := ref_to ptrT "s" in
     let: "$a0" := marshal.WriteInt slice.nil e.NotLeader in
     (![ptrT] "reply") <-[slice.T byteT] "$a0";;
     let: "enc" := ref_zero (slice.T byteT) in
@@ -373,7 +395,7 @@ Definition Server__TryWriteConfig: val :=
         else #());;
         let: "$a0" := marshal.WriteInt slice.nil e.Stale in
         (![ptrT] "reply") <-[slice.T byteT] "$a0";;
-        log.Printf #(str"Stale: %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING) < %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "epoch") (struct.loadF state "reservedEpoch" (![ptrT] "st"));;
+        log.Printf #(str"Stale: %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING) < %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "epoch") (struct.loadF state "reservedEpoch" (![ptrT] "st"));;
         Break
       else
         (if: (![uint64T] "epoch") > (struct.loadF state "epoch" (![ptrT] "st"))
@@ -424,6 +446,9 @@ Definition Server__TryWriteConfig: val :=
 
 Definition Server__GetLease: val :=
   rec: "Server__GetLease" "s" "args" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to (slice.T byteT) "args" in
+    let: "s" := ref_to ptrT "s" in
     let: "$a0" := marshal.WriteInt slice.nil e.NotLeader in
     (![ptrT] "reply") <-[slice.T byteT] "$a0";;
     let: "$a0" := marshal.WriteInt (![slice.T byteT] (![ptrT] "reply")) #0 in
@@ -480,6 +505,10 @@ Definition Server__GetLease: val :=
 
 Definition makeServer: val :=
   rec: "makeServer" "fname" "paxosMe" "hosts" "initconfig" :=
+    let: "initconfig" := ref_to (slice.T uint64T) "initconfig" in
+    let: "hosts" := ref_to (slice.T uint64T) "hosts" in
+    let: "paxosMe" := ref_to uint64T "paxosMe" in
+    let: "fname" := ref_to stringT "fname" in
     let: "s" := ref_zero ptrT in
     let: "$a0" := struct.alloc Server (zero_val (struct.t Server)) in
     "s" <-[ptrT] "$a0";;
@@ -494,6 +523,11 @@ Definition makeServer: val :=
 
 Definition StartServer: val :=
   rec: "StartServer" "fname" "me" "paxosMe" "hosts" "initconfig" :=
+    let: "initconfig" := ref_to (slice.T uint64T) "initconfig" in
+    let: "hosts" := ref_to (slice.T uint64T) "hosts" in
+    let: "paxosMe" := ref_to uint64T "paxosMe" in
+    let: "me" := ref_to uint64T "me" in
+    let: "fname" := ref_to stringT "fname" in
     let: "s" := ref_zero ptrT in
     let: "$a0" := makeServer (![stringT] "fname") (![uint64T] "paxosMe") (![slice.T uint64T] "hosts") (![slice.T uint64T] "initconfig") in
     "s" <-[ptrT] "$a0";;

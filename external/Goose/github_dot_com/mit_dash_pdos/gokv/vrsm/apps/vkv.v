@@ -18,6 +18,7 @@ Definition Clerk := struct.decl [
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "confHosts" :=
+    let: "confHosts" := ref_to (slice.T uint64T) "confHosts" in
     return: (struct.new Clerk [
        "cl" ::= exactlyonce.MakeClerk (![slice.T uint64T] "confHosts")
      ]).
@@ -37,6 +38,7 @@ Definition OP_COND_PUT : expr := #(U8 2).
 
 Definition encodePutArgs: val :=
   rec: "encodePutArgs" "args" :=
+    let: "args" := ref_to ptrT "args" in
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #1 (#1 + #8)) in
     let: "$a0" := OP_PUT in
     SliceSet byteT (![slice.T byteT] "enc") #0 "$a0";;
@@ -50,6 +52,9 @@ Definition encodePutArgs: val :=
 
 Definition Clerk__Put: val :=
   rec: "Clerk__Put" "ck" "key" "val" :=
+    let: "val" := ref_to stringT "val" in
+    let: "key" := ref_to stringT "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "args" := ref_zero ptrT in
     let: "$a0" := struct.new PutArgs [
       "Key" ::= ![stringT] "key";
@@ -61,6 +66,7 @@ Definition Clerk__Put: val :=
 
 Definition encodeGetArgs: val :=
   rec: "encodeGetArgs" "args" :=
+    let: "args" := ref_to stringT "args" in
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #1 #1) in
     let: "$a0" := OP_GET in
     SliceSet byteT (![slice.T byteT] "enc") #0 "$a0";;
@@ -70,6 +76,8 @@ Definition encodeGetArgs: val :=
 
 Definition Clerk__Get: val :=
   rec: "Clerk__Get" "ck" "key" :=
+    let: "key" := ref_to stringT "key" in
+    let: "ck" := ref_to ptrT "ck" in
     return: (StringFromBytes (exactlyonce.Clerk__ApplyReadonly (struct.loadF Clerk "cl" (![ptrT] "ck")) (encodeGetArgs (![stringT] "key")))).
 
 Definition CondPutArgs := struct.decl [
@@ -80,6 +88,7 @@ Definition CondPutArgs := struct.decl [
 
 Definition encodeCondPutArgs: val :=
   rec: "encodeCondPutArgs" "args" :=
+    let: "args" := ref_to ptrT "args" in
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #1 (#1 + #8)) in
     let: "$a0" := OP_COND_PUT in
     SliceSet byteT (![slice.T byteT] "enc") #0 "$a0";;
@@ -97,6 +106,10 @@ Definition encodeCondPutArgs: val :=
 
 Definition Clerk__CondPut: val :=
   rec: "Clerk__CondPut" "ck" "key" "expect" "val" :=
+    let: "val" := ref_to stringT "val" in
+    let: "expect" := ref_to stringT "expect" in
+    let: "key" := ref_to stringT "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "args" := ref_zero ptrT in
     let: "$a0" := struct.new CondPutArgs [
       "Key" ::= ![stringT] "key";
@@ -116,6 +129,7 @@ Definition ClerkPool := struct.decl [
 
 Definition MakeClerkPool: val :=
   rec: "MakeClerkPool" "confHosts" :=
+    let: "confHosts" := ref_to (slice.T uint64T) "confHosts" in
     return: (struct.new ClerkPool [
        "mu" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));
        "cls" ::= NewSlice ptrT #0;
@@ -127,6 +141,8 @@ Definition MakeClerkPool: val :=
    optional error saying "get rid of cl". *)
 Definition ClerkPool__doWithClerk: val :=
   rec: "ClerkPool__doWithClerk" "ck" "f" :=
+    let: "f" := ref_to (ptrT -> unitT)%ht "f" in
+    let: "ck" := ref_to ptrT "ck" in
     sync.Mutex__Lock (struct.loadF ClerkPool "mu" (![ptrT] "ck"));;
     let: "cl" := ref (zero_val ptrT) in
     (if: (slice.len (struct.loadF ClerkPool "cls" (![ptrT] "ck"))) > #0
@@ -156,6 +172,9 @@ Definition ClerkPool__doWithClerk: val :=
 
 Definition ClerkPool__Put: val :=
   rec: "ClerkPool__Put" "ck" "key" "val" :=
+    let: "val" := ref_to stringT "val" in
+    let: "key" := ref_to stringT "key" in
+    let: "ck" := ref_to ptrT "ck" in
     ClerkPool__doWithClerk (![ptrT] "ck") (λ: "ck",
       Clerk__Put (![ptrT] "ck") (![stringT] "key") (![stringT] "val");;
       #()
@@ -164,6 +183,8 @@ Definition ClerkPool__Put: val :=
 
 Definition ClerkPool__Get: val :=
   rec: "ClerkPool__Get" "ck" "key" :=
+    let: "key" := ref_to stringT "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "ret" := ref (zero_val stringT) in
     ClerkPool__doWithClerk (![ptrT] "ck") (λ: "ck",
       let: "$a0" := Clerk__Get (![ptrT] "ck") (![stringT] "key") in
@@ -174,6 +195,10 @@ Definition ClerkPool__Get: val :=
 
 Definition ClerkPool__CondPut: val :=
   rec: "ClerkPool__CondPut" "ck" "key" "expect" "val" :=
+    let: "val" := ref_to stringT "val" in
+    let: "expect" := ref_to stringT "expect" in
+    let: "key" := ref_to stringT "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "ret" := ref (zero_val stringT) in
     ClerkPool__doWithClerk (![ptrT] "ck") (λ: "ck",
       let: "$a0" := Clerk__CondPut (![ptrT] "ck") (![stringT] "key") (![stringT] "expect") (![stringT] "val") in
@@ -184,6 +209,7 @@ Definition ClerkPool__CondPut: val :=
 
 Definition MakeKv: val :=
   rec: "MakeKv" "confHosts" :=
+    let: "confHosts" := ref_to (slice.T uint64T) "confHosts" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := MakeClerkPool (![slice.T uint64T] "confHosts") in
     "ck" <-[ptrT] "$a0";;
@@ -203,6 +229,7 @@ Definition KVState := struct.decl [
 
 Definition decodePutArgs: val :=
   rec: "decodePutArgs" "raw_args" :=
+    let: "raw_args" := ref_to (slice.T byteT) "raw_args" in
     let: "enc" := ref_to (slice.T byteT) (SliceSkip byteT (![slice.T byteT] "raw_args") #1) in
     let: "args" := ref_zero ptrT in
     let: "$a0" := struct.alloc PutArgs (zero_val (struct.t PutArgs)) in
@@ -221,10 +248,12 @@ Definition getArgs: ty := stringT.
 
 Definition decodeGetArgs: val :=
   rec: "decodeGetArgs" "raw_args" :=
+    let: "raw_args" := ref_to (slice.T byteT) "raw_args" in
     return: (StringFromBytes (SliceSkip byteT (![slice.T byteT] "raw_args") #1)).
 
 Definition decodeCondPutArgs: val :=
   rec: "decodeCondPutArgs" "raw_args" :=
+    let: "raw_args" := ref_to (slice.T byteT) "raw_args" in
     let: "enc" := ref_to (slice.T byteT) (SliceSkip byteT (![slice.T byteT] "raw_args") #1) in
     let: "args" := ref_zero ptrT in
     let: "$a0" := struct.alloc CondPutArgs (zero_val (struct.t CondPutArgs)) in
@@ -252,16 +281,23 @@ Definition decodeCondPutArgs: val :=
 (* end of marshalling *)
 Definition KVState__put: val :=
   rec: "KVState__put" "s" "args" :=
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     let: "$a0" := struct.loadF PutArgs "Val" (![ptrT] "args") in
     MapInsert (struct.loadF KVState "kvs" (![ptrT] "s")) (struct.loadF PutArgs "Key" (![ptrT] "args")) "$a0";;
     return: (NewSlice byteT #0).
 
 Definition KVState__get: val :=
   rec: "KVState__get" "s" "args" :=
+    let: "args" := ref_to stringT "args" in
+    let: "s" := ref_to ptrT "s" in
     return: (StringToBytes (Fst (MapGet (struct.loadF KVState "kvs" (![ptrT] "s")) (![stringT] "args")))).
 
 Definition KVState__apply: val :=
   rec: "KVState__apply" "s" "args" "vnum" :=
+    let: "vnum" := ref_to uint64T "vnum" in
+    let: "args" := ref_to (slice.T byteT) "args" in
+    let: "s" := ref_to ptrT "s" in
     (if: (SliceGet byteT (![slice.T byteT] "args") #0) = OP_PUT
     then
       let: "args" := ref_zero ptrT in
@@ -303,6 +339,8 @@ Definition KVState__apply: val :=
 
 Definition KVState__applyReadonly: val :=
   rec: "KVState__applyReadonly" "s" "args" :=
+    let: "args" := ref_to (slice.T byteT) "args" in
+    let: "s" := ref_to ptrT "s" in
     (if: (SliceGet byteT (![slice.T byteT] "args") #0) ≠ OP_GET
     then
       Panic "expected a GET as readonly-operation";;
@@ -326,10 +364,14 @@ Definition KVState__applyReadonly: val :=
 
 Definition KVState__getState: val :=
   rec: "KVState__getState" "s" :=
+    let: "s" := ref_to ptrT "s" in
     return: (map__string__marshal.EncodeStringMap (struct.loadF KVState "kvs" (![ptrT] "s"))).
 
 Definition KVState__setState: val :=
   rec: "KVState__setState" "s" "snap" "nextIndex" :=
+    let: "nextIndex" := ref_to uint64T "nextIndex" in
+    let: "snap" := ref_to (slice.T byteT) "snap" in
+    let: "s" := ref_to ptrT "s" in
     let: "$a0" := ![uint64T] "nextIndex" in
     struct.storeF KVState "minVnum" (![ptrT] "s") "$a0";;
     let: "$a0" := NewMap stringT uint64T #() in
@@ -358,5 +400,8 @@ Definition makeVersionedStateMachine: val :=
 
 Definition Start: val :=
   rec: "Start" "fname" "host" "confHosts" :=
+    let: "confHosts" := ref_to (slice.T uint64T) "confHosts" in
+    let: "host" := ref_to uint64T "host" in
+    let: "fname" := ref_to stringT "fname" in
     replica.Server__Serve (storage.MakePbServer (exactlyonce.MakeExactlyOnceStateMachine (makeVersionedStateMachine #())) (![stringT] "fname") (![slice.T uint64T] "confHosts")) (![uint64T] "host");;
     #().

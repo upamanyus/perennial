@@ -19,11 +19,13 @@ Definition WriteChunkArgs := struct.decl [
 
 Definition MarshalWriteChunkArgs: val :=
   rec: "MarshalWriteChunkArgs" "args" :=
+    let: "args" := ref_to (struct.t WriteChunkArgs) "args" in
     Panic "TODO: marshalling";;
     #().
 
 Definition ParseWriteChunkArgs: val :=
   rec: "ParseWriteChunkArgs" "data" :=
+    let: "data" := ref_to (slice.T byteT) "data" in
     Panic "TODO: marshalling";;
     #().
 
@@ -41,6 +43,9 @@ Definition ClerkPool := struct.decl [
 
 Definition ClerkPool__WriteChunk: val :=
   rec: "ClerkPool__WriteChunk" "ck" "addr" "args" :=
+    let: "args" := ref_to (struct.t WriteChunkArgs) "args" in
+    let: "addr" := ref_to uint64T "addr" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "req" := ref_zero (slice.T byteT) in
     let: "$a0" := MarshalWriteChunkArgs (![struct.t WriteChunkArgs] "args") in
     "req" <-[slice.T byteT] "$a0";;
@@ -52,6 +57,9 @@ Definition ClerkPool__WriteChunk: val :=
 
 Definition ClerkPool__GetChunk: val :=
   rec: "ClerkPool__GetChunk" "ck" "addr" "content_hash" :=
+    let: "content_hash" := ref_to stringT "content_hash" in
+    let: "addr" := ref_to uint64T "addr" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "req" := ref_zero (slice.T byteT) in
     let: "$a0" := StringToBytes (![stringT] "content_hash") in
     "req" <-[slice.T byteT] "$a0";;
@@ -72,6 +80,8 @@ Definition Server := struct.decl [
 
 Definition Server__WriteChunk: val :=
   rec: "Server__WriteChunk" "s" "args" :=
+    let: "args" := ref_to (struct.t WriteChunkArgs) "args" in
+    let: "s" := ref_to ptrT "s" in
     let: "content_hash" := ref_zero stringT in
     let: "$a0" := trusted__hash.Hash (struct.get WriteChunkArgs "Chunk" (![struct.t WriteChunkArgs] "args")) in
     "content_hash" <-[stringT] "$a0";;
@@ -89,6 +99,8 @@ Definition Server__WriteChunk: val :=
 
 Definition Server__GetChunk: val :=
   rec: "Server__GetChunk" "s" "content_hash" :=
+    let: "content_hash" := ref_to stringT "content_hash" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "m" (![ptrT] "s"));;
     let: "data" := ref_zero (slice.T byteT) in
     let: "$a0" := Fst (MapGet (struct.loadF Server "chunks" (![ptrT] "s")) (![stringT] "content_hash")) in
@@ -98,6 +110,8 @@ Definition Server__GetChunk: val :=
 
 Definition StartServer: val :=
   rec: "StartServer" "me" "dir_addr" :=
+    let: "dir_addr" := ref_to uint64T "dir_addr" in
+    let: "me" := ref_to uint64T "me" in
     let: "dir" := ref_zero ptrT in
     let: "$a0" := dir.MakeClerk (![uint64T] "dir_addr") in
     "dir" <-[ptrT] "$a0";;

@@ -8,6 +8,7 @@ Local Coercion Var' s: expr := Var s.
 
 Definition EncodeStringMap: val :=
   rec: "EncodeStringMap" "kvs" :=
+    let: "kvs" := ref_to (mapT stringT) "kvs" in
     let: "enc" := ref_to (slice.T byteT) (NewSlice byteT #0) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (MapLen (![mapT stringT] "kvs")) in
     "enc" <-[slice.T byteT] "$a0";;
@@ -25,6 +26,7 @@ Definition EncodeStringMap: val :=
 
 Definition DecodeStringMap: val :=
   rec: "DecodeStringMap" "enc_in" :=
+    let: "enc_in" := ref_to (slice.T byteT) "enc_in" in
     let: "enc" := ref_to (slice.T byteT) (![slice.T byteT] "enc_in") in
     let: "numEntries" := ref (zero_val uint64T) in
     let: "kvs" := ref_zero (mapT stringT) in

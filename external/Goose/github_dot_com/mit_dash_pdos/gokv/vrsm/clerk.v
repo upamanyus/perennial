@@ -21,6 +21,7 @@ Definition Clerk := struct.decl [
 
 Definition makeClerks: val :=
   rec: "makeClerks" "servers" :=
+    let: "servers" := ref_to (slice.T uint64T) "servers" in
     let: "clerks" := ref_zero (slice.T ptrT) in
     let: "$a0" := NewSlice ptrT (slice.len (![slice.T uint64T] "servers")) in
     "clerks" <-[slice.T ptrT] "$a0";;
@@ -33,6 +34,7 @@ Definition makeClerks: val :=
 
 Definition Make: val :=
   rec: "Make" "confHosts" :=
+    let: "confHosts" := ref_to (slice.T uint64T) "confHosts" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
     "ck" <-[ptrT] "$a0";;
@@ -53,6 +55,8 @@ Definition Make: val :=
 (* will retry forever *)
 Definition Clerk__Apply: val :=
   rec: "Clerk__Apply" "ck" "op" :=
+    let: "op" := ref_to (slice.T byteT) "op" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "ret" := ref (zero_val (slice.T byteT)) in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       let: "err" := ref (zero_val uint64T) in
@@ -77,6 +81,7 @@ Definition Clerk__Apply: val :=
 
 Definition Clerk__maybeRefreshPreference: val :=
   rec: "Clerk__maybeRefreshPreference" "ck" :=
+    let: "ck" := ref_to ptrT "ck" in
     let: <> := ref_zero uint64T in
     let: "now" := ref_zero uint64T in
     let: ("$a0", "$a1") := grove__ffi.GetTimeRange #() in
@@ -95,6 +100,8 @@ Definition Clerk__maybeRefreshPreference: val :=
 
 Definition Clerk__ApplyRo2: val :=
   rec: "Clerk__ApplyRo2" "ck" "op" :=
+    let: "op" := ref_to (slice.T byteT) "op" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "ret" := ref (zero_val (slice.T byteT)) in
     Clerk__maybeRefreshPreference (![ptrT] "ck");;
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
@@ -124,6 +131,8 @@ Definition Clerk__ApplyRo2: val :=
 
 Definition Clerk__ApplyRo: val :=
   rec: "Clerk__ApplyRo" "ck" "op" :=
+    let: "op" := ref_to (slice.T byteT) "op" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "p" := ref_zero ProphIdT in
     let: "$a0" := trusted__proph.NewProph #() in
     "p" <-[ProphIdT] "$a0";;

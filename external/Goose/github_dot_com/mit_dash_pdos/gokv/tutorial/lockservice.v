@@ -14,6 +14,7 @@ From Perennial.goose_lang Require Import ffi.grove_prelude.
 
 Definition EncodeBool: val :=
   rec: "EncodeBool" "a" :=
+    let: "a" := ref_to boolT "a" in
     (if: ![boolT] "a"
     then return: (SliceAppend byteT (NewSlice byteT #0) #(U8 1))
     else return: (SliceAppend byteT (NewSlice byteT #0) #(U8 0)));;
@@ -21,14 +22,17 @@ Definition EncodeBool: val :=
 
 Definition DecodeBool: val :=
   rec: "DecodeBool" "x" :=
+    let: "x" := ref_to (slice.T byteT) "x" in
     return: ((SliceGet byteT (![slice.T byteT] "x") #0) = #(U8 1)).
 
 Definition EncodeUint64: val :=
   rec: "EncodeUint64" "a" :=
+    let: "a" := ref_to uint64T "a" in
     return: (marshal.WriteInt (NewSlice byteT #0) (![uint64T] "a")).
 
 Definition DecodeUint64: val :=
   rec: "DecodeUint64" "x" :=
+    let: "x" := ref_to (slice.T byteT) "x" in
     let: <> := ref_zero (slice.T byteT) in
     let: "a" := ref_zero uint64T in
     let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "x") in
@@ -52,6 +56,7 @@ Definition Client := struct.decl [
 
 Definition Client__getFreshNum: val :=
   rec: "Client__getFreshNum" "cl" :=
+    let: "cl" := ref_to ptrT "cl" in
     let: "reply" := ref (zero_val (slice.T byteT)) in
     let: "args" := ref_zero (slice.T byteT) in
     let: "$a0" := NewSlice byteT #0 in
@@ -66,6 +71,8 @@ Definition Client__getFreshNum: val :=
 
 Definition Client__tryAcquire: val :=
   rec: "Client__tryAcquire" "cl" "id" :=
+    let: "id" := ref_to uint64T "id" in
+    let: "cl" := ref_to ptrT "cl" in
     let: "reply" := ref (zero_val (slice.T byteT)) in
     let: "args" := ref_zero (slice.T byteT) in
     let: "$a0" := EncodeUint64 (![uint64T] "id") in
@@ -80,6 +87,8 @@ Definition Client__tryAcquire: val :=
 
 Definition Client__release: val :=
   rec: "Client__release" "cl" "id" :=
+    let: "id" := ref_to uint64T "id" in
+    let: "cl" := ref_to ptrT "cl" in
     let: "reply" := ref (zero_val (slice.T byteT)) in
     let: "args" := ref_zero (slice.T byteT) in
     let: "$a0" := EncodeUint64 (![uint64T] "id") in
@@ -88,6 +97,7 @@ Definition Client__release: val :=
 
 Definition makeClient: val :=
   rec: "makeClient" "hostname" :=
+    let: "hostname" := ref_to uint64T "hostname" in
     return: (struct.new Client [
        "cl" ::= urpc.MakeClient (![uint64T] "hostname")
      ]).
@@ -103,6 +113,7 @@ Definition Server := struct.decl [
 
 Definition Server__getFreshNum: val :=
   rec: "Server__getFreshNum" "s" :=
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "n" := ref_zero uint64T in
     let: "$a0" := struct.loadF Server "nextId" (![ptrT] "s") in
@@ -120,6 +131,8 @@ Definition StatusStale : expr := #1.
 
 Definition Server__tryAcquire: val :=
   rec: "Server__tryAcquire" "s" "id" :=
+    let: "id" := ref_to uint64T "id" in
+    let: "s" := ref_to ptrT "s" in
     let: "ret" := ref (zero_val uint64T) in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     (if: (struct.loadF Server "holder" (![ptrT] "s")) > (![uint64T] "id")
@@ -145,7 +158,7 @@ Definition Server__tryAcquire: val :=
         struct.storeF Server "holder" (![ptrT] "s") "$a0";;
         let: "$a0" := #true in
         struct.storeF Server "locked" (![ptrT] "s") "$a0";;
-        log.Printf #(str"Lock held by %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "id");;
+        log.Printf #(str"Lock held by %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "id");;
         let: "$a0" := StatusGranted in
         "ret" <-[uint64T] "$a0";;
         #());;
@@ -155,6 +168,8 @@ Definition Server__tryAcquire: val :=
 
 Definition Server__release: val :=
   rec: "Server__release" "s" "id" :=
+    let: "id" := ref_to uint64T "id" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     (if: (struct.loadF Server "holder" (![ptrT] "s")) = (![uint64T] "id")
     then
@@ -162,7 +177,7 @@ Definition Server__release: val :=
       struct.storeF Server "locked" (![ptrT] "s") "$a0";;
       #()
     else #());;
-    log.Printf #(str"Lock released by %!!(MISSING)d(MISSING)") (![uint64T] "id");;
+    log.Printf #(str"Lock released by %!!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "id");;
     sync.Mutex__Unlock (struct.loadF Server "mu" (![ptrT] "s"));;
     #().
 
@@ -179,6 +194,8 @@ Definition MakeServer: val :=
 
 Definition Server__Start: val :=
   rec: "Server__Start" "s" "me" :=
+    let: "me" := ref_to uint64T "me" in
+    let: "s" := ref_to ptrT "s" in
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
     let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
@@ -215,12 +232,14 @@ Definition Locked := struct.decl [
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "host" :=
+    let: "host" := ref_to uint64T "host" in
     return: (struct.new Clerk [
        "rpcCl" ::= makeClient (![uint64T] "host")
      ]).
 
 Definition Clerk__Acquire: val :=
   rec: "Clerk__Acquire" "ck" :=
+    let: "ck" := ref_to ptrT "ck" in
     let: "id" := ref (zero_val uint64T) in
     let: "err" := ref (zero_val uint64T) in
     let: "l" := ref (zero_val ptrT) in
@@ -256,6 +275,7 @@ Definition Clerk__Acquire: val :=
 
 Definition Locked__Release: val :=
   rec: "Locked__Release" "l" :=
+    let: "l" := ref_to ptrT "l" in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       (if: (Client__release (struct.loadF Locked "rpcCl" (![ptrT] "l")) (struct.loadF Locked "id" (![ptrT] "l"))) = #0
       then Break

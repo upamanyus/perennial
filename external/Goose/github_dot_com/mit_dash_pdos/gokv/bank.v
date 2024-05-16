@@ -19,6 +19,9 @@ Definition BankClerk := struct.decl [
 
 Definition acquire_two_good: val :=
   rec: "acquire_two_good" "lck" "l1" "l2" :=
+    let: "l2" := ref_to stringT "l2" in
+    let: "l1" := ref_to stringT "l1" in
+    let: "lck" := ref_to ptrT "lck" in
     (if: (![stringT] "l1") < (![stringT] "l2")
     then
       lockservice.LockClerk__Lock (![ptrT] "lck") (![stringT] "l1");;
@@ -32,22 +35,30 @@ Definition acquire_two_good: val :=
 
 Definition acquire_two: val :=
   rec: "acquire_two" "lck" "l1" "l2" :=
+    let: "l2" := ref_to stringT "l2" in
+    let: "l1" := ref_to stringT "l1" in
+    let: "lck" := ref_to ptrT "lck" in
     lockservice.LockClerk__Lock (![ptrT] "lck") (![stringT] "l1");;
     lockservice.LockClerk__Lock (![ptrT] "lck") (![stringT] "l2");;
     return: (#()).
 
 Definition release_two: val :=
   rec: "release_two" "lck" "l1" "l2" :=
+    let: "l2" := ref_to stringT "l2" in
+    let: "l1" := ref_to stringT "l1" in
+    let: "lck" := ref_to ptrT "lck" in
     lockservice.LockClerk__Unlock (![ptrT] "lck") (![stringT] "l1");;
     lockservice.LockClerk__Unlock (![ptrT] "lck") (![stringT] "l2");;
     return: (#()).
 
 Definition encodeInt: val :=
   rec: "encodeInt" "a" :=
+    let: "a" := ref_to uint64T "a" in
     return: (StringFromBytes (marshal.WriteInt slice.nil (![uint64T] "a"))).
 
 Definition decodeInt: val :=
   rec: "decodeInt" "a" :=
+    let: "a" := ref_to stringT "a" in
     let: <> := ref_zero (slice.T byteT) in
     let: "v" := ref_zero uint64T in
     let: ("$a0", "$a1") := marshal.ReadInt (StringToBytes (![stringT] "a")) in
@@ -59,6 +70,10 @@ Definition decodeInt: val :=
    If account balance in acc_from is at least amount, transfer amount to acc_to *)
 Definition BankClerk__transfer_internal: val :=
   rec: "BankClerk__transfer_internal" "bck" "acc_from" "acc_to" "amount" :=
+    let: "amount" := ref_to uint64T "amount" in
+    let: "acc_to" := ref_to stringT "acc_to" in
+    let: "acc_from" := ref_to stringT "acc_from" in
+    let: "bck" := ref_to ptrT "bck" in
     acquire_two (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![stringT] "acc_from") (![stringT] "acc_to");;
     let: "old_amount" := ref_zero uint64T in
     let: "$a0" := decodeInt ((struct.loadF kv.Kv "Get" (struct.loadF BankClerk "kvck" (![ptrT] "bck"))) (![stringT] "acc_from")) in
@@ -74,6 +89,7 @@ Definition BankClerk__transfer_internal: val :=
 
 Definition BankClerk__SimpleTransfer: val :=
   rec: "BankClerk__SimpleTransfer" "bck" :=
+    let: "bck" := ref_to ptrT "bck" in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       let: "src" := ref_zero uint64T in
       let: "$a0" := machine.RandomUint64 #() in
@@ -93,6 +109,7 @@ Definition BankClerk__SimpleTransfer: val :=
 
 Definition BankClerk__get_total: val :=
   rec: "BankClerk__get_total" "bck" :=
+    let: "bck" := ref_to ptrT "bck" in
     let: "sum" := ref (zero_val uint64T) in
     ForSlice stringT <> "acct" (struct.loadF BankClerk "accts" (![ptrT] "bck"))
       (lockservice.LockClerk__Lock (struct.loadF BankClerk "lck" (![ptrT] "bck")) (![stringT] "acct");;
@@ -106,6 +123,7 @@ Definition BankClerk__get_total: val :=
 
 Definition BankClerk__SimpleAudit: val :=
   rec: "BankClerk__SimpleAudit" "bck" :=
+    let: "bck" := ref_to ptrT "bck" in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       (if: (BankClerk__get_total (![ptrT] "bck")) ≠ BAL_TOTAL
       then
@@ -116,6 +134,10 @@ Definition BankClerk__SimpleAudit: val :=
 
 Definition MakeBankClerkSlice: val :=
   rec: "MakeBankClerkSlice" "lck" "kv" "init_flag" "accts" :=
+    let: "accts" := ref_to (slice.T stringT) "accts" in
+    let: "init_flag" := ref_to stringT "init_flag" in
+    let: "kv" := ref_to ptrT "kv" in
+    let: "lck" := ref_to ptrT "lck" in
     let: "bck" := ref_zero ptrT in
     let: "$a0" := struct.alloc BankClerk (zero_val (struct.t BankClerk)) in
     "bck" <-[ptrT] "$a0";;
@@ -140,6 +162,11 @@ Definition MakeBankClerkSlice: val :=
 
 Definition MakeBankClerk: val :=
   rec: "MakeBankClerk" "lck" "kv" "init_flag" "acc1" "acc2" :=
+    let: "acc2" := ref_to stringT "acc2" in
+    let: "acc1" := ref_to stringT "acc1" in
+    let: "init_flag" := ref_to stringT "init_flag" in
+    let: "kv" := ref_to ptrT "kv" in
+    let: "lck" := ref_to ptrT "lck" in
     let: "accts" := ref (zero_val (slice.T stringT)) in
     let: "$a0" := SliceAppend stringT (![slice.T stringT] "accts") (![stringT] "acc1") in
     "accts" <-[slice.T stringT] "$a0";;

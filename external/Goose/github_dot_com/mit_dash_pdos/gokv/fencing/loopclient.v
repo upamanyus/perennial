@@ -9,6 +9,8 @@ From Perennial.goose_lang Require Import ffi.grove_prelude.
 
 Definition LoopOnKey: val :=
   rec: "LoopOnKey" "key" "config" :=
+    let: "config" := ref_to uint64T "config" in
+    let: "key" := ref_to uint64T "key" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := client.MakeClerk (![uint64T] "config") in
     "ck" <-[ptrT] "$a0";;
@@ -20,7 +22,7 @@ Definition LoopOnKey: val :=
       machine.Assert ((![uint64T] "v") > (![uint64T] "lowerBound"));;
       (if: ((![uint64T] "v") `rem` #1000) = #0
       then
-        log.Printf #(str"reached %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING) >= %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "key") (![uint64T] "v");;
+        log.Printf #(str"reached %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING) >= %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "key") (![uint64T] "v");;
         #()
       else #());;
       let: "$a0" := ![uint64T] "v" in

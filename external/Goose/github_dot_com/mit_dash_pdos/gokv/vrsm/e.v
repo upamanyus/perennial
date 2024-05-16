@@ -28,10 +28,12 @@ Definition Leased : expr := #8.
 
 Definition EncodeError: val :=
   rec: "EncodeError" "err" :=
+    let: "err" := ref_to uint64T "err" in
     return: (marshal.WriteInt (NewSliceWithCap byteT #0 #8) (![uint64T] "err")).
 
 Definition DecodeError: val :=
   rec: "DecodeError" "enc" :=
+    let: "enc" := ref_to (slice.T byteT) "enc" in
     let: <> := ref_zero (slice.T byteT) in
     let: "err" := ref_zero uint64T in
     let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc") in

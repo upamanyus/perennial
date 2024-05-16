@@ -27,12 +27,14 @@ Definition Client := struct.decl [
 
 Definition makeClient: val :=
   rec: "makeClient" "hostname" :=
+    let: "hostname" := ref_to uint64T "hostname" in
     return: (struct.new Client [
        "cl" ::= urpc.MakeClient (![uint64T] "hostname")
      ]).
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "host" :=
+    let: "host" := ref_to uint64T "host" in
     return: (struct.new Clerk [
        "rpcCl" ::= makeClient (![uint64T] "host")
      ]).
@@ -55,6 +57,7 @@ Definition putArgs := struct.decl [
 
 Definition encodePutArgs: val :=
   rec: "encodePutArgs" "a" :=
+    let: "a" := ref_to ptrT "a" in
     let: "e" := ref_to (slice.T byteT) (NewSlice byteT #0) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (struct.loadF putArgs "opId" (![ptrT] "a")) in
     "e" <-[slice.T byteT] "$a0";;
@@ -73,6 +76,8 @@ Definition encodePutArgs: val :=
 
 Definition Client__putRpc: val :=
   rec: "Client__putRpc" "cl" "args" :=
+    let: "args" := ref_to ptrT "args" in
+    let: "cl" := ref_to ptrT "cl" in
     let: "reply" := ref (zero_val (slice.T byteT)) in
     let: "err" := ref_zero uint64T in
     let: "$a0" := urpc.Client__Call (struct.loadF Client "cl" (![ptrT] "cl")) rpcIdPut (encodePutArgs (![ptrT] "args")) "reply" #100 in
@@ -86,6 +91,7 @@ Definition Client__putRpc: val :=
 
 Definition DecodeUint64: val :=
   rec: "DecodeUint64" "x" :=
+    let: "x" := ref_to (slice.T byteT) "x" in
     let: <> := ref_zero (slice.T byteT) in
     let: "a" := ref_zero uint64T in
     let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "x") in
@@ -97,6 +103,7 @@ Definition DecodeUint64: val :=
 
 Definition Client__getFreshNumRpc: val :=
   rec: "Client__getFreshNumRpc" "cl" :=
+    let: "cl" := ref_to ptrT "cl" in
     let: "reply" := ref (zero_val (slice.T byteT)) in
     let: "err" := ref_zero uint64T in
     let: "$a0" := urpc.Client__Call (struct.loadF Client "cl" (![ptrT] "cl")) rpcIdGetFreshNum (NewSlice byteT #0) "reply" #100 in
@@ -108,6 +115,9 @@ Definition Client__getFreshNumRpc: val :=
 
 Definition Clerk__Put: val :=
   rec: "Clerk__Put" "ck" "key" "val" :=
+    let: "val" := ref_to stringT "val" in
+    let: "key" := ref_to stringT "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "err" := ref (zero_val uint64T) in
     let: "opId" := ref (zero_val uint64T) in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
@@ -130,6 +140,7 @@ Definition conditionalPutArgs := struct.decl [
 
 Definition encodeConditionalPutArgs: val :=
   rec: "encodeConditionalPutArgs" "a" :=
+    let: "a" := ref_to ptrT "a" in
     let: "e" := ref_to (slice.T byteT) (NewSlice byteT #0) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (struct.loadF conditionalPutArgs "opId" (![ptrT] "a")) in
     "e" <-[slice.T byteT] "$a0";;
@@ -155,6 +166,8 @@ Definition encodeConditionalPutArgs: val :=
 
 Definition Client__conditionalPutRpc: val :=
   rec: "Client__conditionalPutRpc" "cl" "args" :=
+    let: "args" := ref_to ptrT "args" in
+    let: "cl" := ref_to ptrT "cl" in
     let: "reply" := ref (zero_val (slice.T byteT)) in
     let: "err" := ref_zero uint64T in
     let: "$a0" := urpc.Client__Call (struct.loadF Client "cl" (![ptrT] "cl")) rpcIdConditionalPut (encodeConditionalPutArgs (![ptrT] "args")) "reply" #100 in
@@ -168,6 +181,10 @@ Definition Client__conditionalPutRpc: val :=
    match expected value. *)
 Definition Clerk__ConditionalPut: val :=
   rec: "Clerk__ConditionalPut" "ck" "key" "expectedVal" "newVal" :=
+    let: "newVal" := ref_to stringT "newVal" in
+    let: "expectedVal" := ref_to stringT "expectedVal" in
+    let: "key" := ref_to stringT "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "err" := ref (zero_val uint64T) in
     let: "opId" := ref (zero_val uint64T) in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
@@ -188,6 +205,7 @@ Definition getArgs := struct.decl [
 
 Definition encodeGetArgs: val :=
   rec: "encodeGetArgs" "a" :=
+    let: "a" := ref_to ptrT "a" in
     let: "e" := ref_to (slice.T byteT) (NewSlice byteT #0) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (struct.loadF getArgs "opId" (![ptrT] "a")) in
     "e" <-[slice.T byteT] "$a0";;
@@ -199,6 +217,8 @@ Definition encodeGetArgs: val :=
 
 Definition Client__getRpc: val :=
   rec: "Client__getRpc" "cl" "args" :=
+    let: "args" := ref_to ptrT "args" in
+    let: "cl" := ref_to ptrT "cl" in
     let: "reply" := ref (zero_val (slice.T byteT)) in
     let: "err" := ref_zero uint64T in
     let: "$a0" := urpc.Client__Call (struct.loadF Client "cl" (![ptrT] "cl")) rpcIdGet (encodeGetArgs (![ptrT] "args")) "reply" #100 in
@@ -212,6 +232,8 @@ Definition Client__getRpc: val :=
    match expected value. *)
 Definition Clerk__Get: val :=
   rec: "Clerk__Get" "ck" "key" :=
+    let: "key" := ref_to stringT "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "err" := ref (zero_val uint64T) in
     let: "opId" := ref (zero_val uint64T) in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
@@ -228,6 +250,7 @@ Definition Clerk__Get: val :=
 (* TODO: these are generic *)
 Definition EncodeBool: val :=
   rec: "EncodeBool" "a" :=
+    let: "a" := ref_to boolT "a" in
     (if: ![boolT] "a"
     then return: (SliceAppend byteT (NewSlice byteT #0) #(U8 1))
     else return: (SliceAppend byteT (NewSlice byteT #0) #(U8 0)));;
@@ -235,14 +258,17 @@ Definition EncodeBool: val :=
 
 Definition DecodeBool: val :=
   rec: "DecodeBool" "x" :=
+    let: "x" := ref_to (slice.T byteT) "x" in
     return: ((SliceGet byteT (![slice.T byteT] "x") #0) = #(U8 1)).
 
 Definition EncodeUint64: val :=
   rec: "EncodeUint64" "a" :=
+    let: "a" := ref_to uint64T "a" in
     return: (marshal.WriteInt (NewSlice byteT #0) (![uint64T] "a")).
 
 Definition decodePutArgs: val :=
   rec: "decodePutArgs" "x" :=
+    let: "x" := ref_to (slice.T byteT) "x" in
     let: "e" := ref_to (slice.T byteT) (![slice.T byteT] "x") in
     let: "a" := ref_zero ptrT in
     let: "$a0" := struct.alloc putArgs (zero_val (struct.t putArgs)) in
@@ -268,6 +294,7 @@ Definition decodePutArgs: val :=
 
 Definition decodeConditionalPutArgs: val :=
   rec: "decodeConditionalPutArgs" "x" :=
+    let: "x" := ref_to (slice.T byteT) "x" in
     let: "e" := ref_to (slice.T byteT) (![slice.T byteT] "x") in
     let: "a" := ref_zero ptrT in
     let: "$a0" := struct.alloc conditionalPutArgs (zero_val (struct.t conditionalPutArgs)) in
@@ -305,6 +332,7 @@ Definition decodeConditionalPutArgs: val :=
 
 Definition decodeGetArgs: val :=
   rec: "decodeGetArgs" "x" :=
+    let: "x" := ref_to (slice.T byteT) "x" in
     let: "e" := ref_to (slice.T byteT) (![slice.T byteT] "x") in
     let: "keyBytes" := ref (zero_val (slice.T byteT)) in
     let: "a" := ref_zero ptrT in
@@ -334,6 +362,8 @@ Definition Server := struct.decl [
 
 Definition Server__get: val :=
   rec: "Server__get" "s" "args" :=
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "ok" := ref_zero boolT in
     let: "ret" := ref_zero stringT in
@@ -355,6 +385,8 @@ Definition Server__get: val :=
 
 Definition Server__conditionalPut: val :=
   rec: "Server__conditionalPut" "s" "args" :=
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "ok" := ref_zero boolT in
     let: "ret" := ref_zero stringT in
@@ -382,6 +414,8 @@ Definition Server__conditionalPut: val :=
 
 Definition Server__put: val :=
   rec: "Server__put" "s" "args" :=
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "ok" := ref_zero boolT in
     let: <> := ref_zero stringT in
@@ -402,6 +436,7 @@ Definition Server__put: val :=
 
 Definition Server__getFreshNum: val :=
   rec: "Server__getFreshNum" "s" :=
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "n" := ref_zero uint64T in
     let: "$a0" := struct.loadF Server "nextFreshId" (![ptrT] "s") in
@@ -413,6 +448,8 @@ Definition Server__getFreshNum: val :=
 
 Definition Server__Start: val :=
   rec: "Server__Start" "s" "me" :=
+    let: "me" := ref_to uint64T "me" in
+    let: "s" := ref_to ptrT "s" in
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
     let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;

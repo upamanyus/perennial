@@ -13,6 +13,8 @@ Definition Clerk := struct.decl [
 
 Definition Clerk__FetchAndIncrement: val :=
   rec: "Clerk__FetchAndIncrement" "ck" "key" :=
+    let: "key" := ref_to uint64T "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "ret" := ref_zero ptrT in
     let: "$a0" := ref (zero_val uint64T) in
     "ret" <-[ptrT] "$a0";;
@@ -32,6 +34,7 @@ Definition Clerk__FetchAndIncrement: val :=
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "configHost" :=
+    let: "configHost" := ref_to uint64T "configHost" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
     "ck" <-[ptrT] "$a0";;

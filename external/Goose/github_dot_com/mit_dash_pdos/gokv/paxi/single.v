@@ -13,16 +13,23 @@ Definition Clerk := struct.decl [
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "host" :=
+    let: "host" := ref_to uint64T "host" in
     return: (struct.new Clerk [
        "cl" ::= urpc.MakeClient (![uint64T] "host")
      ]).
 
 Definition Clerk__Prepare: val :=
   rec: "Clerk__Prepare" "ck" "pn" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "pn" := ref_to uint64T "pn" in
+    let: "ck" := ref_to ptrT "ck" in
     #().
 
 Definition Clerk__Propose: val :=
   rec: "Clerk__Propose" "ck" "Pn" "Val" :=
+    let: "Val" := ref_to uint64T "Val" in
+    let: "Pn" := ref_to uint64T "Pn" in
+    let: "ck" := ref_to ptrT "ck" in
     return: (#false).
 
 (* common.go *)
@@ -52,6 +59,9 @@ Definition PrepareReply := struct.decl [
 
 Definition Replica__PrepareRPC: val :=
   rec: "Replica__PrepareRPC" "r" "pn" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "pn" := ref_to uint64T "pn" in
+    let: "r" := ref_to ptrT "r" in
     sync.Mutex__Lock (struct.loadF Replica "mu" (![ptrT] "r"));;
     (if: (![uint64T] "pn") > (struct.loadF Replica "promisedPN" (![ptrT] "r"))
     then
@@ -80,6 +90,9 @@ Definition ProposeArgs := struct.decl [
 
 Definition Replica__ProposeRPC: val :=
   rec: "Replica__ProposeRPC" "r" "pn" "val" :=
+    let: "val" := ref_to uint64T "val" in
+    let: "pn" := ref_to uint64T "pn" in
+    let: "r" := ref_to ptrT "r" in
     sync.Mutex__Lock (struct.loadF Replica "mu" (![ptrT] "r"));;
     (if: ((![uint64T] "pn") ≥ (struct.loadF Replica "promisedPN" (![ptrT] "r"))) && ((![uint64T] "pn") ≥ (struct.loadF Replica "acceptedPN" (![ptrT] "r")))
     then
@@ -97,6 +110,9 @@ Definition Replica__ProposeRPC: val :=
 (* returns true iff there was an error *)
 Definition Replica__TryDecide: val :=
   rec: "Replica__TryDecide" "r" "v" "outv" :=
+    let: "outv" := ref_to ptrT "outv" in
+    let: "v" := ref_to uint64T "v" in
+    let: "r" := ref_to ptrT "r" in
     sync.Mutex__Lock (struct.loadF Replica "mu" (![ptrT] "r"));;
     let: "pn" := ref_zero uint64T in
     let: "$a0" := (struct.loadF Replica "promisedPN" (![ptrT] "r")) + #1 in

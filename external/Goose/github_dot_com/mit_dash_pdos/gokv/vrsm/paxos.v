@@ -33,6 +33,7 @@ Definition applyAsFollowerArgs := struct.decl [
 
 Definition encodeApplyAsFollowerArgs: val :=
   rec: "encodeApplyAsFollowerArgs" "o" :=
+    let: "o" := ref_to ptrT "o" in
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #0 ((#8 + #8) + (slice.len (struct.loadF applyAsFollowerArgs "state" (![ptrT] "o"))))) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (struct.loadF applyAsFollowerArgs "epoch" (![ptrT] "o")) in
     "enc" <-[slice.T byteT] "$a0";;
@@ -44,6 +45,7 @@ Definition encodeApplyAsFollowerArgs: val :=
 
 Definition decodeApplyAsFollowerArgs: val :=
   rec: "decodeApplyAsFollowerArgs" "s" :=
+    let: "s" := ref_to (slice.T byteT) "s" in
     let: "enc" := ref_to (slice.T byteT) (![slice.T byteT] "s") in
     let: "o" := ref_zero ptrT in
     let: "$a0" := struct.alloc applyAsFollowerArgs (zero_val (struct.t applyAsFollowerArgs)) in
@@ -64,6 +66,7 @@ Definition applyAsFollowerReply := struct.decl [
 
 Definition decodeApplyAsFollowerReply: val :=
   rec: "decodeApplyAsFollowerReply" "s" :=
+    let: "s" := ref_to (slice.T byteT) "s" in
     let: "o" := ref_zero ptrT in
     let: "$a0" := struct.alloc applyAsFollowerReply (zero_val (struct.t applyAsFollowerReply)) in
     "o" <-[ptrT] "$a0";;
@@ -78,6 +81,7 @@ Definition decodeApplyAsFollowerReply: val :=
 
 Definition encodeApplyAsFollowerReply: val :=
   rec: "encodeApplyAsFollowerReply" "o" :=
+    let: "o" := ref_to ptrT "o" in
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #0 #8) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (struct.loadF applyAsFollowerReply "err" (![ptrT] "o")) in
     "enc" <-[slice.T byteT] "$a0";;
@@ -89,6 +93,7 @@ Definition enterNewEpochArgs := struct.decl [
 
 Definition encodeEnterNewEpochArgs: val :=
   rec: "encodeEnterNewEpochArgs" "o" :=
+    let: "o" := ref_to ptrT "o" in
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #0 #8) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (struct.loadF enterNewEpochArgs "epoch" (![ptrT] "o")) in
     "enc" <-[slice.T byteT] "$a0";;
@@ -96,6 +101,7 @@ Definition encodeEnterNewEpochArgs: val :=
 
 Definition decodeEnterNewEpochArgs: val :=
   rec: "decodeEnterNewEpochArgs" "s" :=
+    let: "s" := ref_to (slice.T byteT) "s" in
     let: "o" := ref_zero ptrT in
     let: "$a0" := struct.alloc enterNewEpochArgs (zero_val (struct.t enterNewEpochArgs)) in
     "o" <-[ptrT] "$a0";;
@@ -113,6 +119,7 @@ Definition enterNewEpochReply := struct.decl [
 
 Definition decodeEnterNewEpochReply: val :=
   rec: "decodeEnterNewEpochReply" "s" :=
+    let: "s" := ref_to (slice.T byteT) "s" in
     let: "o" := ref_zero ptrT in
     let: "$a0" := struct.alloc enterNewEpochReply (zero_val (struct.t enterNewEpochReply)) in
     "o" <-[ptrT] "$a0";;
@@ -135,6 +142,7 @@ Definition decodeEnterNewEpochReply: val :=
 
 Definition encodeEnterNewEpochReply: val :=
   rec: "encodeEnterNewEpochReply" "o" :=
+    let: "o" := ref_to ptrT "o" in
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #0 (((#8 + #8) + #8) + (slice.len (struct.loadF enterNewEpochReply "state" (![ptrT] "o"))))) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (struct.loadF enterNewEpochReply "err" (![ptrT] "o")) in
     "enc" <-[slice.T byteT] "$a0";;
@@ -153,6 +161,7 @@ Definition applyReply := struct.decl [
 
 Definition encodeApplyReply: val :=
   rec: "encodeApplyReply" "o" :=
+    let: "o" := ref_to ptrT "o" in
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #0 (#8 + (slice.len (struct.loadF applyReply "ret" (![ptrT] "o"))))) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (struct.loadF applyReply "err" (![ptrT] "o")) in
     "enc" <-[slice.T byteT] "$a0";;
@@ -162,6 +171,7 @@ Definition encodeApplyReply: val :=
 
 Definition decodeApplyReply: val :=
   rec: "decodeApplyReply" "s" :=
+    let: "s" := ref_to (slice.T byteT) "s" in
     let: "enc" := ref_to (slice.T byteT) (![slice.T byteT] "s") in
     let: "o" := ref_zero ptrT in
     let: "$a0" := struct.alloc applyReply (zero_val (struct.t applyReply)) in
@@ -178,6 +188,7 @@ Definition decodeApplyReply: val :=
 
 Definition boolToU64: val :=
   rec: "boolToU64" "b" :=
+    let: "b" := ref_to boolT "b" in
     (if: ![boolT] "b"
     then return: (#1)
     else return: (#0));;
@@ -195,6 +206,7 @@ Definition paxosState := struct.decl [
 
 Definition encodePaxosState: val :=
   rec: "encodePaxosState" "ps" :=
+    let: "ps" := ref_to ptrT "ps" in
     let: "e" := ref_to (slice.T byteT) (NewSlice byteT #0) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (struct.loadF paxosState "epoch" (![ptrT] "ps")) in
     "e" <-[slice.T byteT] "$a0";;
@@ -210,6 +222,7 @@ Definition encodePaxosState: val :=
 
 Definition decodePaxosState: val :=
   rec: "decodePaxosState" "enc" :=
+    let: "enc" := ref_to (slice.T byteT) "enc" in
     let: "e" := ref_to (slice.T byteT) (![slice.T byteT] "enc") in
     let: "leaderInt" := ref (zero_val uint64T) in
     let: "ps" := ref_zero ptrT in
@@ -245,6 +258,7 @@ Definition singleClerk := struct.decl [
 
 Definition MakeSingleClerk: val :=
   rec: "MakeSingleClerk" "addr" :=
+    let: "addr" := ref_to uint64T "addr" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := struct.new singleClerk [
       "cl" ::= reconnectclient.MakeReconnectingClient (![uint64T] "addr")
@@ -254,6 +268,8 @@ Definition MakeSingleClerk: val :=
 
 Definition singleClerk__enterNewEpoch: val :=
   rec: "singleClerk__enterNewEpoch" "s" "args" :=
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     let: "raw_args" := ref_zero (slice.T byteT) in
     let: "$a0" := encodeEnterNewEpochArgs (![ptrT] "args") in
     "raw_args" <-[slice.T byteT] "$a0";;
@@ -273,6 +289,8 @@ Definition singleClerk__enterNewEpoch: val :=
 
 Definition singleClerk__applyAsFollower: val :=
   rec: "singleClerk__applyAsFollower" "s" "args" :=
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     let: "raw_args" := ref_zero (slice.T byteT) in
     let: "$a0" := encodeApplyAsFollowerArgs (![ptrT] "args") in
     "raw_args" <-[slice.T byteT] "$a0";;
@@ -292,6 +310,7 @@ Definition singleClerk__applyAsFollower: val :=
 
 Definition singleClerk__TryBecomeLeader: val :=
   rec: "singleClerk__TryBecomeLeader" "s" :=
+    let: "s" := ref_to ptrT "s" in
     let: "reply" := ref_zero ptrT in
     let: "$a0" := ref (zero_val (slice.T byteT)) in
     "reply" <-[ptrT] "$a0";;
@@ -309,6 +328,8 @@ Definition Server := struct.decl [
 
 Definition Server__withLock: val :=
   rec: "Server__withLock" "s" "f" :=
+    let: "f" := ref_to (ptrT -> unitT)%ht "f" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     (![(arrowT unitT unitT)] "f") (struct.loadF Server "ps" (![ptrT] "s"));;
     let: "waitFn" := ref_zero (arrowT unitT unitT) in
@@ -320,6 +341,9 @@ Definition Server__withLock: val :=
 
 Definition Server__applyAsFollower: val :=
   rec: "Server__applyAsFollower" "s" "args" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     Server__withLock (![ptrT] "s") (λ: "ps",
       (if: (struct.loadF paxosState "epoch" (![ptrT] "ps")) ≤ (struct.loadF applyAsFollowerArgs "epoch" (![ptrT] "args"))
       then
@@ -371,6 +395,9 @@ Definition Server__applyAsFollower: val :=
    leader election, only for coming up with a valid proposal. *)
 Definition Server__enterNewEpoch: val :=
   rec: "Server__enterNewEpoch" "s" "args" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     Server__withLock (![ptrT] "s") (λ: "ps",
       (if: (struct.loadF paxosState "epoch" (![ptrT] "ps")) ≥ (struct.loadF enterNewEpochArgs "epoch" (![ptrT] "args"))
       then
@@ -394,6 +421,7 @@ Definition Server__enterNewEpoch: val :=
 
 Definition Server__TryBecomeLeader: val :=
   rec: "Server__TryBecomeLeader" "s" :=
+    let: "s" := ref_to ptrT "s" in
     log.Println #(str"started trybecomeleader");;
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     (if: struct.loadF paxosState "isLeader" (struct.loadF Server "ps" (![ptrT] "s"))
@@ -453,6 +481,7 @@ Definition Server__TryBecomeLeader: val :=
 
 Definition Server__TryAcquire: val :=
   rec: "Server__TryAcquire" "s" :=
+    let: "s" := ref_to ptrT "s" in
     let: "retErr" := ref (zero_val Error) in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     (if: (~ (struct.loadF paxosState "isLeader" (struct.loadF Server "ps" (![ptrT] "s"))))
@@ -525,6 +554,7 @@ Definition Server__TryAcquire: val :=
 
 Definition Server__WeakRead: val :=
   rec: "Server__WeakRead" "s" :=
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "ret" := ref_zero (slice.T byteT) in
     let: "$a0" := struct.loadF paxosState "state" (struct.loadF Server "ps" (![ptrT] "s")) in
@@ -534,6 +564,9 @@ Definition Server__WeakRead: val :=
 
 Definition makeServer: val :=
   rec: "makeServer" "fname" "initstate" "config" :=
+    let: "config" := ref_to (slice.T uint64T) "config" in
+    let: "initstate" := ref_to (slice.T byteT) "initstate" in
+    let: "fname" := ref_to stringT "fname" in
     let: "s" := ref_zero ptrT in
     let: "$a0" := struct.alloc Server (zero_val (struct.t Server)) in
     "s" <-[ptrT] "$a0";;
@@ -564,6 +597,10 @@ Definition makeServer: val :=
 
 Definition StartServer: val :=
   rec: "StartServer" "fname" "initstate" "me" "config" :=
+    let: "config" := ref_to (slice.T uint64T) "config" in
+    let: "me" := ref_to uint64T "me" in
+    let: "initstate" := ref_to (slice.T byteT) "initstate" in
+    let: "fname" := ref_to stringT "fname" in
     let: "s" := ref_zero ptrT in
     let: "$a0" := makeServer (![stringT] "fname") (![slice.T byteT] "initstate") (![slice.T uint64T] "config") in
     "s" <-[ptrT] "$a0";;

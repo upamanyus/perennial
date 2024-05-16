@@ -20,6 +20,7 @@ Definition CacheKv := struct.decl [
 
 Definition DecodeValue: val :=
   rec: "DecodeValue" "v" :=
+    let: "v" := ref_to stringT "v" in
     let: "e" := ref_to (slice.T byteT) (StringToBytes (![stringT] "v")) in
     let: "vBytes" := ref_zero (slice.T byteT) in
     let: "l" := ref_zero uint64T in
@@ -33,6 +34,7 @@ Definition DecodeValue: val :=
 
 Definition EncodeValue: val :=
   rec: "EncodeValue" "c" :=
+    let: "c" := ref_to (struct.t cacheValue) "c" in
     let: "e" := ref_to (slice.T byteT) (NewSlice byteT #0) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "e") (struct.get cacheValue "l" (![struct.t cacheValue] "c")) in
     "e" <-[slice.T byteT] "$a0";;
@@ -42,6 +44,8 @@ Definition EncodeValue: val :=
 
 Definition max: val :=
   rec: "max" "a" "b" :=
+    let: "b" := ref_to uint64T "b" in
+    let: "a" := ref_to uint64T "a" in
     (if: (![uint64T] "a") > (![uint64T] "b")
     then return: (![uint64T] "a")
     else #());;
@@ -49,6 +53,7 @@ Definition max: val :=
 
 Definition Make: val :=
   rec: "Make" "kv" :=
+    let: "kv" := ref_to ptrT "kv" in
     return: (struct.new CacheKv [
        "kv" ::= ![ptrT] "kv";
        "mu" ::= struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex));
@@ -57,6 +62,8 @@ Definition Make: val :=
 
 Definition CacheKv__Get: val :=
   rec: "CacheKv__Get" "k" "key" :=
+    let: "key" := ref_to stringT "key" in
+    let: "k" := ref_to ptrT "k" in
     sync.Mutex__Lock (struct.loadF CacheKv "mu" (![ptrT] "k"));;
     let: "ok" := ref_zero boolT in
     let: "cv" := ref_zero (struct.t cacheValue) in
@@ -79,6 +86,9 @@ Definition CacheKv__Get: val :=
 
 Definition CacheKv__GetAndCache: val :=
   rec: "CacheKv__GetAndCache" "k" "key" "cachetime" :=
+    let: "cachetime" := ref_to uint64T "cachetime" in
+    let: "key" := ref_to stringT "key" in
+    let: "k" := ref_to ptrT "k" in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       let: "enc" := ref_zero stringT in
       let: "$a0" := (struct.loadF kv.Kv "Get" (struct.loadF CacheKv "kv" (![ptrT] "k"))) (![stringT] "key") in
@@ -114,6 +124,9 @@ Definition CacheKv__GetAndCache: val :=
 
 Definition CacheKv__Put: val :=
   rec: "CacheKv__Put" "k" "key" "val" :=
+    let: "val" := ref_to stringT "val" in
+    let: "key" := ref_to stringT "key" in
+    let: "k" := ref_to ptrT "k" in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       let: "enc" := ref_zero stringT in
       let: "$a0" := (struct.loadF kv.Kv "Get" (struct.loadF CacheKv "kv" (![ptrT] "k"))) (![stringT] "key") in

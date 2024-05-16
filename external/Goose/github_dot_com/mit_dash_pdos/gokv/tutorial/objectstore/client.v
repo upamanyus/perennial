@@ -23,6 +23,8 @@ Definition Writer := struct.decl [
 
 Definition Clerk__PrepareWrite: val :=
   rec: "Clerk__PrepareWrite" "ck" "keyname" :=
+    let: "keyname" := ref_to stringT "keyname" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "w" := ref_zero (struct.t dir.PreparedWrite) in
     let: "$a0" := dir.Clerk__PrepareWrite (struct.loadF Clerk "dCk" (![ptrT] "ck")) in
     "w" <-[struct.t dir.PreparedWrite] "$a0";;
@@ -35,6 +37,8 @@ Definition Clerk__PrepareWrite: val :=
 
 Definition Writer__AppendChunk: val :=
   rec: "Writer__AppendChunk" "w" "data" :=
+    let: "data" := ref_to (slice.T byteT) "data" in
+    let: "w" := ref_to ptrT "w" in
     sync.WaitGroup__Add (struct.loadF Writer "wg" (![ptrT] "w")) #1;;
     let: "index" := ref_zero uint64T in
     let: "$a0" := struct.loadF Writer "index" (![ptrT] "w") in
@@ -58,6 +62,7 @@ Definition Writer__AppendChunk: val :=
 
 Definition Writer__Done: val :=
   rec: "Writer__Done" "w" :=
+    let: "w" := ref_to ptrT "w" in
     sync.WaitGroup__Wait (struct.loadF Writer "wg" (![ptrT] "w"));;
     dir.Clerk__FinishWrite (struct.loadF Clerk "dCk" (struct.loadF Writer "ck" (![ptrT] "w"))) (struct.mk dir.FinishWriteArgs [
       "WriteId" ::= struct.loadF Writer "writeId" (![ptrT] "w");
@@ -73,6 +78,8 @@ Definition Reader := struct.decl [
 
 Definition Clerk__PrepareRead: val :=
   rec: "Clerk__PrepareRead" "ck" "keyname" :=
+    let: "keyname" := ref_to stringT "keyname" in
+    let: "ck" := ref_to ptrT "ck" in
     return: (struct.new Reader [
        "chunkHandles" ::= struct.get dir.PreparedRead "Handles" (dir.Clerk__PrepareRead (struct.loadF Clerk "dCk" (![ptrT] "ck")) (![stringT] "keyname"));
        "index" ::= #0
@@ -80,6 +87,7 @@ Definition Clerk__PrepareRead: val :=
 
 Definition Reader__GetNextChunk: val :=
   rec: "Reader__GetNextChunk" "r" :=
+    let: "r" := ref_to ptrT "r" in
     (if: (struct.loadF Reader "index" (![ptrT] "r")) ≥ (slice.len (struct.loadF Reader "chunkHandles" (![ptrT] "r")))
     then return: (#false, slice.nil)
     else #());;

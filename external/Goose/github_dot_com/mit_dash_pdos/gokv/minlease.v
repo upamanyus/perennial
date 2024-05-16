@@ -20,6 +20,7 @@ Definition Server := struct.decl [
 (* return true iff successful *)
 Definition Server__TryLocalIncrement: val :=
   rec: "Server__TryLocalIncrement" "s" :=
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "h" := ref_zero uint64T in
     let: <> := ref_zero uint64T in
@@ -38,6 +39,8 @@ Definition Server__TryLocalIncrement: val :=
 
 Definition Server__Put: val :=
   rec: "Server__Put" "s" "val" :=
+    let: "val" := ref_to uint64T "val" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "$a0" := ![uint64T] "val" in
     struct.storeF Server "val" (![ptrT] "s") "$a0";;
@@ -46,6 +49,7 @@ Definition Server__Put: val :=
 
 Definition Server__Get: val :=
   rec: "Server__Get" "s" :=
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "s"));;
     let: "v" := ref_zero uint64T in
     let: "$a0" := struct.loadF Server "val" (![ptrT] "s") in
@@ -70,6 +74,7 @@ Definition StartServer: val :=
 
 Definition client: val :=
   rec: "client" "s" :=
+    let: "s" := ref_to ptrT "s" in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       let: <> := ref_zero uint64T in
       let: "l" := ref_zero uint64T in

@@ -8,6 +8,7 @@ Local Coercion Var' s: expr := Var s.
 
 Definition EncodeMapU64ToU64: val :=
   rec: "EncodeMapU64ToU64" "kvs" :=
+    let: "kvs" := ref_to (mapT uint64T) "kvs" in
     let: "enc" := ref_to (slice.T byteT) (NewSlice byteT #0) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (MapLen (![mapT uint64T] "kvs")) in
     "enc" <-[slice.T byteT] "$a0";;
@@ -21,6 +22,7 @@ Definition EncodeMapU64ToU64: val :=
 
 Definition DecodeMapU64ToU64: val :=
   rec: "DecodeMapU64ToU64" "enc_in" :=
+    let: "enc_in" := ref_to (slice.T byteT) "enc_in" in
     let: "enc" := ref_to (slice.T byteT) (![slice.T byteT] "enc_in") in
     let: "kvs" := ref_zero (mapT uint64T) in
     let: "$a0" := NewMap uint64T uint64T #() in
@@ -51,6 +53,7 @@ Definition DecodeMapU64ToU64: val :=
 
 Definition EncodeMapU64ToBytes: val :=
   rec: "EncodeMapU64ToBytes" "kvs" :=
+    let: "kvs" := ref_to (mapT (slice.T byteT)) "kvs" in
     let: "enc" := ref_to (slice.T byteT) (NewSlice byteT #0) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (MapLen (![mapT (slice.T byteT)] "kvs")) in
     "enc" <-[slice.T byteT] "$a0";;
@@ -66,6 +69,7 @@ Definition EncodeMapU64ToBytes: val :=
 
 Definition DecodeMapU64ToBytes: val :=
   rec: "DecodeMapU64ToBytes" "enc_in" :=
+    let: "enc_in" := ref_to (slice.T byteT) "enc_in" in
     let: "enc" := ref_to (slice.T byteT) (![slice.T byteT] "enc_in") in
     let: "kvs" := ref_zero (mapT (slice.T byteT)) in
     let: "$a0" := NewMap uint64T (slice.T byteT) #() in

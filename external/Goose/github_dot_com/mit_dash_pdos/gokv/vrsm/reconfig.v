@@ -14,6 +14,8 @@ From Perennial.goose_lang Require Import ffi.grove_prelude.
 
 Definition EnterNewConfig: val :=
   rec: "EnterNewConfig" "configHosts" "servers" :=
+    let: "servers" := ref_to (slice.T uint64T) "servers" in
+    let: "configHosts" := ref_to (slice.T uint64T) "configHosts" in
     (if: (slice.len (![slice.T uint64T] "servers")) = #0
     then
       log.Println #(str"Tried creating empty config");;
@@ -27,7 +29,7 @@ Definition EnterNewConfig: val :=
     let: ("$a0", "$a1") := configservice.Clerk__ReserveEpochAndGetConfig (![ptrT] "configCk") in
     "oldServers" <-[slice.T uint64T] "$a1";;
     "epoch" <-[uint64T] "$a0";;
-    log.Printf #(str"Reserved %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "epoch");;
+    log.Printf #(str"Reserved %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "epoch");;
     let: "id" := ref_zero uint64T in
     let: "$a0" := ((machine.RandomUint64 #()) + #1) `rem` (slice.len (![slice.T uint64T] "oldServers")) in
     "id" <-[uint64T] "$a0";;
@@ -41,7 +43,7 @@ Definition EnterNewConfig: val :=
     "reply" <-[ptrT] "$a0";;
     (if: (struct.loadF replica.GetStateReply "Err" (![ptrT] "reply")) ≠ e.None
     then
-      log.Printf #(str"Error while getting state and sealing in epoch %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "epoch");;
+      log.Printf #(str"Error while getting state and sealing in epoch %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)d(MISSING)") (![uint64T] "epoch");;
       return: (struct.loadF replica.GetStateReply "Err" (![ptrT] "reply"))
     else #());;
     let: "clerks" := ref_zero (slice.T ptrT) in
@@ -58,6 +60,8 @@ Definition EnterNewConfig: val :=
 
 Definition InitializeSystem: val :=
   rec: "InitializeSystem" "configHosts" "servers" :=
+    let: "servers" := ref_to (slice.T uint64T) "servers" in
+    let: "configHosts" := ref_to (slice.T uint64T) "configHosts" in
     let: "configCk" := ref_zero ptrT in
     let: "$a0" := configservice.MakeClerk (![slice.T uint64T] "configHosts") in
     "configCk" <-[ptrT] "$a0";;

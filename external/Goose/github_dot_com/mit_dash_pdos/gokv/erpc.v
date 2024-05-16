@@ -19,6 +19,8 @@ Definition Server := struct.decl [
 
 Definition Server__HandleRequest: val :=
   rec: "Server__HandleRequest" "t" "handler" :=
+    let: "handler" := ref_to ((slice.T byteT) -> ptrT -> unitT)%ht "handler" in
+    let: "t" := ref_to ptrT "t" in
     return: ((λ: "raw_args" "reply",
        let: "cid" := ref_zero uint64T in
        let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "raw_args") in
@@ -50,6 +52,7 @@ Definition Server__HandleRequest: val :=
 
 Definition Server__GetFreshCID: val :=
   rec: "Server__GetFreshCID" "t" :=
+    let: "t" := ref_to ptrT "t" in
     sync.Mutex__Lock (struct.loadF Server "mu" (![ptrT] "t"));;
     let: "r" := ref_zero uint64T in
     let: "$a0" := struct.loadF Server "nextCID" (![ptrT] "t") in
@@ -81,6 +84,8 @@ Definition Client := struct.decl [
 
 Definition Client__NewRequest: val :=
   rec: "Client__NewRequest" "c" "request" :=
+    let: "request" := ref_to (slice.T byteT) "request" in
+    let: "c" := ref_to ptrT "c" in
     let: "seq" := ref_zero uint64T in
     let: "$a0" := struct.loadF Client "nextSeq" (![ptrT] "c") in
     "seq" <-[uint64T] "$a0";;
@@ -102,6 +107,7 @@ Definition Client__NewRequest: val :=
 
 Definition MakeClient: val :=
   rec: "MakeClient" "cid" :=
+    let: "cid" := ref_to uint64T "cid" in
     let: "c" := ref_zero ptrT in
     let: "$a0" := struct.alloc Client (zero_val (struct.t Client)) in
     "c" <-[ptrT] "$a0";;

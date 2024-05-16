@@ -22,6 +22,9 @@ Definition Clerk := struct.decl [
 
 Definition Begin: val :=
   rec: "Begin" "txnMgrHost" "txnCoordHost" "indexHost" :=
+    let: "indexHost" := ref_to ptrT "indexHost" in
+    let: "txnCoordHost" := ref_to ptrT "txnCoordHost" in
+    let: "txnMgrHost" := ref_to ptrT "txnMgrHost" in
     return: (struct.new Clerk [
        "p" ::= prophname.Get #();
        "tid" ::= txnmgr.Server__New (![ptrT] "txnMgrHost");
@@ -33,12 +36,17 @@ Definition Begin: val :=
 
 Definition Clerk__Put: val :=
   rec: "Clerk__Put" "txnCk" "key" "val" :=
+    let: "val" := ref_to stringT "val" in
+    let: "key" := ref_to uint64T "key" in
+    let: "txnCk" := ref_to ptrT "txnCk" in
     let: "$a0" := ![stringT] "val" in
     MapInsert (struct.loadF Clerk "writes" (![ptrT] "txnCk")) (![uint64T] "key") "$a0";;
     #().
 
 Definition Clerk__Get: val :=
   rec: "Clerk__Get" "txnCk" "key" :=
+    let: "key" := ref_to uint64T "key" in
+    let: "txnCk" := ref_to ptrT "txnCk" in
     let: "ok" := ref_zero boolT in
     let: "val1" := ref_zero stringT in
     let: ("$a0", "$a1") := Fst (MapGet (struct.loadF Clerk "writes" (![ptrT] "txnCk")) (![uint64T] "key")) in
@@ -55,11 +63,13 @@ Definition Clerk__Get: val :=
 
 Definition Clerk__abort: val :=
   rec: "Clerk__abort" "txnCk" :=
+    let: "txnCk" := ref_to ptrT "txnCk" in
     trusted__proph.ResolveAbort (struct.loadF Clerk "p" (![ptrT] "txnCk")) (struct.loadF Clerk "tid" (![ptrT] "txnCk"));;
     #().
 
 Definition Clerk__begin: val :=
   rec: "Clerk__begin" "txn" :=
+    let: "txn" := ref_to ptrT "txn" in
     let: "tid" := ref_zero uint64T in
     let: "$a0" := txnmgr.Server__New (struct.loadF Clerk "txnMgrHost" (![ptrT] "txn")) in
     "tid" <-[uint64T] "$a0";;
@@ -69,6 +79,8 @@ Definition Clerk__begin: val :=
 
 Definition Clerk__DoTxn: val :=
   rec: "Clerk__DoTxn" "txn" "body" :=
+    let: "body" := ref_to (ptrT -> boolT)%ht "body" in
+    let: "txn" := ref_to ptrT "txn" in
     Clerk__begin (![ptrT] "txn");;
     let: "wantToCommit" := ref_zero boolT in
     let: "$a0" := (![(arrowT unitT unitT)] "body") (![ptrT] "txn") in

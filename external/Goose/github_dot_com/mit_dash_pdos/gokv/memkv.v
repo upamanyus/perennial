@@ -38,6 +38,7 @@ Definition KV_MOV_SHARD : expr := #5.
 
 Definition shardOf: val :=
   rec: "shardOf" "key" :=
+    let: "key" := ref_to uint64T "key" in
     return: ((![uint64T] "key") `rem` NSHARD).
 
 Definition PutRequest := struct.decl [
@@ -48,6 +49,7 @@ Definition PutRequest := struct.decl [
 (* doesn't include the operation type *)
 Definition EncodePutRequest: val :=
   rec: "EncodePutRequest" "args" :=
+    let: "args" := ref_to ptrT "args" in
     let: "num_bytes" := ref_zero uint64T in
     let: "$a0" := std.SumAssumeNoOverflow (#8 + #8) (slice.len (struct.loadF PutRequest "Value" (![ptrT] "args"))) in
     "num_bytes" <-[uint64T] "$a0";;
@@ -61,6 +63,7 @@ Definition EncodePutRequest: val :=
 
 Definition DecodePutRequest: val :=
   rec: "DecodePutRequest" "reqData" :=
+    let: "reqData" := ref_to (slice.T byteT) "reqData" in
     let: "req" := ref_zero ptrT in
     let: "$a0" := struct.alloc PutRequest (zero_val (struct.t PutRequest)) in
     "req" <-[ptrT] "$a0";;
@@ -79,6 +82,7 @@ Definition PutReply := struct.decl [
 
 Definition EncodePutReply: val :=
   rec: "EncodePutReply" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
     let: "e" := ref_zero (struct.t marshal.Enc) in
     let: "$a0" := marshal.NewEnc #8 in
     "e" <-[struct.t marshal.Enc] "$a0";;
@@ -87,6 +91,7 @@ Definition EncodePutReply: val :=
 
 Definition DecodePutReply: val :=
   rec: "DecodePutReply" "replyData" :=
+    let: "replyData" := ref_to (slice.T byteT) "replyData" in
     let: "reply" := ref_zero ptrT in
     let: "$a0" := struct.alloc PutReply (zero_val (struct.t PutReply)) in
     "reply" <-[ptrT] "$a0";;
@@ -108,6 +113,7 @@ Definition GetReply := struct.decl [
 
 Definition EncodeGetRequest: val :=
   rec: "EncodeGetRequest" "req" :=
+    let: "req" := ref_to ptrT "req" in
     let: "e" := ref_zero (struct.t marshal.Enc) in
     let: "$a0" := marshal.NewEnc #8 in
     "e" <-[struct.t marshal.Enc] "$a0";;
@@ -116,6 +122,7 @@ Definition EncodeGetRequest: val :=
 
 Definition DecodeGetRequest: val :=
   rec: "DecodeGetRequest" "rawReq" :=
+    let: "rawReq" := ref_to (slice.T byteT) "rawReq" in
     let: "req" := ref_zero ptrT in
     let: "$a0" := struct.alloc GetRequest (zero_val (struct.t GetRequest)) in
     "req" <-[ptrT] "$a0";;
@@ -128,6 +135,7 @@ Definition DecodeGetRequest: val :=
 
 Definition EncodeGetReply: val :=
   rec: "EncodeGetReply" "rep" :=
+    let: "rep" := ref_to ptrT "rep" in
     let: "num_bytes" := ref_zero uint64T in
     let: "$a0" := std.SumAssumeNoOverflow (#8 + #8) (slice.len (struct.loadF GetReply "Value" (![ptrT] "rep"))) in
     "num_bytes" <-[uint64T] "$a0";;
@@ -141,6 +149,7 @@ Definition EncodeGetReply: val :=
 
 Definition DecodeGetReply: val :=
   rec: "DecodeGetReply" "rawRep" :=
+    let: "rawRep" := ref_to (slice.T byteT) "rawRep" in
     let: "rep" := ref_zero ptrT in
     let: "$a0" := struct.alloc GetReply (zero_val (struct.t GetReply)) in
     "rep" <-[ptrT] "$a0";;
@@ -166,6 +175,7 @@ Definition ConditionalPutReply := struct.decl [
 
 Definition EncodeConditionalPutRequest: val :=
   rec: "EncodeConditionalPutRequest" "req" :=
+    let: "req" := ref_to ptrT "req" in
     let: "num_bytes" := ref_zero uint64T in
     let: "$a0" := std.SumAssumeNoOverflow ((#8 + #8) + #8) (std.SumAssumeNoOverflow (slice.len (struct.loadF ConditionalPutRequest "ExpectedValue" (![ptrT] "req"))) (slice.len (struct.loadF ConditionalPutRequest "NewValue" (![ptrT] "req")))) in
     "num_bytes" <-[uint64T] "$a0";;
@@ -181,6 +191,7 @@ Definition EncodeConditionalPutRequest: val :=
 
 Definition DecodeConditionalPutRequest: val :=
   rec: "DecodeConditionalPutRequest" "rawReq" :=
+    let: "rawReq" := ref_to (slice.T byteT) "rawReq" in
     let: "req" := ref_zero ptrT in
     let: "$a0" := struct.alloc ConditionalPutRequest (zero_val (struct.t ConditionalPutRequest)) in
     "req" <-[ptrT] "$a0";;
@@ -197,6 +208,7 @@ Definition DecodeConditionalPutRequest: val :=
 
 Definition EncodeConditionalPutReply: val :=
   rec: "EncodeConditionalPutReply" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
     let: "e" := ref_zero (struct.t marshal.Enc) in
     let: "$a0" := marshal.NewEnc (#8 + #1) in
     "e" <-[struct.t marshal.Enc] "$a0";;
@@ -206,6 +218,7 @@ Definition EncodeConditionalPutReply: val :=
 
 Definition DecodeConditionalPutReply: val :=
   rec: "DecodeConditionalPutReply" "replyData" :=
+    let: "replyData" := ref_to (slice.T byteT) "replyData" in
     let: "reply" := ref_zero ptrT in
     let: "$a0" := struct.alloc ConditionalPutReply (zero_val (struct.t ConditionalPutReply)) in
     "reply" <-[ptrT] "$a0";;
@@ -226,6 +239,7 @@ Definition InstallShardRequest := struct.decl [
 (* NOTE: probably can just amortize this by keeping track of this with the map itself *)
 Definition SizeOfMarshalledMap: val :=
   rec: "SizeOfMarshalledMap" "m" :=
+    let: "m" := ref_to (mapT (slice.T byteT)) "m" in
     let: "s" := ref (zero_val uint64T) in
     let: "$a0" := #8 in
     "s" <-[uint64T] "$a0";;
@@ -240,6 +254,8 @@ Definition SizeOfMarshalledMap: val :=
 
 Definition EncSliceMap: val :=
   rec: "EncSliceMap" "e" "m" :=
+    let: "m" := ref_to (mapT (slice.T byteT)) "m" in
+    let: "e" := ref_to (struct.t marshal.Enc) "e" in
     marshal.Enc__PutInt (![struct.t marshal.Enc] "e") (MapLen (![mapT (slice.T byteT)] "m"));;
     MapIter (![mapT (slice.T byteT)] "m") (λ: "key" "value",
       marshal.Enc__PutInt (![struct.t marshal.Enc] "e") (![uint64T] "key");;
@@ -250,6 +266,7 @@ Definition EncSliceMap: val :=
 
 Definition DecSliceMap: val :=
   rec: "DecSliceMap" "d" :=
+    let: "d" := ref_to (struct.t marshal.Dec) "d" in
     let: "sz" := ref_zero uint64T in
     let: "$a0" := marshal.Dec__GetInt (![struct.t marshal.Dec] "d") in
     "sz" <-[uint64T] "$a0";;
@@ -272,6 +289,7 @@ Definition DecSliceMap: val :=
 
 Definition encodeInstallShardRequest: val :=
   rec: "encodeInstallShardRequest" "req" :=
+    let: "req" := ref_to ptrT "req" in
     let: "num_bytes" := ref_zero uint64T in
     let: "$a0" := std.SumAssumeNoOverflow #8 (SizeOfMarshalledMap (struct.loadF InstallShardRequest "Kvs" (![ptrT] "req"))) in
     "num_bytes" <-[uint64T] "$a0";;
@@ -284,6 +302,7 @@ Definition encodeInstallShardRequest: val :=
 
 Definition decodeInstallShardRequest: val :=
   rec: "decodeInstallShardRequest" "rawReq" :=
+    let: "rawReq" := ref_to (slice.T byteT) "rawReq" in
     let: "d" := ref_zero (struct.t marshal.Dec) in
     let: "$a0" := marshal.NewDec (![slice.T byteT] "rawReq") in
     "d" <-[struct.t marshal.Dec] "$a0";;
@@ -303,6 +322,7 @@ Definition MoveShardRequest := struct.decl [
 
 Definition encodeMoveShardRequest: val :=
   rec: "encodeMoveShardRequest" "req" :=
+    let: "req" := ref_to ptrT "req" in
     let: "e" := ref_zero (struct.t marshal.Enc) in
     let: "$a0" := marshal.NewEnc (#8 + #8) in
     "e" <-[struct.t marshal.Enc] "$a0";;
@@ -312,6 +332,7 @@ Definition encodeMoveShardRequest: val :=
 
 Definition decodeMoveShardRequest: val :=
   rec: "decodeMoveShardRequest" "rawReq" :=
+    let: "rawReq" := ref_to (slice.T byteT) "rawReq" in
     let: "req" := ref_zero ptrT in
     let: "$a0" := struct.alloc MoveShardRequest (zero_val (struct.t MoveShardRequest)) in
     "req" <-[ptrT] "$a0";;
@@ -327,6 +348,7 @@ Definition decodeMoveShardRequest: val :=
 (* FIXME: these should just be in goose std or something *)
 Definition EncodeUint64: val :=
   rec: "EncodeUint64" "i" :=
+    let: "i" := ref_to uint64T "i" in
     let: "e" := ref_zero (struct.t marshal.Enc) in
     let: "$a0" := marshal.NewEnc #8 in
     "e" <-[struct.t marshal.Enc] "$a0";;
@@ -335,10 +357,12 @@ Definition EncodeUint64: val :=
 
 Definition DecodeUint64: val :=
   rec: "DecodeUint64" "raw" :=
+    let: "raw" := ref_to (slice.T byteT) "raw" in
     return: (marshal.Dec__GetInt (marshal.NewDec (![slice.T byteT] "raw"))).
 
 Definition encodeShardMap: val :=
   rec: "encodeShardMap" "shardMap" :=
+    let: "shardMap" := ref_to ptrT "shardMap" in
     let: "e" := ref_zero (struct.t marshal.Enc) in
     let: "$a0" := marshal.NewEnc (#8 * NSHARD) in
     "e" <-[struct.t marshal.Enc] "$a0";;
@@ -347,6 +371,7 @@ Definition encodeShardMap: val :=
 
 Definition decodeShardMap: val :=
   rec: "decodeShardMap" "raw" :=
+    let: "raw" := ref_to (slice.T byteT) "raw" in
     let: "d" := ref_zero (struct.t marshal.Dec) in
     let: "$a0" := marshal.NewDec (![slice.T byteT] "raw") in
     "d" <-[struct.t marshal.Dec] "$a0";;
@@ -362,6 +387,8 @@ Definition KVShardClerk := struct.decl [
 
 Definition MakeFreshKVShardClerk: val :=
   rec: "MakeFreshKVShardClerk" "host" "c" :=
+    let: "c" := ref_to ptrT "c" in
+    let: "host" := ref_to uint64T "host" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := struct.alloc KVShardClerk (zero_val (struct.t KVShardClerk)) in
     "ck" <-[ptrT] "$a0";;
@@ -382,6 +409,9 @@ Definition MakeFreshKVShardClerk: val :=
 
 Definition KVShardClerk__Put: val :=
   rec: "KVShardClerk__Put" "ck" "key" "value" :=
+    let: "value" := ref_to (slice.T byteT) "value" in
+    let: "key" := ref_to uint64T "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "args" := ref_zero ptrT in
     let: "$a0" := struct.alloc PutRequest (zero_val (struct.t PutRequest)) in
     "args" <-[ptrT] "$a0";;
@@ -403,6 +433,9 @@ Definition KVShardClerk__Put: val :=
 
 Definition KVShardClerk__Get: val :=
   rec: "KVShardClerk__Get" "ck" "key" "value" :=
+    let: "value" := ref_to ptrT "value" in
+    let: "key" := ref_to uint64T "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "args" := ref_zero ptrT in
     let: "$a0" := struct.alloc GetRequest (zero_val (struct.t GetRequest)) in
     "args" <-[ptrT] "$a0";;
@@ -424,6 +457,11 @@ Definition KVShardClerk__Get: val :=
 
 Definition KVShardClerk__ConditionalPut: val :=
   rec: "KVShardClerk__ConditionalPut" "ck" "key" "expectedValue" "newValue" "success" :=
+    let: "success" := ref_to ptrT "success" in
+    let: "newValue" := ref_to (slice.T byteT) "newValue" in
+    let: "expectedValue" := ref_to (slice.T byteT) "expectedValue" in
+    let: "key" := ref_to uint64T "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "args" := ref_zero ptrT in
     let: "$a0" := struct.alloc ConditionalPutRequest (zero_val (struct.t ConditionalPutRequest)) in
     "args" <-[ptrT] "$a0";;
@@ -449,6 +487,9 @@ Definition KVShardClerk__ConditionalPut: val :=
 
 Definition KVShardClerk__InstallShard: val :=
   rec: "KVShardClerk__InstallShard" "ck" "sid" "kvs" :=
+    let: "kvs" := ref_to (mapT (slice.T byteT)) "kvs" in
+    let: "sid" := ref_to uint64T "sid" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "args" := ref_zero ptrT in
     let: "$a0" := struct.alloc InstallShardRequest (zero_val (struct.t InstallShardRequest)) in
     "args" <-[ptrT] "$a0";;
@@ -467,6 +508,9 @@ Definition KVShardClerk__InstallShard: val :=
 
 Definition KVShardClerk__MoveShard: val :=
   rec: "KVShardClerk__MoveShard" "ck" "sid" "dst" :=
+    let: "dst" := ref_to uint64T "dst" in
+    let: "sid" := ref_to uint64T "sid" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "args" := ref_zero ptrT in
     let: "$a0" := struct.alloc MoveShardRequest (zero_val (struct.t MoveShardRequest)) in
     "args" <-[ptrT] "$a0";;
@@ -487,6 +531,7 @@ Definition ShardClerkSet := struct.decl [
 
 Definition MakeShardClerkSet: val :=
   rec: "MakeShardClerkSet" "c" :=
+    let: "c" := ref_to ptrT "c" in
     return: (struct.new ShardClerkSet [
        "cls" ::= NewMap uint64T ptrT #();
        "c" ::= ![ptrT] "c"
@@ -494,6 +539,8 @@ Definition MakeShardClerkSet: val :=
 
 Definition ShardClerkSet__GetClerk: val :=
   rec: "ShardClerkSet__GetClerk" "s" "host" :=
+    let: "host" := ref_to uint64T "host" in
+    let: "s" := ref_to ptrT "s" in
     let: "ok" := ref_zero boolT in
     let: "ck" := ref_zero ptrT in
     let: ("$a0", "$a1") := Fst (MapGet (struct.loadF ShardClerkSet "cls" (![ptrT] "s")) (![uint64T] "host")) in
@@ -531,6 +578,9 @@ Definition PutArgs := struct.decl [
 
 Definition KVShardServer__put_inner: val :=
   rec: "KVShardServer__put_inner" "s" "args" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     let: "sid" := ref_zero uint64T in
     let: "$a0" := shardOf (struct.loadF PutRequest "Key" (![ptrT] "args")) in
     "sid" <-[uint64T] "$a0";;
@@ -549,6 +599,9 @@ Definition KVShardServer__put_inner: val :=
 
 Definition KVShardServer__PutRPC: val :=
   rec: "KVShardServer__PutRPC" "s" "args" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF KVShardServer "mu" (![ptrT] "s"));;
     KVShardServer__put_inner (![ptrT] "s") (![ptrT] "args") (![ptrT] "reply");;
     sync.Mutex__Unlock (struct.loadF KVShardServer "mu" (![ptrT] "s"));;
@@ -556,6 +609,9 @@ Definition KVShardServer__PutRPC: val :=
 
 Definition KVShardServer__get_inner: val :=
   rec: "KVShardServer__get_inner" "s" "args" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     let: "sid" := ref_zero uint64T in
     let: "$a0" := shardOf (struct.loadF GetRequest "Key" (![ptrT] "args")) in
     "sid" <-[uint64T] "$a0";;
@@ -574,6 +630,9 @@ Definition KVShardServer__get_inner: val :=
 
 Definition KVShardServer__GetRPC: val :=
   rec: "KVShardServer__GetRPC" "s" "args" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF KVShardServer "mu" (![ptrT] "s"));;
     KVShardServer__get_inner (![ptrT] "s") (![ptrT] "args") (![ptrT] "reply");;
     sync.Mutex__Unlock (struct.loadF KVShardServer "mu" (![ptrT] "s"));;
@@ -581,6 +640,9 @@ Definition KVShardServer__GetRPC: val :=
 
 Definition KVShardServer__conditional_put_inner: val :=
   rec: "KVShardServer__conditional_put_inner" "s" "args" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     let: "sid" := ref_zero uint64T in
     let: "$a0" := shardOf (struct.loadF ConditionalPutRequest "Key" (![ptrT] "args")) in
     "sid" <-[uint64T] "$a0";;
@@ -611,6 +673,9 @@ Definition KVShardServer__conditional_put_inner: val :=
 
 Definition KVShardServer__ConditionalPutRPC: val :=
   rec: "KVShardServer__ConditionalPutRPC" "s" "args" "reply" :=
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF KVShardServer "mu" (![ptrT] "s"));;
     KVShardServer__conditional_put_inner (![ptrT] "s") (![ptrT] "args") (![ptrT] "reply");;
     sync.Mutex__Unlock (struct.loadF KVShardServer "mu" (![ptrT] "s"));;
@@ -624,6 +689,8 @@ Definition KVShardServer__ConditionalPutRPC: val :=
    flag is updated (i.e. until RemoveShard() is run). *)
 Definition KVShardServer__install_shard_inner: val :=
   rec: "KVShardServer__install_shard_inner" "s" "args" :=
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     let: "$a0" := #true in
     SliceSet boolT (struct.loadF KVShardServer "shardMap" (![ptrT] "s")) (struct.loadF InstallShardRequest "Sid" (![ptrT] "args")) "$a0";;
     let: "$a0" := struct.loadF InstallShardRequest "Kvs" (![ptrT] "args") in
@@ -632,6 +699,8 @@ Definition KVShardServer__install_shard_inner: val :=
 
 Definition KVShardServer__InstallShardRPC: val :=
   rec: "KVShardServer__InstallShardRPC" "s" "args" :=
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF KVShardServer "mu" (![ptrT] "s"));;
     KVShardServer__install_shard_inner (![ptrT] "s") (![ptrT] "args");;
     sync.Mutex__Unlock (struct.loadF KVShardServer "mu" (![ptrT] "s"));;
@@ -639,6 +708,8 @@ Definition KVShardServer__InstallShardRPC: val :=
 
 Definition KVShardServer__MoveShardRPC: val :=
   rec: "KVShardServer__MoveShardRPC" "s" "args" :=
+    let: "args" := ref_to ptrT "args" in
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF KVShardServer "mu" (![ptrT] "s"));;
     let: "ok" := ref_zero boolT in
     let: <> := ref_zero ptrT in
@@ -672,6 +743,7 @@ Definition KVShardServer__MoveShardRPC: val :=
 
 Definition MakeKVShardServer: val :=
   rec: "MakeKVShardServer" "is_init" :=
+    let: "is_init" := ref_to boolT "is_init" in
     let: "srv" := ref_zero ptrT in
     let: "$a0" := struct.alloc KVShardServer (zero_val (struct.t KVShardServer)) in
     "srv" <-[ptrT] "$a0";;
@@ -704,10 +776,13 @@ Definition MakeKVShardServer: val :=
 
 Definition KVShardServer__GetCIDRPC: val :=
   rec: "KVShardServer__GetCIDRPC" "s" :=
+    let: "s" := ref_to ptrT "s" in
     return: (erpc.Server__GetFreshCID (struct.loadF KVShardServer "erpc" (![ptrT] "s"))).
 
 Definition KVShardServer__Start: val :=
   rec: "KVShardServer__Start" "mkv" "host" :=
+    let: "host" := ref_to uint64T "host" in
+    let: "mkv" := ref_to ptrT "mkv" in
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
     let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
@@ -785,6 +860,8 @@ Definition KVCoord := struct.decl [
 
 Definition KVCoord__AddServerRPC: val :=
   rec: "KVCoord__AddServerRPC" "c" "newhost" :=
+    let: "newhost" := ref_to uint64T "newhost" in
+    let: "c" := ref_to ptrT "c" in
     sync.Mutex__Lock (struct.loadF KVCoord "mu" (![ptrT] "c"));;
     log.Printf #(str"Rebalancing
     ");;
@@ -835,12 +912,15 @@ Definition KVCoord__AddServerRPC: val :=
       else #());;
       #());;
     log.Println #(str"Done rebalancing");;
-    log.Printf #(str"%!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)v(MISSING)") (struct.loadF KVCoord "hostShards" (![ptrT] "c"));;
+    log.Printf #(str"%!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)v(MISSING)") (struct.loadF KVCoord "hostShards" (![ptrT] "c"));;
     sync.Mutex__Unlock (struct.loadF KVCoord "mu" (![ptrT] "c"));;
     #().
 
 Definition KVCoord__GetShardMapRPC: val :=
   rec: "KVCoord__GetShardMapRPC" "c" <> "rep" :=
+    let: "rep" := ref_to ptrT "rep" in
+    let: <> := ref_to (slice.T byteT) "_" in
+    let: "c" := ref_to ptrT "c" in
     sync.Mutex__Lock (struct.loadF KVCoord "mu" (![ptrT] "c"));;
     let: "$a0" := encodeShardMap (struct.fieldRef KVCoord "shardMap" (![ptrT] "c")) in
     (![ptrT] "rep") <-[slice.T byteT] "$a0";;
@@ -849,6 +929,7 @@ Definition KVCoord__GetShardMapRPC: val :=
 
 Definition MakeKVCoordServer: val :=
   rec: "MakeKVCoordServer" "initserver" :=
+    let: "initserver" := ref_to uint64T "initserver" in
     let: "s" := ref_zero ptrT in
     let: "$a0" := struct.alloc KVCoord (zero_val (struct.t KVCoord)) in
     "s" <-[ptrT] "$a0";;
@@ -867,6 +948,8 @@ Definition MakeKVCoordServer: val :=
 
 Definition KVCoord__Start: val :=
   rec: "KVCoord__Start" "c" "host" :=
+    let: "host" := ref_to uint64T "host" in
+    let: "c" := ref_to ptrT "c" in
     let: "handlers" := ref_zero (mapT (arrowT unitT unitT)) in
     let: "$a0" := NewMap uint64T (arrowT unitT unitT) #() in
     "handlers" <-[mapT (arrowT unitT unitT)] "$a0";;
@@ -895,6 +978,8 @@ Definition KVCoordClerk := struct.decl [
 
 Definition KVCoordClerk__AddShardServer: val :=
   rec: "KVCoordClerk__AddShardServer" "ck" "dst" :=
+    let: "dst" := ref_to uint64T "dst" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "rawRep" := ref_zero ptrT in
     let: "$a0" := ref (zero_val (slice.T byteT)) in
     "rawRep" <-[ptrT] "$a0";;
@@ -903,6 +988,7 @@ Definition KVCoordClerk__AddShardServer: val :=
 
 Definition KVCoordClerk__GetShardMap: val :=
   rec: "KVCoordClerk__GetShardMap" "ck" :=
+    let: "ck" := ref_to ptrT "ck" in
     let: "rawRep" := ref_zero ptrT in
     let: "$a0" := ref (zero_val (slice.T byteT)) in
     "rawRep" <-[ptrT] "$a0";;
@@ -917,6 +1003,8 @@ Definition SeqKVClerk := struct.decl [
 
 Definition SeqKVClerk__Get: val :=
   rec: "SeqKVClerk__Get" "ck" "key" :=
+    let: "key" := ref_to uint64T "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "val" := ref_zero ptrT in
     let: "$a0" := ref (zero_val (slice.T byteT)) in
     "val" <-[ptrT] "$a0";;
@@ -942,6 +1030,9 @@ Definition SeqKVClerk__Get: val :=
 
 Definition SeqKVClerk__Put: val :=
   rec: "SeqKVClerk__Put" "ck" "key" "value" :=
+    let: "value" := ref_to (slice.T byteT) "value" in
+    let: "key" := ref_to uint64T "key" in
+    let: "ck" := ref_to ptrT "ck" in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       let: "sid" := ref_zero uint64T in
       let: "$a0" := shardOf (![uint64T] "key") in
@@ -964,6 +1055,10 @@ Definition SeqKVClerk__Put: val :=
 
 Definition SeqKVClerk__ConditionalPut: val :=
   rec: "SeqKVClerk__ConditionalPut" "ck" "key" "expectedValue" "newValue" :=
+    let: "newValue" := ref_to (slice.T byteT) "newValue" in
+    let: "expectedValue" := ref_to (slice.T byteT) "expectedValue" in
+    let: "key" := ref_to uint64T "key" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "success" := ref_zero ptrT in
     let: "$a0" := ref (zero_val boolT) in
     "success" <-[ptrT] "$a0";;
@@ -989,11 +1084,15 @@ Definition SeqKVClerk__ConditionalPut: val :=
 
 Definition SeqKVClerk__Add: val :=
   rec: "SeqKVClerk__Add" "ck" "host" :=
+    let: "host" := ref_to uint64T "host" in
+    let: "ck" := ref_to ptrT "ck" in
     KVCoordClerk__AddShardServer (struct.loadF SeqKVClerk "coordCk" (![ptrT] "ck")) (![uint64T] "host");;
     #().
 
 Definition MakeSeqKVClerk: val :=
   rec: "MakeSeqKVClerk" "coord" "cm" :=
+    let: "cm" := ref_to ptrT "cm" in
+    let: "coord" := ref_to uint64T "coord" in
     let: "cck" := ref_zero ptrT in
     let: "$a0" := struct.alloc KVCoordClerk (zero_val (struct.t KVCoordClerk)) in
     "cck" <-[ptrT] "$a0";;
@@ -1023,6 +1122,7 @@ Definition KVClerk := struct.decl [
 
 Definition KVClerk__getSeqClerk: val :=
   rec: "KVClerk__getSeqClerk" "p" :=
+    let: "p" := ref_to ptrT "p" in
     sync.Mutex__Lock (struct.loadF KVClerk "mu" (![ptrT] "p"));;
     let: "n" := ref_zero intT in
     let: "$a0" := slice.len (struct.loadF KVClerk "freeClerks" (![ptrT] "p")) in
@@ -1043,6 +1143,8 @@ Definition KVClerk__getSeqClerk: val :=
 
 Definition KVClerk__putSeqClerk: val :=
   rec: "KVClerk__putSeqClerk" "p" "ck" :=
+    let: "ck" := ref_to ptrT "ck" in
+    let: "p" := ref_to ptrT "p" in
     Fork (sync.Mutex__Lock (struct.loadF KVClerk "mu" (![ptrT] "p"));;
           let: "$a0" := SliceAppend ptrT (struct.loadF KVClerk "freeClerks" (![ptrT] "p")) (![ptrT] "ck") in
           struct.storeF KVClerk "freeClerks" (![ptrT] "p") "$a0";;
@@ -1054,6 +1156,9 @@ Definition KVClerk__putSeqClerk: val :=
    request rate for an open system benchmark will stabilize. *)
 Definition KVClerk__Put: val :=
   rec: "KVClerk__Put" "p" "key" "value" :=
+    let: "value" := ref_to (slice.T byteT) "value" in
+    let: "key" := ref_to uint64T "key" in
+    let: "p" := ref_to ptrT "p" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := KVClerk__getSeqClerk (![ptrT] "p") in
     "ck" <-[ptrT] "$a0";;
@@ -1063,6 +1168,8 @@ Definition KVClerk__Put: val :=
 
 Definition KVClerk__Get: val :=
   rec: "KVClerk__Get" "p" "key" :=
+    let: "key" := ref_to uint64T "key" in
+    let: "p" := ref_to ptrT "p" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := KVClerk__getSeqClerk (![ptrT] "p") in
     "ck" <-[ptrT] "$a0";;
@@ -1074,6 +1181,10 @@ Definition KVClerk__Get: val :=
 
 Definition KVClerk__ConditionalPut: val :=
   rec: "KVClerk__ConditionalPut" "p" "key" "expectedValue" "newValue" :=
+    let: "newValue" := ref_to (slice.T byteT) "newValue" in
+    let: "expectedValue" := ref_to (slice.T byteT) "expectedValue" in
+    let: "key" := ref_to uint64T "key" in
+    let: "p" := ref_to ptrT "p" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := KVClerk__getSeqClerk (![ptrT] "p") in
     "ck" <-[ptrT] "$a0";;
@@ -1086,6 +1197,8 @@ Definition KVClerk__ConditionalPut: val :=
 (* FIXME: rename to AddShardServer *)
 Definition KVClerk__Add: val :=
   rec: "KVClerk__Add" "p" "host" :=
+    let: "host" := ref_to uint64T "host" in
+    let: "p" := ref_to ptrT "p" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := KVClerk__getSeqClerk (![ptrT] "p") in
     "ck" <-[ptrT] "$a0";;
@@ -1098,6 +1211,8 @@ Definition KVClerk__Add: val :=
    FIXME: benchmark *)
 Definition KVClerk__MGet: val :=
   rec: "KVClerk__MGet" "p" "keys" :=
+    let: "keys" := ref_to (slice.T uint64T) "keys" in
+    let: "p" := ref_to ptrT "p" in
     let: "vals" := ref_zero (slice.T (slice.T byteT)) in
     let: "$a0" := NewSlice (slice.T byteT) (slice.len (![slice.T uint64T] "keys")) in
     "vals" <-[slice.T (slice.T byteT)] "$a0";;
@@ -1110,6 +1225,8 @@ Definition KVClerk__MGet: val :=
 
 Definition MakeKVClerk: val :=
   rec: "MakeKVClerk" "coord" "cm" :=
+    let: "cm" := ref_to ptrT "cm" in
+    let: "coord" := ref_to uint64T "coord" in
     let: "p" := ref_zero ptrT in
     let: "$a0" := struct.alloc KVClerk (zero_val (struct.t KVClerk)) in
     "p" <-[ptrT] "$a0";;

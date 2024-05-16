@@ -15,6 +15,11 @@ Definition Server := struct.decl [
 
 Definition Server__rpcHandle: val :=
   rec: "Server__rpcHandle" "srv" "conn" "rpcid" "seqno" "data" :=
+    let: "data" := ref_to (slice.T byteT) "data" in
+    let: "seqno" := ref_to uint64T "seqno" in
+    let: "rpcid" := ref_to uint64T "rpcid" in
+    let: "conn" := ref_to grove_ffi.Connection "conn" in
+    let: "srv" := ref_to ptrT "srv" in
     let: "replyData" := ref_zero ptrT in
     let: "$a0" := ref (zero_val (slice.T byteT)) in
     "replyData" <-[ptrT] "$a0";;
@@ -36,12 +41,15 @@ Definition Server__rpcHandle: val :=
 
 Definition MakeServer: val :=
   rec: "MakeServer" "handlers" :=
+    let: "handlers" := ref_to (mapT ((slice.T byteT) -> ptrT -> unitT)%ht) "handlers" in
     return: (struct.new Server [
        "handlers" ::= ![mapT (arrowT unitT unitT)] "handlers"
      ]).
 
 Definition Server__readThread: val :=
   rec: "Server__readThread" "srv" "conn" :=
+    let: "conn" := ref_to grove_ffi.Connection "conn" in
+    let: "srv" := ref_to ptrT "srv" in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       let: "r" := ref_zero (struct.t grove_ffi.ReceiveRet) in
       let: "$a0" := grove__ffi.Receive (![grove_ffi.Connection] "conn") in
@@ -69,6 +77,8 @@ Definition Server__readThread: val :=
 
 Definition Server__Serve: val :=
   rec: "Server__Serve" "srv" "host" :=
+    let: "host" := ref_to uint64T "host" in
+    let: "srv" := ref_to ptrT "srv" in
     let: "listener" := ref_zero grove_ffi.Listener in
     let: "$a0" := grove__ffi.Listen (![uint64T] "host") in
     "listener" <-[grove_ffi.Listener] "$a0";;
@@ -102,6 +112,7 @@ Definition Client := struct.decl [
 
 Definition Client__replyThread: val :=
   rec: "Client__replyThread" "cl" :=
+    let: "cl" := ref_to ptrT "cl" in
     (for: (λ: <>, #true); (λ: <>, Skip) := λ: <>,
       let: "r" := ref_zero (struct.t grove_ffi.ReceiveRet) in
       let: "$a0" := grove__ffi.Receive (struct.loadF Client "conn" (![ptrT] "cl")) in
@@ -148,6 +159,7 @@ Definition Client__replyThread: val :=
 
 Definition TryMakeClient: val :=
   rec: "TryMakeClient" "host_name" :=
+    let: "host_name" := ref_to uint64T "host_name" in
     let: "host" := ref_zero uint64T in
     let: "$a0" := ![uint64T] "host_name" in
     "host" <-[uint64T] "$a0";;
@@ -172,6 +184,7 @@ Definition TryMakeClient: val :=
 
 Definition MakeClient: val :=
   rec: "MakeClient" "host_name" :=
+    let: "host_name" := ref_to uint64T "host_name" in
     let: "cl" := ref_zero ptrT in
     let: "err" := ref_zero uint64T in
     let: ("$a0", "$a1") := TryMakeClient (![uint64T] "host_name") in
@@ -179,7 +192,7 @@ Definition MakeClient: val :=
     "err" <-[uint64T] "$a0";;
     (if: (![uint64T] "err") ≠ #0
     then
-      log.Printf #(str"Unable to connect to %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)s(MISSING)") (grove__ffi.AddressToStr (![uint64T] "host_name"));;
+      log.Printf #(str"Unable to connect to %!!(MISSING)!(MISSING)!(MISSING)!(MISSING)!(MISSING)s(MISSING)") (grove__ffi.AddressToStr (![uint64T] "host_name"));;
       #()
     else #());;
     machine.Assume ((![uint64T] "err") = #0);;
@@ -195,6 +208,9 @@ Definition ErrDisconnect : expr := #2.
 
 Definition Client__CallStart: val :=
   rec: "Client__CallStart" "cl" "rpcid" "args" :=
+    let: "args" := ref_to (slice.T byteT) "args" in
+    let: "rpcid" := ref_to uint64T "rpcid" in
+    let: "cl" := ref_to ptrT "cl" in
     let: "reply_buf" := ref_zero ptrT in
     let: "$a0" := ref (zero_val (slice.T byteT)) in
     "reply_buf" <-[ptrT] "$a0";;
@@ -237,6 +253,10 @@ Definition Client__CallStart: val :=
 
 Definition Client__CallComplete: val :=
   rec: "Client__CallComplete" "cl" "cb" "reply" "timeout_ms" :=
+    let: "timeout_ms" := ref_to uint64T "timeout_ms" in
+    let: "reply" := ref_to ptrT "reply" in
+    let: "cb" := ref_to ptrT "cb" in
+    let: "cl" := ref_to ptrT "cl" in
     sync.Mutex__Lock (struct.loadF Client "mu" (![ptrT] "cl"));;
     (if: (![uint64T] (struct.loadF Callback "state" (![ptrT] "cb"))) = callbackStateWaiting
     then
@@ -262,6 +282,11 @@ Definition Client__CallComplete: val :=
 
 Definition Client__Call: val :=
   rec: "Client__Call" "cl" "rpcid" "args" "reply" "timeout_ms" :=
+    let: "timeout_ms" := ref_to uint64T "timeout_ms" in
+    let: "reply" := ref_to ptrT "reply" in
+    let: "args" := ref_to (slice.T byteT) "args" in
+    let: "rpcid" := ref_to uint64T "rpcid" in
+    let: "cl" := ref_to ptrT "cl" in
     let: "err" := ref_zero uint64T in
     let: "cb" := ref_zero ptrT in
     let: ("$a0", "$a1") := Client__CallStart (![ptrT] "cl") (![uint64T] "rpcid") (![slice.T byteT] "args") in

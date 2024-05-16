@@ -14,6 +14,9 @@ Definition Server := struct.decl [
 
 Definition Server__TryCommit: val :=
   rec: "Server__TryCommit" "s" "tid" "writes" :=
+    let: "writes" := ref_to (mapT stringT) "writes" in
+    let: "tid" := ref_to uint64T "tid" in
+    let: "s" := ref_to ptrT "s" in
     let: "err" := ref_to uint64T #0 in
     MapIter (![mapT stringT] "writes") (λ: "key" <>,
       (if: (![uint64T] "err") = #0
@@ -31,6 +34,7 @@ Definition Server__TryCommit: val :=
 
 Definition MakeServer: val :=
   rec: "MakeServer" "indexHost" :=
+    let: "indexHost" := ref_to ptrT "indexHost" in
     return: (struct.new Server [
        "indexCk" ::= index.MakeClerk (![ptrT] "indexHost")
      ]).
@@ -43,10 +47,14 @@ Definition Clerk := struct.decl [
 
 Definition Clerk__TryCommit: val :=
   rec: "Clerk__TryCommit" "ck" "tid" "writes" :=
+    let: "writes" := ref_to (mapT stringT) "writes" in
+    let: "tid" := ref_to uint64T "tid" in
+    let: "ck" := ref_to ptrT "ck" in
     return: (Server__TryCommit (struct.loadF Clerk "s" (![ptrT] "ck")) (![uint64T] "tid") (![mapT stringT] "writes")).
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "host" :=
+    let: "host" := ref_to ptrT "host" in
     return: (struct.new Clerk [
        "s" ::= ![ptrT] "host"
      ]).

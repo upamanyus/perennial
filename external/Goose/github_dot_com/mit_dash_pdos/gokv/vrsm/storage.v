@@ -30,6 +30,8 @@ Definition StateMachine := struct.decl [
 (* FIXME: better name; this isn't the same as "MakeDurable" *)
 Definition StateMachine__makeDurableWithSnap: val :=
   rec: "StateMachine__makeDurableWithSnap" "s" "snap" :=
+    let: "snap" := ref_to (slice.T byteT) "snap" in
+    let: "s" := ref_to ptrT "s" in
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #0 (((#8 + (slice.len (![slice.T byteT] "snap"))) + #8) + #8)) in
     let: "$a0" := marshal.WriteInt (![slice.T byteT] "enc") (slice.len (![slice.T byteT] "snap")) in
     "enc" <-[slice.T byteT] "$a0";;
@@ -54,6 +56,7 @@ Definition StateMachine__makeDurableWithSnap: val :=
    requires that the state machine is not sealed *)
 Definition StateMachine__truncateAndMakeDurable: val :=
   rec: "StateMachine__truncateAndMakeDurable" "s" :=
+    let: "s" := ref_to ptrT "s" in
     let: "snap" := ref_zero (slice.T byteT) in
     let: "$a0" := (struct.loadF InMemoryStateMachine "GetState" (struct.loadF StateMachine "smMem" (![ptrT] "s"))) #() in
     "snap" <-[slice.T byteT] "$a0";;
@@ -62,6 +65,8 @@ Definition StateMachine__truncateAndMakeDurable: val :=
 
 Definition StateMachine__apply: val :=
   rec: "StateMachine__apply" "s" "op" :=
+    let: "op" := ref_to (slice.T byteT) "op" in
+    let: "s" := ref_to ptrT "s" in
     let: "ret" := ref_zero (slice.T byteT) in
     let: "$a0" := (struct.loadF InMemoryStateMachine "ApplyVolatile" (struct.loadF StateMachine "smMem" (![ptrT] "s"))) (![slice.T byteT] "op") in
     "ret" <-[slice.T byteT] "$a0";;
@@ -89,11 +94,17 @@ Definition StateMachine__apply: val :=
 
 Definition StateMachine__applyReadonly: val :=
   rec: "StateMachine__applyReadonly" "s" "op" :=
+    let: "op" := ref_to (slice.T byteT) "op" in
+    let: "s" := ref_to ptrT "s" in
     return: ((struct.loadF InMemoryStateMachine "ApplyReadonly" (struct.loadF StateMachine "smMem" (![ptrT] "s"))) (![slice.T byteT] "op")).
 
 (* TODO: make the nextIndex and epoch argument order consistent with replica.StateMachine *)
 Definition StateMachine__setStateAndUnseal: val :=
   rec: "StateMachine__setStateAndUnseal" "s" "snap" "nextIndex" "epoch" :=
+    let: "epoch" := ref_to uint64T "epoch" in
+    let: "nextIndex" := ref_to uint64T "nextIndex" in
+    let: "snap" := ref_to (slice.T byteT) "snap" in
+    let: "s" := ref_to ptrT "s" in
     let: "$a0" := ![uint64T] "epoch" in
     struct.storeF StateMachine "epoch" (![ptrT] "s") "$a0";;
     let: "$a0" := ![uint64T] "nextIndex" in
@@ -106,6 +117,7 @@ Definition StateMachine__setStateAndUnseal: val :=
 
 Definition StateMachine__getStateAndSeal: val :=
   rec: "StateMachine__getStateAndSeal" "s" :=
+    let: "s" := ref_to ptrT "s" in
     (if: (~ (struct.loadF StateMachine "sealed" (![ptrT] "s")))
     then
       let: "$a0" := #true in
@@ -123,6 +135,8 @@ Definition StateMachine__getStateAndSeal: val :=
 
 Definition recoverStateMachine: val :=
   rec: "recoverStateMachine" "smMem" "fname" :=
+    let: "fname" := ref_to stringT "fname" in
+    let: "smMem" := ref_to ptrT "smMem" in
     let: "s" := ref_zero ptrT in
     let: "$a0" := struct.new StateMachine [
       "fname" ::= ![stringT] "fname";
@@ -199,6 +213,9 @@ Definition recoverStateMachine: val :=
    Maybe we should make those be a part of replica.StateMachine *)
 Definition MakePbServer: val :=
   rec: "MakePbServer" "smMem" "fname" "confHosts" :=
+    let: "confHosts" := ref_to (slice.T uint64T) "confHosts" in
+    let: "fname" := ref_to stringT "fname" in
+    let: "smMem" := ref_to ptrT "smMem" in
     let: "s" := ref_zero ptrT in
     let: "$a0" := recoverStateMachine (![ptrT] "smMem") (![stringT] "fname") in
     "s" <-[ptrT] "$a0";;

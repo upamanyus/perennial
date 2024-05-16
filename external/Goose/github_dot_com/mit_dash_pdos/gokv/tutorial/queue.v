@@ -16,6 +16,7 @@ Definition Queue := struct.decl [
 
 Definition NewQueue: val :=
   rec: "NewQueue" "queue_size" :=
+    let: "queue_size" := ref_to uint64T "queue_size" in
     let: "lock" := ref_zero ptrT in
     let: "$a0" := struct.alloc sync.Mutex (zero_val (struct.t sync.Mutex)) in
     "lock" <-[ptrT] "$a0";;
@@ -29,6 +30,8 @@ Definition NewQueue: val :=
 
 Definition Queue__Enqueue: val :=
   rec: "Queue__Enqueue" "q" "a" :=
+    let: "a" := ref_to uint64T "a" in
+    let: "q" := ref_to ptrT "q" in
     sync.Mutex__Lock (struct.loadF Queue "lock" (![ptrT] "q"));;
     let: "queue_size" := ref_to uint64T (slice.len (struct.loadF Queue "queue" (![ptrT] "q"))) in
     (for: (λ: <>, (struct.loadF Queue "count" (![ptrT] "q")) ≥ (![uint64T] "queue_size")); (λ: <>, Skip) := λ: <>,
@@ -37,6 +40,7 @@ Definition Queue__Enqueue: val :=
 
 Definition Queue__Dequeue: val :=
   rec: "Queue__Dequeue" "q" :=
+    let: "q" := ref_to ptrT "q" in
     sync.Mutex__Lock (struct.loadF Queue "lock" (![ptrT] "q"));;
     let: "queue_size" := ref_to uint64T (slice.len (struct.loadF Queue "queue" (![ptrT] "q"))) in
     (for: (λ: <>, (struct.loadF Queue "count" (![ptrT] "q")) = #0); (λ: <>, Skip) := λ: <>,
@@ -45,6 +49,7 @@ Definition Queue__Dequeue: val :=
 
 Definition Queue__Peek: val :=
   rec: "Queue__Peek" "q" :=
+    let: "q" := ref_to ptrT "q" in
     sync.Mutex__Lock (struct.loadF Queue "lock" (![ptrT] "q"));;
     (if: (struct.loadF Queue "count" (![ptrT] "q")) > #0
     then

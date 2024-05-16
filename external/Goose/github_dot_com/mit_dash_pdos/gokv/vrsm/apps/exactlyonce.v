@@ -36,6 +36,8 @@ Definition VersionedStateMachine := struct.decl [
 
 Definition eStateMachine__applyVolatile: val :=
   rec: "eStateMachine__applyVolatile" "s" "op" :=
+    let: "op" := ref_to (slice.T byteT) "op" in
+    let: "s" := ref_to ptrT "s" in
     let: "ret" := ref (zero_val (slice.T byteT)) in
     let: "$a0" := std.SumAssumeNoOverflow (struct.loadF eStateMachine "esmNextIndex" (![ptrT] "s")) #1 in
     struct.storeF eStateMachine "esmNextIndex" (![ptrT] "s") "$a0";;
@@ -103,6 +105,8 @@ Definition eStateMachine__applyVolatile: val :=
 
 Definition eStateMachine__applyReadonly: val :=
   rec: "eStateMachine__applyReadonly" "s" "op" :=
+    let: "op" := ref_to (slice.T byteT) "op" in
+    let: "s" := ref_to ptrT "s" in
     (if: (SliceGet byteT (![slice.T byteT] "op") #0) = OPTYPE_GETFRESHCID
     then
       Panic "Got GETFRESHCID as a read-only op";;
@@ -130,6 +134,7 @@ Definition eStateMachine__applyReadonly: val :=
 
 Definition eStateMachine__getState: val :=
   rec: "eStateMachine__getState" "s" :=
+    let: "s" := ref_to ptrT "s" in
     let: "appState" := ref_zero (slice.T byteT) in
     let: "$a0" := (struct.loadF VersionedStateMachine "GetState" (struct.loadF eStateMachine "sm" (![ptrT] "s"))) #() in
     "appState" <-[slice.T byteT] "$a0";;
@@ -146,6 +151,9 @@ Definition eStateMachine__getState: val :=
 
 Definition eStateMachine__setState: val :=
   rec: "eStateMachine__setState" "s" "state" "nextIndex" :=
+    let: "nextIndex" := ref_to uint64T "nextIndex" in
+    let: "state" := ref_to (slice.T byteT) "state" in
+    let: "s" := ref_to ptrT "s" in
     let: "enc" := ref_to (slice.T byteT) (![slice.T byteT] "state") in
     let: ("$a0", "$a1") := marshal.ReadInt (![slice.T byteT] "enc") in
     "enc" <-[slice.T byteT] "$a1";;
@@ -163,6 +171,7 @@ Definition eStateMachine__setState: val :=
 
 Definition MakeExactlyOnceStateMachine: val :=
   rec: "MakeExactlyOnceStateMachine" "sm" :=
+    let: "sm" := ref_to ptrT "sm" in
     let: "s" := ref_zero ptrT in
     let: "$a0" := struct.alloc eStateMachine (zero_val (struct.t eStateMachine)) in
     "s" <-[ptrT] "$a0";;
@@ -191,6 +200,7 @@ Definition Clerk := struct.decl [
 
 Definition MakeClerk: val :=
   rec: "MakeClerk" "confHosts" :=
+    let: "confHosts" := ref_to (slice.T uint64T) "confHosts" in
     let: "ck" := ref_zero ptrT in
     let: "$a0" := struct.alloc Clerk (zero_val (struct.t Clerk)) in
     "ck" <-[ptrT] "$a0";;
@@ -213,6 +223,8 @@ Definition MakeClerk: val :=
 
 Definition Clerk__ApplyExactlyOnce: val :=
   rec: "Clerk__ApplyExactlyOnce" "ck" "req" :=
+    let: "req" := ref_to (slice.T byteT) "req" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #1 #1) in
     let: "$a0" := OPTYPE_RW in
     SliceSet byteT (![slice.T byteT] "enc") #0 "$a0";;
@@ -228,6 +240,8 @@ Definition Clerk__ApplyExactlyOnce: val :=
 
 Definition Clerk__ApplyReadonly: val :=
   rec: "Clerk__ApplyReadonly" "ck" "req" :=
+    let: "req" := ref_to (slice.T byteT) "req" in
+    let: "ck" := ref_to ptrT "ck" in
     let: "enc" := ref_to (slice.T byteT) (NewSliceWithCap byteT #1 #1) in
     let: "$a0" := OPTYPE_RO in
     SliceSet byteT (![slice.T byteT] "enc") #0 "$a0";;

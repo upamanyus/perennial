@@ -46,6 +46,7 @@ Definition mk_dconfig_paxosHosts: val :=
 
 Definition lconfig_main: val :=
   rec: "lconfig_main" "fname" :=
+    let: "fname" := ref_to stringT "fname" in
     let: "servers" := ref_to (slice.T uint64T) (NewSlice uint64T #0) in
     let: "$a0" := SliceAppend uint64T (![slice.T uint64T] "servers") lr1 in
     "servers" <-[slice.T uint64T] "$a0";;
@@ -56,6 +57,7 @@ Definition lconfig_main: val :=
 
 Definition dconfig_main: val :=
   rec: "dconfig_main" "fname" :=
+    let: "fname" := ref_to stringT "fname" in
     let: "servers" := ref_to (slice.T uint64T) (NewSlice uint64T #0) in
     let: "$a0" := SliceAppend uint64T (![slice.T uint64T] "servers") dr1 in
     "servers" <-[slice.T uint64T] "$a0";;
@@ -66,6 +68,9 @@ Definition dconfig_main: val :=
 
 Definition kv_replica_main: val :=
   rec: "kv_replica_main" "fname" "me" "configHost" :=
+    let: "configHost" := ref_to uint64T "configHost" in
+    let: "me" := ref_to uint64T "me" in
+    let: "fname" := ref_to stringT "fname" in
     let: "x" := ref_zero ptrT in
     let: "$a0" := ref (zero_val uint64T) in
     "x" <-[ptrT] "$a0";;

@@ -16,6 +16,7 @@ Definition CtrServer := struct.decl [
 (* requires lock to be held *)
 Definition CtrServer__MakeDurable: val :=
   rec: "CtrServer__MakeDurable" "s" :=
+    let: "s" := ref_to ptrT "s" in
     let: "e" := ref_zero (struct.t marshal.Enc) in
     let: "$a0" := marshal.NewEnc #8 in
     "e" <-[struct.t marshal.Enc] "$a0";;
@@ -25,6 +26,7 @@ Definition CtrServer__MakeDurable: val :=
 
 Definition CtrServer__FetchAndIncrement: val :=
   rec: "CtrServer__FetchAndIncrement" "s" :=
+    let: "s" := ref_to ptrT "s" in
     sync.Mutex__Lock (struct.loadF CtrServer "mu" (![ptrT] "s"));;
     let: "ret" := ref_zero uint64T in
     let: "$a0" := struct.loadF CtrServer "val" (![ptrT] "s") in

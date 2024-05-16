@@ -13,6 +13,8 @@ Definition Tracker := struct.decl [
 
 Definition Tracker__lookupLocked: val :=
   rec: "Tracker__lookupLocked" "t" "k" :=
+    let: "k" := ref_to uint64T "k" in
+    let: "t" := ref_to ptrT "t" in
     let: "ok" := ref_zero boolT in
     let: "v" := ref_zero uint64T in
     let: ("$a0", "$a1") := Fst (MapGet (struct.loadF Tracker "m" (![ptrT] "t")) (![uint64T] "k")) in
@@ -22,6 +24,9 @@ Definition Tracker__lookupLocked: val :=
 
 Definition Tracker__registerLocked: val :=
   rec: "Tracker__registerLocked" "t" "k" "v" :=
+    let: "v" := ref_to uint64T "v" in
+    let: "k" := ref_to uint64T "k" in
+    let: "t" := ref_to ptrT "t" in
     let: "ok" := ref_zero boolT in
     let: <> := ref_zero uint64T in
     let: ("$a0", "$a1") := Tracker__lookupLocked (![ptrT] "t") (![uint64T] "k") in
@@ -36,6 +41,8 @@ Definition Tracker__registerLocked: val :=
 
 Definition Tracker__Lookup: val :=
   rec: "Tracker__Lookup" "t" "k" :=
+    let: "k" := ref_to uint64T "k" in
+    let: "t" := ref_to ptrT "t" in
     sync.Mutex__Lock (struct.loadF Tracker "mu" (![ptrT] "t"));;
     let: "ok" := ref_zero boolT in
     let: "v" := ref_zero uint64T in
@@ -47,6 +54,9 @@ Definition Tracker__Lookup: val :=
 
 Definition Tracker__Register: val :=
   rec: "Tracker__Register" "t" "k" "v" :=
+    let: "v" := ref_to uint64T "v" in
+    let: "k" := ref_to uint64T "k" in
+    let: "t" := ref_to ptrT "t" in
     sync.Mutex__Lock (struct.loadF Tracker "mu" (![ptrT] "t"));;
     let: "r" := ref_zero boolT in
     let: "$a0" := Tracker__registerLocked (![ptrT] "t") (![uint64T] "k") (![uint64T] "v") in

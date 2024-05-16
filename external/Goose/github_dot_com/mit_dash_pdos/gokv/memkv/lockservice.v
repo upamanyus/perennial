@@ -11,16 +11,22 @@ Definition LockClerk := struct.decl [
 
 Definition LockClerk__Lock: val :=
   rec: "LockClerk__Lock" "ck" "key" :=
+    let: "key" := ref_to uint64T "key" in
+    let: "ck" := ref_to ptrT "ck" in
     (for: (λ: <>, (~ (memkv.KVClerk__ConditionalPut (struct.loadF LockClerk "kv" (![ptrT] "ck")) (![uint64T] "key") (NewSlice byteT #0) (NewSlice byteT #1)))); (λ: <>, Skip) := λ: <>,
       #()).
 
 Definition LockClerk__Unlock: val :=
   rec: "LockClerk__Unlock" "ck" "key" :=
+    let: "key" := ref_to uint64T "key" in
+    let: "ck" := ref_to ptrT "ck" in
     memkv.KVClerk__Put (struct.loadF LockClerk "kv" (![ptrT] "ck")) (![uint64T] "key") (NewSlice byteT #0);;
     #().
 
 Definition MakeLockClerk: val :=
   rec: "MakeLockClerk" "lockhost" "cm" :=
+    let: "cm" := ref_to ptrT "cm" in
+    let: "lockhost" := ref_to uint64T "lockhost" in
     return: (struct.new LockClerk [
        "kv" ::= memkv.MakeKVClerk (![uint64T] "lockhost") (![ptrT] "cm")
      ]).
