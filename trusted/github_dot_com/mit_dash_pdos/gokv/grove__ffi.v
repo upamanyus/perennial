@@ -9,4 +9,5 @@ Definition Send := grove_ffi.Send.
 Definition Receive := grove_ffi.Receive.
 Definition FileWrite := grove_ffi.FileWrite.
 Definition FileRead := grove_ffi.FileRead.
+Definition FileAppend := grove_ffi.FileAppend.
 Definition AddressToStr : val := (λ: "address" , #(str "PLACEHOLDER STRING")).
