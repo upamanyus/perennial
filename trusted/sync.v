@@ -24,7 +24,7 @@ Definition Mutex__Unlock : val :=
 .
 
 Definition NewCond : val := λ: "m", ref "m".
-Definition Cond__Wait : val := λ: "c", exception_do (do: Mutex__Unlock !"c" ;;; do: Mutex__Unlock !"c").
+Definition Cond__Wait : val := λ: "c", exception_do (do: Mutex__Unlock !"c" ;;; do: Mutex__Lock !"c").
 Definition Cond__Broadcast : val := λ: "c", #().
 Definition Cond__Signal: val := λ: "c", #().
 Axiom WaitGroup__Add : val.

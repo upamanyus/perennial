@@ -19,8 +19,6 @@ Context `{ffi_sem: ffi_semantics}.
 Context `{!ffi_interp ffi}.
 Context {ext_tys: ext_types ext}.
 
-Local Coercion Var' (s:string): expr := Var s.
-
 Section proof.
   Context `{!heapGS Σ} (N : namespace).
 
@@ -148,8 +146,7 @@ Section proof.
   Definition is_Cond (c : loc) (m : loc) : iProp Σ :=
     readonly (c ↦ #m).
 
-  Global Instance is_cond_persistent c m :
-    Persistent (is_Cond c m) := _.
+  Global Instance is_cond_persistent c m : Persistent (is_Cond c m) := _.
 
   Theorem wp_NewCond (m : loc) :
     {{{ True }}}
@@ -185,19 +182,10 @@ Section proof.
     iApply ("HΦ" with "[//]").
   Qed.
 
-  (* FIXME: notation *)
-  Notation "e1 ;;;; e2" := (exception_seq e1 (λ: <>, e2)%V) (at level 90).
-  Definition x := (Skip ;;;; Skip)%E.
-  Print x. (* why doesn't printing use the same notation that was used in parsing x? *)
-  Notation "e1 ~~~ e2" := (App (App (Val exception_seq) e1%E) (Val (RecV BAnon BAnon e2))) (at level 90).
-  Print x.
-  (* confirm that the two ways of invoking exception_seq are actually the same *)
-  Definition f e1 e2 := (exception_seq e1%E (λ: <>, e2%E)%V)%E.
-  Definition g e1 e2 := (App (App (Val exception_seq) e1%E) (Val (RecV BAnon BAnon e2))).
-  Set Printing All. Print f. Print g. Unset Printing All.
+  Instance pure_exception_seq (v:val) e : PureExec True 1 (do: v ;;; e) (e).
+  Admitted.
 
-
-  Instance pure_exception_seq (v:val) e : PureExec True 2 ((do: v) ;;; e) (e).
+  Instance pure_exception_do (v:val) : PureExec True 1 (exception_do (do: v))%E (#()).
   Admitted.
 
   Theorem wp_Cond__Wait c m R :
@@ -212,31 +200,18 @@ Section proof.
     iMod (readonly_load with "Hcond") as (q) "Hc".
     wp_untyped_load.
     wp_apply (wp_Mutex__Unlock with "[$Hlock $Hlocked $HR]").
-    wp_bind (exception_seq _).
-    wp_bind (Pair _ _).
-    wp_lam. wp_pures.
-    Search PureExec.
-    wp_pure1.
-    wp_pures.
+    wp_bind (exception_seq _ _).
+    eapply (tac_wp_pure _ _ _ _ []); [apply _ | done | apply _ | simpl].
     wp_untyped_load.
-    wp_apply (acquire_spec with "[$Hlock]").
+    wp_apply (wp_Mutex__Lock with "[$Hlock]").
     iIntros "(Hlocked&HR)".
-    iApply "HΦ".
+    (* FIXME: bind *)
+    wp_lam. wp_pures. wp_lam. wp_pures.
+    iApply "HΦ". iModIntro.
     iFrame.
-  Qed.
-
-  Theorem wp_condWaitTimeout c (t : u64) lk R :
-    {{{ is_cond c lk ∗ is_lock lk R ∗ locked lk ∗ R }}}
-      lock.condWaitTimeout #c #t
-    {{{ RET #(); locked lk ∗ R }}}.
-  Proof.
-    iIntros (Φ) "Hpre HΦ".
-    wp_lam. wp_pures.
-    wp_apply (wp_condWait with "Hpre").
-    done.
   Qed.
 
 End proof.
 End goose_lang.
 
-(* Typeclasses Opaque is_lock is_cond locked. *)
+Typeclasses Opaque is_Mutex own_Mutex is_Cond.

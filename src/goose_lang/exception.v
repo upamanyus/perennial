@@ -16,7 +16,7 @@ Definition do_execute : val :=
 .
 
 Definition exception_seq : val :=
-  λ: "s1" "s2",
+  λ: "s2" "s1",
     if: (Fst "s1") = #(str "return") then
       do_return (Snd "s1")
     else
@@ -29,11 +29,7 @@ Definition exception_do : val :=
 
 End defn.
 
-Global Notation "e1 ;;; e2" := (exception_seq e1%E (Lam BAnon e2%E)%E)
-  (at level 90, e2 at level 200,
-      format "'[' e1  ;;;  '//' e2 ']'") : expr_scope.
-
-Global Notation "e1 ;;; e2" := (exception_seq e1%E (Lam BAnon e2%E)%V)
+Global Notation "e1 ;;; e2" := (exception_seq (Lam BAnon e2%E)%E e1%E)
   (at level 90, e2 at level 200,
       format "'[' e1  ;;;  '//' e2 ']'") : expr_scope.
 
