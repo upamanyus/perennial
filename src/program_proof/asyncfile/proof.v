@@ -1,7 +1,7 @@
 From Perennial.program_proof Require Import grove_prelude.
 From Goose.github_dot_com.mit_dash_pdos.gokv Require Import asyncfile.
 From Perennial.algebra Require Import map.
-From Perennial.program_proof Require Import std_proof.
+From Perennial.program_proof Require Import std_proof sync.
 From Perennial.goose_lang Require Import crash_borrow.
 
 Record af_names := mk_af_names {
@@ -139,9 +139,9 @@ Definition own_AsyncFile_internal f N γ P mu : iProp Σ :=
 
 
 Definition is_AsyncFile (N:namespace) (f:loc) γ P : iProp Σ :=
-  ∃ mu,
-  "#Hmu" ∷ readonly (f ↦[AsyncFile :: "mu"] mu) ∗
-  "#HmuInv" ∷ is_Mutex N mu (own_AsyncFile_internal f N γ P mu)
+  ∃ (mu : loc),
+  "#Hmu" ∷ readonly (f ↦[AsyncFile :: "mu"] #mu) ∗
+  "#HmuInv" ∷ is_Mutex mu (own_AsyncFile_internal f N γ P mu)
 .
 
 Definition own_AsyncFile (N:namespace) (f:loc) γ (P: list u8 → iProp Σ) (data:list u8) : iProp Σ :=
@@ -205,19 +205,26 @@ Proof.
   wp_pures.
   iNamed "H".
   iNamed "His".
+  wp_apply wp_ref_to; first val_ty.
+  iIntros (i_ptr) "Hi".
+  wp_apply wp_ref_to; first val_ty.
+  iIntros (f_ptr) "Hf".
+  wp_load.
   wp_loadField.
-  wp_apply (acquire_spec with "[$]").
+  wp_apply (wp_Mutex__Lock with "[$]").
   iIntros "[Hlocked Hown]".
   wp_pures.
 
   wp_forBreak_cond.
   iNamed "Hown".
+  wp_load.
   wp_loadField.
+  wp_load.
   wp_pures.
   wp_if_destruct.
   { (* case: wait *)
-    wp_pures. wp_loadField.
-    wp_apply (wp_condWait with "[-Htok HΦ]").
+    wp_pures. wp_load. wp_loadField.
+    wp_apply (wp_Cond__Wait with "[-Htok HΦ]").
     {
       iFrame "HdurableIndexCond_is HmuInv Hlocked".
       repeat iExists _; iFrame "∗#%".
@@ -225,6 +232,7 @@ Proof.
     iIntros "[Hlocked Hown]".
     wp_pures.
     iLeft.
+    (* FIXME: control flow *)
     iSplitR; first done.
     iModIntro. iFrame.
   }
