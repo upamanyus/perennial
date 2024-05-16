@@ -1,4 +1,4 @@
-From Perennial.goose_lang Require Import notation typing.
+From Perennial.goose_lang Require Import notation typing exception.
 From Perennial.goose_lang Require Import proofmode wpc_proofmode.
 From Perennial.goose_lang.lib Require Export typed_mem loop.impl.
 
@@ -7,6 +7,92 @@ Set Default Proof Using "Type".
 Section goose_lang.
 Context `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!heapGS Σ}.
 Context {ext_ty: ext_types ext}.
+
+Theorem wp_forBreak_cond P stk E (cond body: val) Φ :
+  P -∗
+  □ (P -∗
+     WP cond #() @ stk ; E {{ v, ⌜ v = #true ⌝ ∗
+                                 WP body #() @ stk ; E {{ bv,
+                                                            if decide (bv = continue_val) then P
+                                                            else if decide (bv = execute_val) then P
+                                                            else if decide (bv = break_val) then
+                                                                   WP do: #() @ stk ; E {{ Φ }}
+                                                            else WP (Val bv) @ stk ; E {{ Φ }} }} ∨
+                                 ⌜ v = #false ⌝ ∗ Φ #() }}) -∗
+  WP (for: cond; (λ: <>, Skip)%V := body) @ stk ; E {{ Φ }}
+.
+Proof.
+  iIntros "HP #Hloop".
+  wp_rec.
+  wp_let. wp_let.
+  wp_pure (Rec _ _ _).
+  match goal with
+  | |- context[RecV (BNamed "loop") _ ?body] => set (loop:=body)
+  end.
+  iLöb as "IH".
+  wp_pures.
+  (* generalize loop. clear loop. intros loop. *)
+  iDestruct ("Hloop" with "HP") as "Hloop1".
+  wp_bind (cond #()).
+  wp_apply (wp_wand with "Hloop1").
+  iIntros (c) "Hbody".
+  iDestruct "Hbody" as "[[% Hbody]|HΦ]".
+  - subst. wp_pures.
+    wp_apply (wp_wand with "Hbody").
+    iIntros (bc) "HP". (*[[% HP] | [[% HP] | [[% HΦ] | HΦ]]]". *)
+    destruct decide.
+    { (* body terminates with "continue" *)
+      subst. wp_pures. (* FIXME: don't unfold [do:] here *)
+      wp_lam; wp_pures; wp_lam; wp_pures.
+      wp_lam; wp_pures.
+      wp_lam. do 6 wp_pure1.
+      wp_bind (App (RecV "loop" _ _) _).
+      iSpecialize ("IH" with "HP").
+      iApply (wp_wand with "IH").
+      iIntros (?) "HΦ".
+      wp_lam; wp_pures; wp_lam; wp_pures.
+      done.
+    }
+    destruct decide.
+    { (* body terminates with "execute" *)
+      subst. wp_pures. (* FIXME: don't unfold [do:] here *)
+      wp_lam; wp_pures; wp_lam; wp_pures.
+      wp_lam; wp_pures.
+      wp_lam. do 6 wp_pure1.
+      wp_bind (App (RecV "loop" _ _) _).
+      iSpecialize ("IH" with "HP").
+      iApply (wp_wand with "IH").
+      iIntros (?) "HΦ".
+      wp_lam; wp_pures; wp_lam; wp_pures.
+      done.
+    }
+    destruct decide.
+    { (* body terminates with "break" *)
+      subst. wp_pures.
+      wp_apply (wp_wand with "HP").
+      iIntros (?) "HΦ".
+      (* FIXME: don't unfold [return:] here *)
+      wp_lam; wp_pures; wp_lam; wp_pures.
+      done.
+    }
+    { (* body terminates with other error code *)
+      wp_pures.
+      (* FIXME: Fst might not even work. *)
+    }
+
+    iDestruc
+    iIntros "!#" (Φ') "Hinv HΦ'".
+    iDestruct "Hinv" as "[[_ HP]|[% _]]"; last done.
+    iSpecialize ("Hloop" with "HP").
+    iApply (wp_wand with "[HΦ' Hloop]").
+    { iApply wp_frame_step_l'. iFrame. }
+    iIntros (v) "[HP [[-> Hpost]|[-> Hpost]]]".
+    + iApply "HP". iLeft. eauto.
+    + iApply "HP". iRight. eauto.
+  - iLeft. eauto.
+  - iNext. iIntros "[[% _]|[_ HΦ]]"; first done.
+    eauto.
+Qed.
 
 Theorem wp_forBreak_cond (I: bool -> iProp Σ) stk E (cond body: val) :
   {{{ I true }}}
@@ -19,7 +105,7 @@ Theorem wp_forBreak_cond (I: bool -> iProp Σ) stk E (cond body: val) :
 Proof.
   iIntros "#Hbody".
   iIntros (Φ) "!> I HΦ".
-  rewrite /For.
+  rewrite /do_for.
   wp_lam.
   wp_let.
   wp_let.

@@ -7,20 +7,22 @@ Context `{!ffi_syntax}.
 Local Coercion Var' s: expr := Var s.
 
 (* "Exception" monad *)
-Definition do_return : val :=
-  λ: "v", (#(str "return"), Var "v")
-.
-
 Definition do_execute : val :=
-  λ: "v", (#(str "noreturn"), Var "v")
+  λ: "v", (#(str "execute"), Var "v")
 .
 
+(* Handle "execute" computations by dropping the final value and running the
+   next sequential computation. *)
 Definition exception_seq : val :=
   λ: "s2" "s1",
-    if: (Fst "s1") = #(str "return") then
-      do_return (Snd "s1")
-    else
+    if: (Fst "s1") = #(str "execute") then
       "s2" #()
+    else
+      "s1"
+.
+
+Definition do_return : val :=
+  λ: "v", (#(str "return"), Var "v")
 .
 
 Definition exception_do : val :=
