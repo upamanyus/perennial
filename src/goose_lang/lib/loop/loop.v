@@ -8,19 +8,18 @@ Section goose_lang.
 Context `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!heapGS Σ}.
 Context {ext_ty: ext_types ext}.
 
-Theorem wp_forBreak_cond P stk E (cond body: val) Φ :
+Theorem wp_for P stk E (cond body post: val) Φ :
   P -∗
   □ (P -∗
      WP cond #() @ stk ; E {{ v, ⌜ v = #true ⌝ ∗
                                  WP body #() @ stk ; E {{ bv,
-                                              ⌜ bv = continue_val ⌝ ∗ P ∨
-                                              ⌜ bv = execute_val ⌝ ∗ P ∨
+                                              ⌜ bv = continue_val ⌝ ∗ WP post #() @ stk; E {{ _, P }} ∨
+                                              ⌜ bv = execute_val ⌝ ∗ WP post #() @ stk; E {{ _, P }} ∨
                                               ⌜ bv = break_val ⌝ ∗ WP do: #() @ stk ; E {{ Φ }} ∨
                                               ∃ v, ⌜ bv = return_val v ⌝ ∗ Φ bv
                                                        }} ∨
                                  ⌜ v = #false ⌝ ∗ Φ #() }}) -∗
-  WP (for: cond; (λ: <>, Skip)%V := body) @ stk ; E {{ Φ }}
-.
+  WP (for: cond; post := body) @ stk ; E {{ Φ }}.
 Proof.
   iIntros "HP #Hloop".
   wp_rec.
@@ -31,7 +30,6 @@ Proof.
   end.
   iLöb as "IH".
   wp_pures.
-  (* generalize loop. clear loop. intros loop. *)
   iDestruct ("Hloop" with "HP") as "Hloop1".
   wp_bind (cond #()).
   wp_apply (wp_wand with "Hloop1").
@@ -44,6 +42,8 @@ Proof.
     { (* body terminates with "continue" *)
       subst. wp_pures. (* FIXME: don't unfold [do:] here *)
       wp_lam; wp_pures; wp_lam; wp_pures.
+      wp_apply (wp_wand with "HP").
+      iIntros (?) "HP".
       wp_lam; wp_pures.
       wp_lam. do 6 wp_pure1.
       wp_bind (App (RecV "loop" _ _) _).
@@ -57,6 +57,8 @@ Proof.
     { (* body terminates with "execute" *)
       subst. wp_pures. (* FIXME: don't unfold [do:] here *)
       wp_lam; wp_pures; wp_lam; wp_pures.
+      wp_apply (wp_wand with "HP").
+      iIntros (?) "HP".
       wp_lam; wp_pures.
       wp_lam. do 6 wp_pure1.
       wp_bind (App (RecV "loop" _ _) _).
@@ -91,98 +93,9 @@ Proof.
     done.
 Qed.
 
-Theorem wp_forBreak_cond (I: bool -> iProp Σ) stk E (cond body: val) :
-  {{{ I true }}}
-    if: cond #() then body #() else #false @ stk; E
-  {{{ r, RET #r; I r }}} -∗
-  {{{ I true }}}
-    (for: cond; (λ: <>, Skip)%V :=
-       body) @ stk; E
-  {{{ RET #(); I false }}}.
-Proof.
-  iIntros "#Hbody".
-  iIntros (Φ) "!> I HΦ".
-  rewrite /do_for.
-  wp_lam.
-  wp_let.
-  wp_let.
-  wp_pure (Rec _ _ _).
-  match goal with
-  | |- context[RecV (BNamed "loop") _ ?body] => set (loop:=body)
-  end.
-  iLöb as "IH".
-  wp_pures.
-  iDestruct ("Hbody" with "I") as "Hbody1".
-  wp_apply "Hbody1".
-  iIntros (r) "Hr".
-  destruct r.
-  - iDestruct ("IH" with "Hr HΦ") as "IH1".
-    wp_let.
-    wp_if.
-    wp_lam.
-    wp_lam.
-    wp_pure (Rec _ _ _).
-    wp_lam.
-    iApply "IH1".
-  - wp_pures.
-    iApply "HΦ".
-    iApply "Hr".
-Qed.
-
-Theorem wp_forBreak (I: bool -> iProp Σ) stk E (body: val) :
-  {{{ I true }}}
-    body #() @ stk; E
-  {{{ r, RET #r; I r }}} -∗
-  {{{ I true }}}
-    (for: (λ: <>, #true)%V ; (λ: <>, Skip)%V :=
-       body) @ stk; E
-  {{{ RET #(); I false }}}.
-Proof.
-  iIntros "#Hbody".
-  iIntros (Φ) "!> I HΦ".
-  wp_apply (wp_forBreak_cond I with "[] I HΦ").
-  iIntros "!>" (Φ') "I HΦ".
-  wp_pures.
-  wp_apply ("Hbody" with "[$]").
-  iFrame.
-Qed.
-
-
-Theorem wp_forBreak_cond' (P: iProp Σ) stk E (cond body: val) (Φ : val → iProp Σ) :
-  P -∗
-  □ (P -∗
-      WP if: cond #() then body #() else #false @ stk; E
-      {{ v, ⌜v = #true⌝ ∗ P ∨ ⌜v = #false⌝ ∗ Φ #() }}) -∗
-  WP (for: cond; (λ: <>, Skip)%V := body) @ stk; E {{ Φ }}.
-Proof.
-  iIntros "HP #Hloop".
-  iApply (wp_forBreak_cond (λ b, ⌜b = true⌝ ∗ P ∨ ⌜b = false⌝ ∗ Φ #()) with "[] [-]")%I.
-  - iIntros "!#" (Φ') "Hinv HΦ'".
-    iDestruct "Hinv" as "[[_ HP]|[% _]]"; last done.
-    iSpecialize ("Hloop" with "HP").
-    iApply (wp_wand with "[HΦ' Hloop]").
-    { iApply wp_frame_step_l'. iFrame. }
-    iIntros (v) "[HP [[-> Hpost]|[-> Hpost]]]".
-    + iApply "HP". iLeft. eauto.
-    + iApply "HP". iRight. eauto.
-  - iLeft. eauto.
-  - iNext. iIntros "[[% _]|[_ HΦ]]"; first done.
-    eauto.
-Qed.
-
-Theorem wp_forBreak' (P: iProp Σ) stk E (body: val) (Φ : val → iProp Σ) :
-  P -∗
-  □ (P -∗
-      WP body #() @ stk; E
-      {{ v, ⌜v = #true⌝ ∗ P ∨ ⌜v = #false⌝ ∗ Φ #() }}) -∗
-  WP (for: (λ: <>, #true)%V; (λ: <>, Skip)%V := body) @ stk; E {{ Φ }}.
-Proof.
-  iIntros "HP #Hloop". iApply (wp_forBreak_cond' with "HP").
-  iIntros "!# HP". wp_pures. iApply "Hloop". done.
-Qed.
-
 Local Opaque load_ty store_ty.
 
+(* FIXME: change requirement on return of [body] *)
 Theorem wp_forUpto (I: u64 -> iProp Σ) stk E (start max:u64) (l:loc) (body: val) :
   int.Z start <= int.Z max ->
   (∀ (i:u64),
@@ -196,39 +109,15 @@ Theorem wp_forUpto (I: u64 -> iProp Σ) stk E (start max:u64) (l:loc) (body: val
 Proof.
   iIntros (Hstart_max) "#Hbody".
   iIntros (Φ) "!> (H0 & Hl) HΦ".
-  rewrite /For /Continue.
-  wp_lam.
-  wp_let.
-  wp_let.
-  wp_pure (Rec _ _ _).
-  match goal with
-  | |- context[RecV (BNamed "loop") _ ?body] => set (loop:=body)
-  end.
-  remember start as x.
-  assert (int.Z start <= int.Z x <= int.Z max) as Hbounds by (subst; word).
-  clear Heqx Hstart_max.
-  iDestruct "H0" as "HIx".
-  iLöb as "IH" forall (x Hbounds).
-  wp_pures.
+  iAssert (∃ i, "HI" ∷ I i ∗
+                "Hl" ∷ l ↦[uint64T] #i ∗
+                "%Hineq" ∷ ⌜ int.Z i <= int.Z max ⌝)%I with "[H0 Hl]" as "HH".
+  { iExists _; iFrame. done. }
+  wp_apply (wp_for with "[-]"); [ by iNamedAccu | iIntros "!# __CTX"; iNamed "__CTX" ].
+  iNamed "HH".
   wp_load.
   wp_pures.
-  wp_bind (If _ _ _).
-  wp_if_destruct.
-  - wp_apply ("Hbody" with "[$HIx $Hl]").
-    { iPureIntro; lia. }
-    iIntros "[HIx Hl]".
-    wp_pures.
-    wp_load.
-    wp_pures.
-    wp_store.
-    iApply ("IH" with "[] HIx Hl").
-    { iPureIntro; word. }
-    iFrame.
-  - wp_pures.
-    assert (int.Z x = int.Z max) by word.
-    apply word.unsigned_inj in H; subst.
-    iApply ("HΦ" with "[$]").
-Qed.
+Admitted.
 
 (* Example specification for the usual for i := 0; i < max; i++ loop in Go.
 
