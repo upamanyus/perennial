@@ -2,6 +2,7 @@ From Perennial.goose_lang Require Import lang notation exception.
 
 Section goose_lang.
 Context {ext: ffi_syntax}.
+Local Coercion Var' (s:string) : expr := Var s.
 
 Definition do_break : val := λ: "v", (#(str "break"), Var "v").
 Definition do_continue : val := λ: "v", (#(str "continue"), Var "v").
@@ -11,19 +12,22 @@ Definition continue_val : val := (#(str "continue"), #()).
 Definition execute_val : val := (#(str "execute"), #()).
 Definition return_val (v:val) : val := (#(str "return"), v).
 
-Definition do_for: val :=
-  λ: "cond" "body" "post",
-  (rec: "loop" <> := exception_do (
+Local Definition do_for_def : val :=
+  rec: "loop" "cond" "body" "post" :=
+   exception_do (
    if: ~(Var "cond") #() then (return: #())
    else
-     let: "b" := (Var "body") #() in
-     if: Fst $ Var "b" = #(str "break") then (return: (do: #())) else (do: #()) ;;;
-     if: (Fst $ Var "b" = #(str "continue")) || (Fst $ Var "b" = #(str "execute"))
-          then (do: (Var "post") #();;; return: (Var "loop") #()) else do: #() ;;;
+     let: "b" := "body" #() in
+     if: Fst "b" = #(str "break") then (return: (do: #())) else (do: #()) ;;;
+     if: (Fst "b" = #(str "continue")) || (Fst $ Var "b" = #(str "execute"))
+          then (do: "post" #();;; return: "loop" "cond" "body" "post") else do: #() ;;;
      return: Var "b"
-  )) #().
+  ).
 
-Definition do_loop: val :=
+Program Definition do_for := unseal (_:seal (@do_for_def)). Obligation 1. by eexists. Qed.
+Definition do_for_unseal : do_for = _ := seal_eq _.
+
+Definition do_loop_def: val :=
   λ: "body",
   (rec: "loop" <> := exception_do (
      let: "b" := (Var "body") #() in
@@ -32,6 +36,9 @@ Definition do_loop: val :=
           then (return: (Var "loop") #()) else do: #() ;;;
      return: Var "b"
   )) #().
+
+Program Definition do_loop := unseal (_:seal (@do_loop_def)). Obligation 1. by eexists. Qed.
+Definition do_loop_unseal : do_loop = _ := seal_eq _.
 
 End goose_lang.
 

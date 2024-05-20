@@ -6,29 +6,65 @@ Set Default Proof Using "Type".
 
 Section goose_lang.
 Context `{ffi_sem: ffi_semantics} `{!ffi_interp ffi} `{!heapGS Σ}.
-Context {ext_ty: ext_types ext}.
 
-Theorem wp_for P stk E (cond body post: val) Φ :
+Definition is_return_val bv : Prop :=
+  match bv with
+  | PairV #(str "return") _ => True
+  | _ => False
+  end
+.
+
+Definition for_postcondition stk E (post : val) P Φ bv : iProp Σ :=
+            ⌜ bv = continue_val ⌝ ∗ WP post #() @ stk; E {{ _, P }} ∨
+            ⌜ bv = execute_val ⌝ ∗ WP post #() @ stk; E {{ _, P }} ∨
+            ⌜ bv = break_val ⌝ ∗ WP do: #() @ stk ; E {{ Φ }} ∨
+            ∃ v, ⌜ bv = return_val v ⌝ ∗ Φ bv
+.
+
+Axiom some_n : nat.
+Instance pure_do_execute_v (e : expr) (v : val) : PureExec True some_n (do: v ;;; e) (e).
+Admitted.
+
+Instance pure_do_return_v (e : expr) (v : val) : PureExec True some_n (return: v ;;; e) (return: v).
+Admitted.
+
+Instance pure_exception_do_return_v (v : val) : PureExec True some_n (exception_do (return: v)%E) (v).
+Admitted.
+
+Ltac wp_exc_pure_filter e' :=
+  (* For Beta-redices, we do *syntactic* matching only, to avoid unfolding
+     definitions. This matches the treatment for [pure_beta] via [AsRecV]. *)
+  first [ lazymatch e' with (App (Val (RecV _ _ _)) (Val _)) => idtac end
+        | eunify e' (do: (Val _) ;;; _)%E
+        | eunify e' (return: (Val _) ;;; _)%E
+        | eunify e' (App exception_do (return: (Val _)))%E
+        | eunify e' (rec: _ _ := _)%E
+        | eunify e' (InjL (Val _))
+        | eunify e' (InjR (Val _))
+        | eunify e' (Val _, Val _)%E
+        | eunify e' (Fst (Val _))
+        | eunify e' (Snd (Val _))
+        | eunify e' (if: (Val _) then _ else _)%E
+        | eunify e' (Case (Val _) _ _)
+        | eunify e' (UnOp _ (Val _))
+        | eunify e' (BinOp _ (Val _) (Val _))]
+.
+
+Ltac wp_exc_pure := wp_pure_smart wp_exc_pure_filter.
+
+Theorem wp_for P stk E (cond body post : val) Φ :
   P -∗
   □ (P -∗
      WP cond #() @ stk ; E {{ v, ⌜ v = #true ⌝ ∗
-                                 WP body #() @ stk ; E {{ bv,
-                                              ⌜ bv = continue_val ⌝ ∗ WP post #() @ stk; E {{ _, P }} ∨
-                                              ⌜ bv = execute_val ⌝ ∗ WP post #() @ stk; E {{ _, P }} ∨
-                                              ⌜ bv = break_val ⌝ ∗ WP do: #() @ stk ; E {{ Φ }} ∨
-                                              ∃ v, ⌜ bv = return_val v ⌝ ∗ Φ bv
-                                                       }} ∨
+                                 WP body #() @ stk ; E {{ for_postcondition stk E post P Φ }} ∨
                                  ⌜ v = #false ⌝ ∗ Φ #() }}) -∗
   WP (for: cond; post := body) @ stk ; E {{ Φ }}.
 Proof.
   iIntros "HP #Hloop".
-  wp_rec.
-  wp_let. wp_let.
-  wp_pure (Rec _ _ _).
-  match goal with
-  | |- context[RecV (BNamed "loop") _ ?body] => set (loop:=body)
-  end.
+  rewrite do_for_unseal.
   iLöb as "IH".
+  wp_rec.
+  wp_pures.
   wp_pures.
   iDestruct ("Hloop" with "HP") as "Hloop1".
   wp_bind (cond #()).
@@ -40,32 +76,30 @@ Proof.
     iIntros (bc) "Hb". (*[[% HP] | [[% HP] | [[% HΦ] | HΦ]]]". *)
     iDestruct "Hb" as "[[% HP]|Hb]".
     { (* body terminates with "continue" *)
-      subst. wp_pures. (* FIXME: don't unfold [do:] here *)
-      wp_lam; wp_pures; wp_lam; wp_pures.
+      subst. wp_pures.
+      wp_exc_pure.
+      wp_exc_pure.
+      wp_pures.
       wp_apply (wp_wand with "HP").
       iIntros (?) "HP".
-      wp_lam; wp_pures.
-      wp_lam. do 6 wp_pure1.
-      wp_bind (App (RecV "loop" _ _) _).
+      wp_exc_pure.
       iSpecialize ("IH" with "HP").
-      iApply (wp_wand with "IH").
+      wp_apply (wp_wand with "IH").
       iIntros (?) "HΦ".
-      wp_lam; wp_pures; wp_lam; wp_pures.
+      wp_exc_pure.
       done.
     }
     iDestruct "Hb" as "[[% HP]|Hb]".
     { (* body terminates with "execute" *)
       subst. wp_pures. (* FIXME: don't unfold [do:] here *)
-      wp_lam; wp_pures; wp_lam; wp_pures.
+      wp_exc_pure.
       wp_apply (wp_wand with "HP").
       iIntros (?) "HP".
-      wp_lam; wp_pures.
-      wp_lam. do 6 wp_pure1.
-      wp_bind (App (RecV "loop" _ _) _).
+      wp_exc_pure.
       iSpecialize ("IH" with "HP").
-      iApply (wp_wand with "IH").
+      wp_apply (wp_wand with "IH").
       iIntros (?) "HΦ".
-      wp_lam; wp_pures; wp_lam; wp_pures.
+      wp_exc_pure.
       done.
     }
     iDestruct "Hb" as "[[% HP]|Hb]".
@@ -73,8 +107,7 @@ Proof.
       subst. wp_pures.
       wp_apply (wp_wand with "HP").
       iIntros (?) "HΦ".
-      (* FIXME: don't unfold [return:] here *)
-      wp_lam; wp_pures; wp_lam; wp_pures.
+      wp_exc_pure.
       done.
     }
     iDestruct "Hb" as (?) "[% HΦ]".
@@ -82,26 +115,24 @@ Proof.
       wp_pures.
       subst.
       wp_pures.
-      wp_lam; wp_pures; wp_lam; wp_pures.
-      wp_lam; wp_pures; wp_lam; wp_pures.
-      wp_lam; wp_pures; wp_lam; wp_pures.
+      repeat wp_exc_pure.
       done.
     }
   -
-    wp_pures.
-    wp_lam; wp_pures; wp_lam; wp_pures.
+    wp_pures. wp_exc_pure.
     done.
 Qed.
 
 Local Opaque load_ty store_ty.
 
 (* FIXME: change requirement on return of [body] *)
+Context {ext_ty:ext_types ext}.
 Theorem wp_forUpto (I: u64 -> iProp Σ) stk E (start max:u64) (l:loc) (body: val) :
   int.Z start <= int.Z max ->
   (∀ (i:u64),
       {{{ I i ∗ l ↦[uint64T] #i ∗ ⌜int.Z i < int.Z max⌝ }}}
         body #() @ stk; E
-      {{{ RET #true; I (word.add i (U64 1)) ∗ l ↦[uint64T] #i }}}) -∗
+      {{{ v, RET v; I (word.add i (U64 1)) ∗ l ↦[uint64T] #i }}}) -∗
   {{{ I start ∗ l ↦[uint64T] #start }}}
     (for: (λ:<>, #max > ![uint64T] #l)%V ; (λ:<>, #l <-[uint64T] ![uint64T] #l + #1)%V :=
        body) @ stk; E
