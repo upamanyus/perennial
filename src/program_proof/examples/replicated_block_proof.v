@@ -110,7 +110,7 @@ Section goose.
     }}}
       Read #a @ stk; ⊤
     {{{ s, RET slice_val s;
-         crash_own γ (int.Z a d↦{q} b) (Pc) ∗
+         crash_own γ R (Pc) ∗
          own_slice s byteT 1%Qp (Block_to_vals b) }}}.
   Proof.
     iIntros (?) "Hpre HΦ".
@@ -152,7 +152,64 @@ Section goose.
     wp_apply (wp_raw_slice with "Hs").
     iIntros (s) "Hs".
     iApply "HΦ".
+    by iFrame "∗#".
+  Admitted.
+
+  (* TODO: does not belong here *)
+  Lemma wp_Write stk (a: u64) s q b0 b R R' Rc γ :
+    {{{
+          "Hs" ∷ is_block s q b ∗
+          "Hown" ∷ crash_own γ R Rc ∗
+          "Hacc" ∷ (R -∗ (int.Z a d↦ b0) ∗
+                    (int.Z a d↦ b -∗ R') ∗
+                    □(R' -∗ Rc)
+                   )
+    }}}
+      Write #a (slice_val s) @ stk; ⊤
+    {{{ RET #(); crash_own γ R' (Rc) ∗ is_block s q b }}}.
+  Proof.
+    iIntros (?) "Hpre HΦ".
+    iNamed "Hpre".
+    Transparent Write.
+    rewrite /Write /slice.ptr.
+    wp_pure1_credit "Hlc".
+    wp_pures.
+    iDestruct (own_slice_small_sz with "Hs") as %Hsz.
+    iDestruct (own_slice_small_wf with "Hs") as %Hwf.
+    assert (Atomic StronglyAtomic (ExternalOp WriteOp (#a, #s.(Slice.ptr))%V)).
+    { admit.
+      (* solve_atomic. inversion H. subst. monad_inv. inversion H0. subst. inversion H2. subst.
+      inversion H4. subst. inversion H6. subst. inversion H7. econstructor. eauto. *)
+    }
+    wp_apply wp_ncatomic.
+    iDestruct "Hown" as "[Hown #Hinv]".
+    iInv "Hinv" as "Hi" "Hclose".
+    iMod (lc_fupd_elim_later with "Hlc Hi") as "Hi".
+    iDestruct "Hi" as (?) "(Hown2 & HP & #HcrashWand)".
+    iDestruct (saved_prop_agree with "[$] [$]") as "#Hagree".
+    iModIntro.
+    iAssert (▷ R)%I with "[HP Hagree]" as "HR".
+    { iNext. (* FIXME: iRewrite targeting goal gives weird error *) iRewrite "Hagree" in "HP". iFrame. }
+    iAssert (▷ _)%I with "[Hacc HR]" as "Hda".
+    { iNext. iApply ("Hacc" with "HR"). }
+    iDestruct "Hda" as "[Hda HcloseR]".
+    wp_apply (wp_WriteOp with "[Hda Hs]").
+    { iExists _; iFrame. by iApply slice_to_block_array. }
+    iIntros "[Hda Hs]".
+    iMod (saved_prop_update_2 R' with "[$] [$]") as "[Hown Hown2]".
+    { apply Qp.half_half. }
+    iClear "Hagree".
+    iMod ("Hclose" with "[Hda HcloseR Hown2]").
+    {
+      iNext. iExists _; iFrame. iSplit.
+      { iLeft in "HcloseR". iApply "HcloseR". iFrame. }
+      { iRight in "HcloseR". iFrame. }
+    }
+    iApply "HΦ".
     iFrame "∗#".
+    iDestruct (block_array_to_slice_raw with "Hs") as "[? %]".
+    rewrite /is_block /own_slice_small. iFrame.
+    iPureIntro. simpl. split; first done. simpl in Hwf. word.
   Admitted.
 
   (* Open is the replicated block's recovery procedure, which constructs the
@@ -167,10 +224,15 @@ Section goose.
     wp_call.
     wp_apply (wp_Read with "[Hpre]").
     { iFrame. iNamed 1. iFrame. iIntros "$". }
-    iIntros (s) "(Hprimary&Hb)".
+    iIntros (s) "(Hcinv&Hb)".
     iDestruct (own_slice_to_small with "Hb") as "Hb".
     wp_pures.
-    wpc_apply (wpc_Write' with "[$Hbackup $Hb]").
+    wp_apply (wp_Write with "[$Hcinv $Hb]").
+    {
+      iNamed 1. iDestruct "Hbackup" as (?) "Hbackup".
+      (* FIXME: need to get ∃ out of crash_own. *)
+      iFrame "Hbackup".
+    }
     iSplit; [ | iNext ].
     { iLeft in "HΦ". iIntros "[Hbackup|Hbackup]"; iApply "HΦ"; eauto with iFrame. }
     iIntros "(Hbackup&_)".
