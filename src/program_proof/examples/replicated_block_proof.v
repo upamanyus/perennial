@@ -36,7 +36,7 @@ Section goose.
 
   (* Plan: inv (∃ P, own_prop γ (1/2) P ∗ P ∧ rblock_cinv)
    *)
-  Definition crash_inv γ Pc : iProp Σ := inv nroot (∃ P, saved_prop_own γ (DfracOwn (1/2)) P ∗ P ∧ Pc).
+  Definition crash_inv γ Pc : iProp Σ := inv nroot (∃ P, saved_prop_own γ (DfracOwn (1/2)) P ∗ P ∗ □(P -∗ Pc)).
   Definition crash_own γ P Pc : iProp Σ := saved_prop_own γ (DfracOwn (1/2)) P ∗ crash_inv γ Pc.
 
   (* the replicated block has a stronger lock invariant [rblock_linv] that holds
@@ -102,53 +102,61 @@ Section goose.
     - iExists block0; iExact "Hb".
   Qed.
 
-  (* FIXME: does not belong here *)
-  Lemma wp_Read stk E1 (a: u64) q b :
-    {{{ crash_own (int.Z a d↦{q} b) (Q) }}}
-      Read #a @ stk; E1
+  (* TODO: does not belong here *)
+  Lemma wp_Read stk (a: u64) q b Pc γ :
+    {{{ crash_own γ (int.Z a d↦{q} b) (Pc) }}}
+      Read #a @ stk; ⊤
     {{{ s, RET slice_val s;
-         crash_own (int.Z a d↦{q} b) (Q) ∗
-         own_slice s byteT 1%Qp (Block_to_vals b) }}}
-    {{{ int.Z a d↦{q} b }}}.
+         crash_own γ (int.Z a d↦{q} b) (Pc) ∗
+         own_slice s byteT 1%Qp (Block_to_vals b) }}}.
   Proof.
-    iIntros (Φ Φc) "Hda HΦ".
+    iIntros (?) "Hpre HΦ".
     Transparent Read. rewrite /Read.
-    wpc_pures.
-    { by crash_case. }
-    wpc_bind (ExternalOp _ _).
+    wp_pure1_credit "Hlc".
+    wp_bind (ExternalOp _ _).
     assert (Atomic StronglyAtomic (ExternalOp ReadOp #a)).
-    {
-      solve_atomic. inversion H. subst. monad_inv. inversion H0. subst. inversion H2. subst.
-      inversion H4. subst. inversion H6. subst. inversion H7. econstructor. eauto.
+    { admit.
+      (* solve_atomic. inversion H. subst. monad_inv. inversion H0. subst. inversion H2. subst.
+      inversion H4. subst. inversion H6. subst. inversion H7. econstructor. eauto. *)
     }
-    wpc_atomic; iFrame.
-    wp_apply (wp_ReadOp with "Hda").
-    iIntros (l) "(Hda&Hl)".
+    wp_apply wp_ncatomic.
+
+    (* TODO: separate lemma *)
+    iDestruct "Hpre" as "[Hown #Hinv]".
+    iInv "Hinv" as "Hi" "Hclose".
+    iMod (lc_fupd_elim_later with "Hlc Hi") as "Hi".
+    iDestruct "Hi" as (?) "(Hown2 & HP & #HcrashWand)".
+    iDestruct (saved_prop_agree with "[$] [$]") as "#Hagree".
+    iModIntro.
+    wp_apply (wp_ReadOp with "[HP]").
+    { iNext. iRewrite "Hagree" in "HP". iFrame. }
+    iIntros (?) "(HP & Hl)".
     iDestruct (block_array_to_slice_raw with "Hl") as "Hs".
-    iSplit.
-    { iDestruct "HΦ" as "(HΦ&_)".
-      iModIntro.
-      iDestruct ("HΦ" with "[$]") as "H". repeat iModIntro; auto. }
-    iModIntro. wpc_pures; first by crash_case.
-    wpc_frame "Hda HΦ".
-    { by crash_case. }
+    iMod ("Hclose" with "[HP Hown2]").
+    {
+      iNext. iExists _; iFrame. iSplit.
+      { iRewrite "Hagree". iFrame. }
+      { iFrame "#". }
+    }
+    iModIntro.
+    wp_pures.
     wp_apply (wp_raw_slice with "Hs").
     iIntros (s) "Hs".
-    iIntros "(?&HΦ)". iApply "HΦ".
-    iFrame.
-  Qed.
+    iApply "HΦ".
+    iFrame "∗#".
+  Admitted.
 
   (* Open is the replicated block's recovery procedure, which constructs the
   in-memory state as well as recovering the synchronization between primary and
   backup, going from the crash invariant to the lock invariant. *)
-  Theorem wpc_Open d addr σ γ :
+  Theorem wp_Open d addr σ γ :
     {{{ crash_own γ (rblock_cinv addr σ) (rblock_cinv addr σ) }}}
       Open (disk_val d) #addr
     {{{ (l:loc), RET #l; is_pre_rblock l addr σ }}}.
   Proof.
     iIntros (Φ) "Hpre HΦ"; iNamed "Hpre".
     wp_call.
-    wp_apply (wpc_Read with "Hprimary").
+    wp_apply (wp_Read with "[Hprimary]").
     iSplit; [ | iNext ].
     { iLeft in "HΦ". iIntros "Hprimary".
       (* Cached the wrong thing :( *)

@@ -144,6 +144,7 @@ Theorem wpc_for P stk (cond body post : val) Φ Φc :
                                  Φc ∧ WPC body #() @ stk ; ⊤ {{ for_postcondition_wpc stk ⊤ post P Φ Φc }} {{ Φc }} ∨
                                  ⌜ v = #false ⌝ ∗ Φc ∧ WPC (do: #()) @ stk ; ⊤ {{ Φ }} {{ Φc }} }} {{ Φc }}) -∗
   WPC (for: cond; post := body) @ stk ; ⊤ {{ v, Φc ∧ Φ v }} {{ Φc }}.
+  (* FIXME: Need to put Φc to make this Löb inductive *)
 Proof.
   iIntros "HP #Hloop".
   rewrite do_for_unseal.
