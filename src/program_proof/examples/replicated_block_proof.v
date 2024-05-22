@@ -103,14 +103,18 @@ Section goose.
   Qed.
 
   (* TODO: does not belong here *)
-  Lemma wp_Read stk (a: u64) q b Pc γ :
-    {{{ crash_own γ (int.Z a d↦{q} b) (Pc) }}}
+  Lemma wp_Read stk (a: u64) q b R Pc γ :
+    {{{
+          "Hown" ∷ crash_own γ R (Pc) ∗
+          "Hacc" ∷ (R -∗ (int.Z a d↦{q} b) ∗ (int.Z a d↦{q} b -∗ R))
+    }}}
       Read #a @ stk; ⊤
     {{{ s, RET slice_val s;
          crash_own γ (int.Z a d↦{q} b) (Pc) ∗
          own_slice s byteT 1%Qp (Block_to_vals b) }}}.
   Proof.
     iIntros (?) "Hpre HΦ".
+    iNamed "Hpre".
     Transparent Read. rewrite /Read.
     wp_pure1_credit "Hlc".
     wp_bind (ExternalOp _ _).
@@ -122,17 +126,22 @@ Section goose.
     wp_apply wp_ncatomic.
 
     (* TODO: separate lemma *)
-    iDestruct "Hpre" as "[Hown #Hinv]".
+    iDestruct "Hown" as "[Hown #Hinv]".
     iInv "Hinv" as "Hi" "Hclose".
     iMod (lc_fupd_elim_later with "Hlc Hi") as "Hi".
     iDestruct "Hi" as (?) "(Hown2 & HP & #HcrashWand)".
     iDestruct (saved_prop_agree with "[$] [$]") as "#Hagree".
     iModIntro.
-    wp_apply (wp_ReadOp with "[HP]").
-    { iNext. iRewrite "Hagree" in "HP". iFrame. }
+    iAssert (▷ R)%I with "[HP Hagree]" as "HR".
+    { iNext. (* FIXME: iRewrite targeting goal gives weird error *) iRewrite "Hagree" in "HP". iFrame. }
+    iAssert (▷ _)%I with "[Hacc HR]" as "Hda".
+    { iNext. iApply ("Hacc" with "HR"). }
+    iDestruct "Hda" as "[Hda HcloseR]".
+    wp_apply (wp_ReadOp with "Hda").
     iIntros (?) "(HP & Hl)".
+    iDestruct ("HcloseR" with "HP") as "HR".
     iDestruct (block_array_to_slice_raw with "Hl") as "Hs".
-    iMod ("Hclose" with "[HP Hown2]").
+    iMod ("Hclose" with "[HR Hown2]").
     {
       iNext. iExists _; iFrame. iSplit.
       { iRewrite "Hagree". iFrame. }
@@ -156,14 +165,11 @@ Section goose.
   Proof.
     iIntros (Φ) "Hpre HΦ"; iNamed "Hpre".
     wp_call.
-    wp_apply (wp_Read with "[Hprimary]").
-    iSplit; [ | iNext ].
-    { iLeft in "HΦ". iIntros "Hprimary".
-      (* Cached the wrong thing :( *)
-      iApply "HΦ". eauto with iFrame. }
+    wp_apply (wp_Read with "[Hpre]").
+    { iFrame. iNamed 1. iFrame. iIntros "$". }
     iIntros (s) "(Hprimary&Hb)".
     iDestruct (own_slice_to_small with "Hb") as "Hb".
-    wpc_pures.
+    wp_pures.
     wpc_apply (wpc_Write' with "[$Hbackup $Hb]").
     iSplit; [ | iNext ].
     { iLeft in "HΦ". iIntros "[Hbackup|Hbackup]"; iApply "HΦ"; eauto with iFrame. }
