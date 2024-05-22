@@ -72,7 +72,7 @@ Proof.
   iDestruct "Hbody" as "[[% Hbody]|[% HΦ]]"; subst.
   - wp_pures.
     wp_apply (wp_wand with "Hbody").
-    iIntros (bc) "Hb". (*[[% HP] | [[% HP] | [[% HΦ] | HΦ]]]". *)
+    iIntros (bc) "Hb". (* "[[% HP] | [[% HP] | [[% HΦ] | HΦ]]]". *)
     iDestruct "Hb" as "[[% HP]|Hb]".
     { (* body terminates with "continue" *)
       subst. wp_pures.
@@ -117,43 +117,108 @@ Proof.
       repeat wp_exc_pure.
       done.
     }
-  -
-    wp_pures. wp_apply (wp_wand with "HΦ"). iIntros (?) "HΦ". wp_exc_pure.
+  - wp_pures. wp_apply (wp_wand with "HΦ"). iIntros (?) "HΦ". wp_exc_pure.
     done.
 Qed.
 
 Local Opaque load_ty store_ty.
 
-(*
+Definition for_postcondition_wpc stk E (post : val) P Φ Φc bv : iProp Σ :=
+            ⌜ bv = continue_val ⌝ ∗ Φc ∧ WPC post #() @ stk; E {{ _, P }} {{ Φc }} ∨
+            ⌜ bv = execute_val ⌝ ∗ Φc ∧ WPC post #() @ stk; E {{ _, P }} {{ Φc }} ∨
+            ⌜ bv = break_val ⌝ ∗ Φc ∧ WPC do: #() @ stk ; E {{ Φ }} {{ Φc }} ∨
+            ∃ v, ⌜ bv = return_val v ⌝ ∗ Φ bv
+.
+
+(* FIXME: wpc_pures only works with 1 step, but these will not be 1 step. *)
+Instance pure_do_execute_v_1 (e : expr) (v : val) : PureExec True 1 (do: v ;;; e) (e).
+Admitted.
+
+Instance pure_exception_do_return_v_1  (v : val) : PureExec True 1 (exception_do (return: v)%E) (v).
+Admitted.
+
 Theorem wpc_for P stk (cond body post : val) Φ Φc :
   P -∗
   □ (P -∗
-     WPC cond #() @ stk ; ⊤ {{ v, ⌜ v = #true ⌝ ∗
-                                 WPC body #() @ stk ; ⊤ {{ for_postcondition stk ⊤ post P Φ }} {{ Φc }} ∨
-                                 ⌜ v = #false ⌝ ∗ WPC (do: #()) @ stk ; ⊤ {{ Φ }} {{ Φc }} }} {{ Φc }})  -∗
-  WPC (for: cond; post := body) @ stk ; ⊤ {{ Φ }} {{ Φc }}.
+     Φc ∧ WPC cond #() @ stk ; ⊤ {{ v, ⌜ v = #true ⌝ ∗
+                                 Φc ∧ WPC body #() @ stk ; ⊤ {{ for_postcondition_wpc stk ⊤ post P Φ Φc }} {{ Φc }} ∨
+                                 ⌜ v = #false ⌝ ∗ Φc ∧ WPC (do: #()) @ stk ; ⊤ {{ Φ }} {{ Φc }} }} {{ Φc }}) -∗
+  WPC (for: cond; post := body) @ stk ; ⊤ {{ v, Φc ∧ Φ v }} {{ Φc }}.
 Proof.
   iIntros "HP #Hloop".
   rewrite do_for_unseal.
   iLöb as "IH".
-
-  wpc_apply wpc_crash_borrow_generate_pre; [done|].
+  iCache with "HP".
+  { iSpecialize ("Hloop" with "HP"). iLeft in "Hloop". done. }
   wpc_call.
-  {
-    Print wpc_pre.
-    Locate "||={".
-    Search uPred_fupd2.
-    Print uPred_fupd2_def.
-  .
-    Print fupd.
-    Print global_state_interp.
-    iApply "H"
-  }
-  Search pre_borrow.
-  wpc_crash_borrow_inits.
-  Search crash_borrow.
-  Search wpc.
   wpc_pures.
+  iDestruct ("Hloop" with "HP") as "H".
+  iRight in "H".
+  wpc_apply (wpc_mono' with "[-H] [] H").
+  2:{ iIntros "$". }
+  iIntros (?) "Hbody".
+  iDestruct "Hbody" as "[[% Hbody]|[% HΦ]]"; subst.
+  {
+    wpc_pures.
+    { iLeft in "Hbody". done. }
+    iRight in "Hbody".
+    wpc_apply (wpc_mono' with "[-Hbody] [] Hbody").
+    2:{ iIntros "$". }
+    iIntros (bc) "Hb". (* "[[% HP] | [[% HP] | [[% HΦ] | HΦ]]]". *)
+    iDestruct "Hb" as "[[% HP]|Hb]".
+    { (* body terminates with "continue" *)
+      iCache with "HP".
+      { by iLeft in "HP". }
+      subst. wpc_pures.
+      wpc_pure_smart wp_exc_pure_filter as (HH).
+      { iFromCache. }
+      wpc_pures.
+      iRight in "HP".
+      wpc_apply (wpc_mono' with "[] [] HP").
+      2:{ iIntros "$". }
+      iIntros (?) "HP".
+      wpc_pure_smart wp_exc_pure_filter as (HH); [iFromCache|].
+      iSpecialize ("IH" with "HP").
+      wpc_apply (wpc_mono' with "[] [] IH").
+      2:{ iIntros "$". }
+      iIntros (?) "HΦ".
+      wpc_pure_smart wp_exc_pure_filter as (HH).
+      { iLeft in "HΦ". iFrame. }
+      { by iFrame. }
+      by iLeft in "HΦ".
+    }
+    iDestruct "Hb" as "[[% HP]|Hb]".
+    { (* body terminates with "execute" *)
+      subst. wp_pures. (* FIXME: don't unfold [do:] here *)
+      wp_exc_pure.
+      wp_apply (wp_wand with "HP").
+      iIntros (?) "HP".
+      wp_exc_pure.
+      iSpecialize ("IH" with "HP").
+      wp_apply (wp_wand with "IH").
+      iIntros (?) "HΦ".
+      wp_exc_pure.
+      done.
+    }
+    iDestruct "Hb" as "[[% HP]|Hb]".
+    { (* body terminates with "break" *)
+      subst. wp_pures.
+      wp_apply (wp_wand with "HP").
+      iIntros (?) "HΦ".
+      wp_exc_pure.
+      done.
+    }
+    iDestruct "Hb" as (?) "[% HΦ]".
+    { (* body terminates with other error code *)
+      wp_pures.
+      subst.
+      wp_pures.
+      repeat wp_exc_pure.
+      done.
+    }
+  - wp_pures. wp_apply (wp_wand with "HΦ"). iIntros (?) "HΦ". wp_exc_pure.
+    done.
+  }
 Qed.
 
 Theorem wpc_forBreak_cond' (I: bool -> iProp Σ) Ic Φ Φc stk E1 (cond body: val) :

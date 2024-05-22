@@ -78,15 +78,19 @@ Proof.
   }
 Qed.
 
-(* FIXME: lemma for (zero_val Mutex) *)
-(*
-Lemma wp_new_free_lock E:
-  {{{ True }}} lock.new #() @ E {{{ m, RET #lk; own_uninit_Mutex m }}}.
+Lemma wp_new_Mutex E:
+  {{{ True }}}
+    struct.alloc Mutex (zero_val (struct.t Mutex)) @ E
+ {{{ m, RET #m; own_uninit_Mutex m }}}.
 Proof.
   iIntros (Φ) "_ HΦ".
-  wp_call.
-  wp_apply wp_alloc_untyped; auto.
-Qed. *)
+  wp_apply wp_allocStruct.
+  { val_ty. }
+  iIntros (?) "Hl".
+  iApply "HΦ".
+  iDestruct (struct_fields_split with "Hl") as "Hl".
+  iNamed "Hl". iFrame.
+Qed.
 
 (*
 Lemma newlock_spec E (R : iProp Σ):

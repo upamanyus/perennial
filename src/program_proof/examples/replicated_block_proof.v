@@ -1,5 +1,6 @@
 From RecordUpdate Require Import RecordSet.
 
+From iris.base_logic Require Import saved_prop.
 From Perennial.Helpers Require Import ModArith.
 From Perennial.program_logic Require Import atomic.
 From Perennial.program_logic Require Import recovery_adequacy dist_adequacy.
@@ -8,8 +9,8 @@ From Perennial.goose_lang Require Import adequacy recovery_adequacy dist_adequac
 
 From Goose.github_dot_com.mit_dash_pdos.perennial_dash_examples Require Import replicated__block.
 From Perennial.algebra Require Import own_discrete.
-From Perennial.goose_lang.lib Require Import lock.crash_lock.
-From Perennial.program_proof Require Import disk_lib.
+(* From Perennial.goose_lang.lib Require Import lock.crash_lock. *)
+From Perennial.program_proof Require Import disk_lib disk_prelude sync.
 From Perennial.program_proof Require Import disk_prelude.
 
 
@@ -33,6 +34,11 @@ Section goose.
 
   Implicit Types (l:loc) (addr: u64) (σ: rblock.t) (γ: gname).
 
+  (* Plan: inv (∃ P, own_prop γ (1/2) P ∗ P ∧ rblock_cinv)
+   *)
+  Definition crash_inv γ Pc : iProp Σ := inv nroot (∃ P, saved_prop_own γ (DfracOwn (1/2)) P ∗ P ∧ Pc).
+  Definition crash_own γ P Pc : iProp Σ := saved_prop_own γ (DfracOwn (1/2)) P ∗ crash_inv γ Pc.
+
   (* the replicated block has a stronger lock invariant [rblock_linv] that holds
   when the lock is free as well as a weaker crash invariant [rblock_cinv] that
   holds at all intermediate points *)
@@ -45,14 +51,6 @@ Section goose.
      "Hbackup" ∷ ∃ b0, int.Z (word.add addr 1) d↦ b0)%I.
   (* Let eauto unfold this *)
   Local Hint Extern 1 (environments.envs_entails _ (rblock_cinv _ _)) => unfold rblock_cinv : core.
-
-  Instance rblock_linv_discretizable addr σ:
-    Discretizable (rblock_linv addr σ).
-  Proof. apply _. Qed.
-
-  Instance rblock_cinv_discretizable addr σ:
-    Discretizable (rblock_cinv addr σ).
-  Proof. apply _. Qed.
 
   Theorem rblock_linv_to_cinv addr σ :
     rblock_linv addr σ -∗ rblock_cinv addr σ.
@@ -69,7 +67,7 @@ Section goose.
   Context (P: rblock.t → iProp Σ).
 
   (* low-level rblock state *)
-  Definition rblock_state l d m_ref addr : iProp Σ :=
+  Definition is_rblock_state l d m_ref addr : iProp Σ :=
       (* reflect coq values in program data structure *)
       "#d" ∷ readonly (l ↦[RepBlock :: "d"] (disk_val d)) ∗
       "#addr" ∷ readonly (l ↦[RepBlock :: "addr"] #addr) ∗
@@ -77,21 +75,21 @@ Section goose.
 
   Definition is_pre_rblock (l: loc) addr σ : iProp Σ :=
     "*" ∷ (∃ d (m_ref : loc),
-      "Hro_state" ∷ rblock_state l d m_ref addr ∗
-      "Hfree_lock" ∷ is_free_crash_lock m_ref) ∗
+      "Hro_state" ∷ is_rblock_state l d m_ref addr ∗
+      "Hfree_lock" ∷ own_uninit_Mutex m_ref) ∗
     "Hlinv" ∷ rblock_linv addr σ.
 
-  Definition is_rblock (l: loc) addr : iProp Σ :=
+  Definition is_rblock (l: loc) addr γ : iProp Σ :=
     ∃ d (m_ref : loc),
-      "Hro_state" ∷ rblock_state l d m_ref addr ∗
+      "Hro_state" ∷ is_rblock_state l d m_ref addr ∗
       (* lock protocol *)
-      "#Hlock" ∷ is_crash_lock N #m_ref
-        (∃ σ, "Hlkinv" ∷ rblock_linv addr σ ∗ "HP" ∷ P σ)
-        (∃ σ, "Hclkinv" ∷ rblock_cinv addr σ ∗ "HP" ∷ P σ)
+      "#Hlock" ∷ is_Mutex m_ref
+        (∃ σ, crash_own γ ("Hlkinv" ∷ rblock_linv addr σ ∗ "HP" ∷ P σ)
+                        ("Hlkinv" ∷ rblock_cinv addr σ ∗ "HP" ∷ P σ))
   .
 
-  Global Instance is_rblock_Persistent l addr :
-    Persistent (is_rblock l addr).
+  Global Instance is_rblock_Persistent l addr γ :
+    Persistent (is_rblock l addr γ).
   Proof. apply _. Qed.
 
   Theorem init_zero_cinv addr :
@@ -104,25 +102,53 @@ Section goose.
     - iExists block0; iExact "Hb".
   Qed.
 
+  (* FIXME: does not belong here *)
+  Lemma wp_Read stk E1 (a: u64) q b :
+    {{{ crash_own (int.Z a d↦{q} b) (Q) }}}
+      Read #a @ stk; E1
+    {{{ s, RET slice_val s;
+         crash_own (int.Z a d↦{q} b) (Q) ∗
+         own_slice s byteT 1%Qp (Block_to_vals b) }}}
+    {{{ int.Z a d↦{q} b }}}.
+  Proof.
+    iIntros (Φ Φc) "Hda HΦ".
+    Transparent Read. rewrite /Read.
+    wpc_pures.
+    { by crash_case. }
+    wpc_bind (ExternalOp _ _).
+    assert (Atomic StronglyAtomic (ExternalOp ReadOp #a)).
+    {
+      solve_atomic. inversion H. subst. monad_inv. inversion H0. subst. inversion H2. subst.
+      inversion H4. subst. inversion H6. subst. inversion H7. econstructor. eauto.
+    }
+    wpc_atomic; iFrame.
+    wp_apply (wp_ReadOp with "Hda").
+    iIntros (l) "(Hda&Hl)".
+    iDestruct (block_array_to_slice_raw with "Hl") as "Hs".
+    iSplit.
+    { iDestruct "HΦ" as "(HΦ&_)".
+      iModIntro.
+      iDestruct ("HΦ" with "[$]") as "H". repeat iModIntro; auto. }
+    iModIntro. wpc_pures; first by crash_case.
+    wpc_frame "Hda HΦ".
+    { by crash_case. }
+    wp_apply (wp_raw_slice with "Hs").
+    iIntros (s) "Hs".
+    iIntros "(?&HΦ)". iApply "HΦ".
+    iFrame.
+  Qed.
+
   (* Open is the replicated block's recovery procedure, which constructs the
   in-memory state as well as recovering the synchronization between primary and
   backup, going from the crash invariant to the lock invariant. *)
-  Theorem wpc_Open d addr σ :
-    {{{ rblock_cinv addr σ }}}
-      Open (disk_val d) #addr @ ⊤
-    {{{ (l:loc), RET #l; is_pre_rblock l addr σ }}}
-    {{{ rblock_cinv addr σ }}}.
+  Theorem wpc_Open d addr σ γ :
+    {{{ crash_own γ (rblock_cinv addr σ) (rblock_cinv addr σ) }}}
+      Open (disk_val d) #addr
+    {{{ (l:loc), RET #l; is_pre_rblock l addr σ }}}.
   Proof.
-    iIntros (Φ Φc) "Hpre HΦ"; iNamed "Hpre".
-    iDeexHyp "Hbackup".
-    wpc_call.
-    { eauto 10 with iFrame. }
-    { eauto 10 with iFrame. }
-    iCache with "Hprimary Hbackup HΦ".
-    { crash_case. eauto 10 with iFrame. }
-    (* read block content, write it to backup block *)
-    wpc_pures.
-    wpc_apply (wpc_Read with "Hprimary").
+    iIntros (Φ) "Hpre HΦ"; iNamed "Hpre".
+    wp_call.
+    wp_apply (wpc_Read with "Hprimary").
     iSplit; [ | iNext ].
     { iLeft in "HΦ". iIntros "Hprimary".
       (* Cached the wrong thing :( *)
@@ -139,6 +165,7 @@ Section goose.
 
     (* allocate lock *)
     wpc_pures.
+    wpc_apply wp_new_Mutex.
     wpc_bind (lock.new _).
     wpc_frame.
     wp_apply wp_new_free_crash_lock.
