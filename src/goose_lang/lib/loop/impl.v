@@ -15,7 +15,7 @@ Definition return_val (v:val) : val := (#(str "return"), v).
 Local Definition do_for_def : val :=
   rec: "loop" "cond" "body" "post" :=
    exception_do (
-   if: ~(Var "cond") #() then (return: #())
+   if: ~(Var "cond") #() then (return: (do: #()))
    else
      let: "b" := "body" #() in
      if: Fst "b" = #(str "break") then (return: (do: #())) else (do: #()) ;;;

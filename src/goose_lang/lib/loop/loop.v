@@ -1,5 +1,5 @@
 From Perennial.goose_lang Require Import notation typing exception.
-From Perennial.goose_lang Require Import proofmode wpc_proofmode.
+From Perennial.goose_lang Require Import proofmode wpc_proofmode crash_borrow.
 From Perennial.goose_lang.lib Require Export typed_mem loop.impl.
 
 Set Default Proof Using "Type".
@@ -57,14 +57,13 @@ Theorem wp_for P stk E (cond body post : val) Φ :
   □ (P -∗
      WP cond #() @ stk ; E {{ v, ⌜ v = #true ⌝ ∗
                                  WP body #() @ stk ; E {{ for_postcondition stk E post P Φ }} ∨
-                                 ⌜ v = #false ⌝ ∗ Φ #() }}) -∗
+                                 ⌜ v = #false ⌝ ∗ WP (do: #()) @ stk ; E {{ Φ }} }})  -∗
   WP (for: cond; post := body) @ stk ; E {{ Φ }}.
 Proof.
   iIntros "HP #Hloop".
   rewrite do_for_unseal.
   iLöb as "IH".
   wp_rec.
-  wp_pures.
   wp_pures.
   iDestruct ("Hloop" with "HP") as "Hloop1".
   wp_bind (cond #()).
@@ -119,74 +118,43 @@ Proof.
       done.
     }
   -
-    wp_pures. wp_exc_pure.
+    wp_pures. wp_apply (wp_wand with "HΦ"). iIntros (?) "HΦ". wp_exc_pure.
     done.
 Qed.
 
 Local Opaque load_ty store_ty.
 
-(* FIXME: change requirement on return of [body] *)
-Context {ext_ty:ext_types ext}.
-Theorem wp_forUpto (I: u64 -> iProp Σ) stk E (start max:u64) (l:loc) (body: val) :
-  int.Z start <= int.Z max ->
-  (∀ (i:u64),
-      {{{ I i ∗ l ↦[uint64T] #i ∗ ⌜int.Z i < int.Z max⌝ }}}
-        body #() @ stk; E
-      {{{ v, RET v; I (word.add i (U64 1)) ∗ l ↦[uint64T] #i }}}) -∗
-  {{{ I start ∗ l ↦[uint64T] #start }}}
-    (for: (λ:<>, #max > ![uint64T] #l)%V ; (λ:<>, #l <-[uint64T] ![uint64T] #l + #1)%V :=
-       body) @ stk; E
-  {{{ RET #(); I max ∗ l ↦[uint64T] #max }}}.
+(*
+Theorem wpc_for P stk (cond body post : val) Φ Φc :
+  P -∗
+  □ (P -∗
+     WPC cond #() @ stk ; ⊤ {{ v, ⌜ v = #true ⌝ ∗
+                                 WPC body #() @ stk ; ⊤ {{ for_postcondition stk ⊤ post P Φ }} {{ Φc }} ∨
+                                 ⌜ v = #false ⌝ ∗ WPC (do: #()) @ stk ; ⊤ {{ Φ }} {{ Φc }} }} {{ Φc }})  -∗
+  WPC (for: cond; post := body) @ stk ; ⊤ {{ Φ }} {{ Φc }}.
 Proof.
-  iIntros (Hstart_max) "#Hbody".
-  iIntros (Φ) "!> (H0 & Hl) HΦ".
-  iAssert (∃ i, "HI" ∷ I i ∗
-                "Hl" ∷ l ↦[uint64T] #i ∗
-                "%Hineq" ∷ ⌜ int.Z i <= int.Z max ⌝)%I with "[H0 Hl]" as "HH".
-  { iExists _; iFrame. done. }
-  wp_apply (wp_for with "[-]"); [ by iNamedAccu | iIntros "!# __CTX"; iNamed "__CTX" ].
-  iNamed "HH".
-  wp_load.
-  wp_pures.
-Admitted.
+  iIntros "HP #Hloop".
+  rewrite do_for_unseal.
+  iLöb as "IH".
 
-(* Example specification for the usual for i := 0; i < max; i++ loop in Go.
-
-In practice it is easier to use wp_forUpto, which is just after the loop
-variable is allocated (it is a pointer since the loop must mutate it), since it
-applies to just the For combinator rather than the sequence of allocation +
-For. *)
-Theorem wp_simpleFor (I: u64 -> iProp Σ) (max:u64) (body: val) :
-  (∀ (l:loc) (i:u64),
-      {{{ I i ∗ l ↦[uint64T] #i ∗ ⌜int.Z i < int.Z max⌝ }}}
-        body #l
-      {{{ RET #true; I (word.add i (U64 1)) ∗ l ↦[uint64T] #i }}}) -∗
-  {{{ I (U64 0) }}}
-    (let: "i" := ref_to uint64T #0 in
-     (for: (λ:<>, ![uint64T] (Var "i") < #max)%E;
-           (λ:<>, (Var "i") <-[uint64T] ![uint64T] (Var "i") + #1)%E :=
-       (λ:<>, body (Var "i"))))
-  {{{ RET #(); I max }}}.
-Proof.
-  iIntros "#Hbody".
-  iIntros (Φ) "!> HI0 HΦ".
-  wp_apply wp_ref_to; [ val_ty | ].
-  iIntros (l) "Hl".
-  wp_pures.
-  wp_apply (wp_forUpto I with "[] [$HI0 $Hl]").
-  { word. }
-  { clear.
-    iIntros (i).
-    iIntros (Φ) "!> (Hi & Hl & %Hbound) HΦ".
-    wp_pures.
-    wp_apply ("Hbody" with "[$Hi $Hl] [$]").
-    iPureIntro; done. }
-  iIntros "[HI _]".
-  iApply ("HΦ" with "[$]").
+  wpc_apply wpc_crash_borrow_generate_pre; [done|].
+  wpc_call.
+  {
+    Print wpc_pre.
+    Locate "||={".
+    Search uPred_fupd2.
+    Print uPred_fupd2_def.
+  .
+    Print fupd.
+    Print global_state_interp.
+    iApply "H"
+  }
+  Search pre_borrow.
+  wpc_crash_borrow_inits.
+  Search crash_borrow.
+  Search wpc.
+  wpc_pures.
 Qed.
-
-Local Hint Extern 2 (envs_entails _ (∃ i, ?I i ∗ ⌜_⌝)%I) =>
-iExists _; iFrame; iPureIntro; word : core.
 
 Theorem wpc_forBreak_cond' (I: bool -> iProp Σ) Ic Φ Φc stk E1 (cond body: val) :
   (∀ b, I b -∗ Ic) -∗
@@ -196,7 +164,7 @@ Theorem wpc_forBreak_cond' (I: bool -> iProp Σ) Ic Φ Φc stk E1 (cond body: va
      {{ v, ∃ b : bool, ⌜ v = #b ⌝ ∧ I b }}
      {{ Ic }}) -∗
   I true -∗
-  WPC (for: cond; (λ: <>, (λ: <>, #())%V #())%V := body) @ stk; E1
+  WPC (for: cond; post%V := body) @ stk; E1
   {{ Φ }}
   {{ Φc }}.
 Proof.
@@ -384,11 +352,12 @@ Proof.
   - assert (int.Z x = int.Z max) by word.
     apply word.unsigned_inj in H; subst.
     iApply ("HΦ" with "[$]").
-Qed.
+Qed. *)
 
 End goose_lang.
 
 (** Tactics for convenient loop reasoning *)
+(*
 Ltac wp_forBreak_cond :=
   wp_bind (For _ _ _); iApply (wp_forBreak_cond' with "[-]");
   [ by iNamedAccu
@@ -397,3 +366,4 @@ Ltac wp_forBreak :=
   wp_bind (For _ _ _); iApply (wp_forBreak' with "[-]");
   [ by iNamedAccu
   | iIntros "!# __CTX"; iNamed "__CTX" ].
+*)
