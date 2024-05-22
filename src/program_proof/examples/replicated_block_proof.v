@@ -73,11 +73,11 @@ Section goose.
       "#addr" ∷ readonly (l ↦[RepBlock :: "addr"] #addr) ∗
       "#m" ∷ readonly (l ↦[RepBlock :: "m"] #m_ref).
 
-  Definition is_pre_rblock (l: loc) addr σ : iProp Σ :=
+  Definition is_pre_rblock γ (l: loc) addr σ : iProp Σ :=
     "*" ∷ (∃ d (m_ref : loc),
       "Hro_state" ∷ is_rblock_state l d m_ref addr ∗
       "Hfree_lock" ∷ own_uninit_Mutex m_ref) ∗
-    "Hlinv" ∷ rblock_linv addr σ.
+    "Hlinv" ∷ crash_own γ (rblock_linv addr σ) (rblock_cinv addr σ).
 
   Definition is_rblock (l: loc) addr γ : iProp Σ :=
     ∃ d (m_ref : loc),
@@ -156,11 +156,11 @@ Section goose.
   Admitted.
 
   (* TODO: does not belong here *)
-  Lemma wp_Write stk (a: u64) s q b0 b R R' Rc γ :
+  Lemma wp_Write stk (a: u64) s q b R R' Rc γ :
     {{{
           "Hs" ∷ is_block s q b ∗
           "Hown" ∷ crash_own γ R Rc ∗
-          "Hacc" ∷ (R -∗ (int.Z a d↦ b0) ∗
+          "Hacc" ∷ (R -∗ (∃ b0, int.Z a d↦ b0) ∗
                     (int.Z a d↦ b -∗ R') ∗
                     □(R' -∗ Rc)
                    )
@@ -193,6 +193,7 @@ Section goose.
     iAssert (▷ _)%I with "[Hacc HR]" as "Hda".
     { iNext. iApply ("Hacc" with "HR"). }
     iDestruct "Hda" as "[Hda HcloseR]".
+    iDestruct "Hda" as (?) "Hda".
     wp_apply (wp_WriteOp with "[Hda Hs]").
     { iExists _; iFrame. by iApply slice_to_block_array. }
     iIntros "[Hda Hs]".
@@ -218,42 +219,32 @@ Section goose.
   Theorem wp_Open d addr σ γ :
     {{{ crash_own γ (rblock_cinv addr σ) (rblock_cinv addr σ) }}}
       Open (disk_val d) #addr
-    {{{ (l:loc), RET #l; is_pre_rblock l addr σ }}}.
+    {{{ (l:loc), RET #l; is_pre_rblock γ l addr σ }}}.
   Proof.
     iIntros (Φ) "Hpre HΦ"; iNamed "Hpre".
     wp_call.
     wp_apply (wp_Read with "[Hpre]").
     { iFrame. iNamed 1. iFrame. iIntros "$". }
-    iIntros (s) "(Hcinv&Hb)".
+    iIntros (s) "(Hcown&Hb)".
     iDestruct (own_slice_to_small with "Hb") as "Hb".
     wp_pures.
-    wp_apply (wp_Write with "[$Hcinv $Hb]").
+    wp_apply (wp_Write with "[$Hcown $Hb]").
     {
-      iNamed 1. iDestruct "Hbackup" as (?) "Hbackup".
-      (* FIXME: need to get ∃ out of crash_own. *)
-      iFrame "Hbackup".
+      iNamed 1. iFrame.
+      iSplitL.
+      { iIntros "Hbackup". iNamedAccu. }
+      { iModIntro. iNamed 1. iFrame. }
     }
-    iSplit; [ | iNext ].
-    { iLeft in "HΦ". iIntros "[Hbackup|Hbackup]"; iApply "HΦ"; eauto with iFrame. }
-    iIntros "(Hbackup&_)".
-    iCache with "HΦ Hprimary Hbackup".
-    { iLeft in "HΦ". iApply "HΦ"; eauto with iFrame. }
-
+    iIntros "[Hcown Hs]".
     (* allocate lock *)
-    wpc_pures.
-    wpc_apply wp_new_Mutex.
-    wpc_bind (lock.new _).
-    wpc_frame.
-    wp_apply wp_new_free_crash_lock.
+    wp_pures.
+    wp_apply wp_new_Mutex.
     iIntros (m_ref) "Hfree_lock".
-    iNamed 1.
 
     (* allocate struct *)
-    rewrite -wpc_fupd.
-    wpc_frame.
+    iApply wp_fupd.
     wp_apply wp_allocStruct; auto.
     iIntros (l) "Hrb".
-    iNamed 1.
 
     (* ghost allocation *)
     iDestruct (struct_fields_split with "Hrb") as "(d&addr&m&_)".
